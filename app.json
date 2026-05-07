@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "PrepAI",
+    "slug": "prepai",
+    "scheme": "prepai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0A0A0A",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "backgroundColor": "#0A0A0A",
+      "image": "./assets/icon.png",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.prepai.app"
+    },
+    "android": {
+      "package": "com.prepai.prepai",
+      "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0A0A"
+      }
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-image-picker",
+      "expo-document-picker"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.expo/
+.env
+.env.local
+google-services.json
+*.keystore
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+expo-server.log
+expo-server.err.log
+expo-*.log
+current-auth-test.txt
+ldplayer-screen.png
+window.xml
