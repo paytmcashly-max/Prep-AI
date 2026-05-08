@@ -20,14 +20,18 @@ export const consumeLastAuthAction = () => {
 
 const requireFirebaseConfig = () => {
   if (!isFirebaseConfigured) {
-    throw new Error("Missing Firebase environment variables. Add your Firebase config to .env and restart Expo.");
+    throw new Error(
+      "Missing Firebase environment variables. Add your Firebase config to .env and restart Expo."
+    );
   }
 };
 
 const getFriendlyAuthError = (error) => {
   switch (error?.code) {
     case "auth/operation-not-allowed":
-      return new Error("Email/password sign-in is not enabled in Firebase. Enable Email/Password under Firebase Console > Authentication > Sign-in method.");
+      return new Error(
+        "Email/password sign-in is not enabled in Firebase. Enable Email/Password under Firebase Console > Authentication > Sign-in method."
+      );
     case "auth/invalid-email":
       return new Error("Please enter a valid email address.");
     case "auth/user-not-found":

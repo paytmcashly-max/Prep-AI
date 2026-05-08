@@ -27,9 +27,17 @@ const screenOptions = {
 
 function AuthStack({ initialRouteName = "Splash" }) {
   return (
-    <Stack.Navigator key={initialRouteName} initialRouteName={initialRouteName} screenOptions={screenOptions}>
+    <Stack.Navigator
+      key={initialRouteName}
+      initialRouteName={initialRouteName}
+      screenOptions={screenOptions}
+    >
       <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="Onboarding"
+        component={OnboardingScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login" }} />
       <Stack.Screen name="Signup" component={SignupScreen} options={{ title: "Create account" }} />
     </Stack.Navigator>

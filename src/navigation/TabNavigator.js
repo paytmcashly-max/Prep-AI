@@ -1,4 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import HomeScreen from "../screens/HomeScreen";
 import PracticeScreen from "../screens/PracticeScreen";
@@ -9,19 +11,35 @@ import { COLORS } from "../utils/constants";
 
 const Tab = createBottomTabNavigator();
 
+const TAB_ICONS = {
+  Home: "home",
+  Practice: "mic",
+  Resume: "document-text",
+  Progress: "bar-chart",
+  Profile: "person"
+};
+
 export default function TabNavigator() {
   return (
     <Tab.Navigator
       initialRouteName="Home"
-      screenOptions={{
+      screenListeners={{
+        tabPress: () => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        }
+      }}
+      screenOptions={({ route }) => ({
         headerShadowVisible: false,
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.muted,
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons color={color} name={TAB_ICONS[route.name] || "ellipse"} size={size} />
+        ),
         tabBarStyle: {
           borderTopColor: COLORS.border,
           backgroundColor: COLORS.surface
         }
-      }}
+      })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Practice" component={PracticeScreen} />

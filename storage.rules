@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isPdfResume() {
+      return request.resource != null
+        && request.resource.contentType == 'application/pdf'
+        && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Baseline production rules must be tested with the Firebase Emulator Suite before launch.
+    // Deny by default. Add narrow, reviewed exceptions only when a feature requires them.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Users may read their own uploaded resume files.
+    match /users/{uid}/resumes/{fileName} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && isPdfResume();
+      allow delete: if isOwner(uid);
+    }
+  }
+}

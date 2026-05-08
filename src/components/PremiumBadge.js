@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 
-import { COLORS, SPACING } from "../utils/constants";
+import { SPACING } from "../utils/constants";
 
 export default function PremiumBadge() {
   return (

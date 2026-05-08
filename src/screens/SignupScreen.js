@@ -4,7 +4,7 @@ import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
-  Pressable,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +13,8 @@ import {
 } from "react-native";
 
 import { signUpWithEmail } from "../services/authService";
+import HapticPressable from "../components/HapticPressable";
+import { trackEvent } from "../services/analyticsService";
 import { COLORS } from "../utils/constants";
 
 export default function SignupScreen({ navigation }) {
@@ -33,6 +35,7 @@ export default function SignupScreen({ navigation }) {
     }
 
     setIsSubmitting(true);
+    trackEvent("signup_started");
 
     try {
       await signUpWithEmail(name, email, password);
@@ -45,7 +48,7 @@ export default function SignupScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      behavior={process.env.EXPO_OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.keyboardView}
     >
       <ScrollView
@@ -118,7 +121,7 @@ export default function SignupScreen({ navigation }) {
             </Text>
           </View>
 
-          <Pressable
+          <HapticPressable
             disabled={isSubmitting}
             onPress={handleSignup}
             style={({ pressed }) => [
@@ -134,18 +137,18 @@ export default function SignupScreen({ navigation }) {
                 Create account
               </Text>
             )}
-          </Pressable>
+          </HapticPressable>
         </View>
 
         <View style={styles.footerRow}>
           <Text selectable style={styles.footerText}>
             Already have an account?
           </Text>
-          <Pressable onPress={() => navigation.navigate("Login")} hitSlop={10}>
+          <HapticPressable onPress={() => navigation.navigate("Login")} hitSlop={10}>
             <Text selectable style={styles.footerLink}>
               Login
             </Text>
-          </Pressable>
+          </HapticPressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

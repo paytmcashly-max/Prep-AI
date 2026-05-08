@@ -1,6 +1,5 @@
 import Constants from "expo-constants";
 import * as Device from "expo-device";
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
@@ -10,18 +9,43 @@ const DAILY_PRACTICE_NOTIFICATION_TYPE = "daily_interview_practice";
 const DAILY_PRACTICE_CHANNEL_ID = "daily-practice";
 
 let setupUid = null;
+let notificationsModule = null;
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true
-  })
-});
+const isExpoGo = () => Constants.appOwnership === "expo";
+
+const getScheduledNotificationType = (notification) =>
+  notification?.request?.content?.data?.type || notification?.content?.data?.type;
+
+const getNotificationsModule = async () => {
+  if (isExpoGo()) {
+    // Expo Go SDK 53+ does not support Android remote push notifications.
+    // Development/preview builds still load expo-notifications normally.
+    return null;
+  }
+
+  if (!notificationsModule) {
+    notificationsModule = await import("expo-notifications");
+    notificationsModule.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true
+      })
+    });
+  }
+
+  return notificationsModule;
+};
 
 const configureAndroidChannel = async () => {
   if (Platform.OS !== "android") {
+    return;
+  }
+
+  const Notifications = await getNotificationsModule();
+
+  if (!Notifications) {
     return;
   }
 
@@ -36,6 +60,12 @@ const configureAndroidChannel = async () => {
 const requestNotificationPermissions = async () => {
   await configureAndroidChannel();
 
+  const Notifications = await getNotificationsModule();
+
+  if (!Notifications) {
+    return false;
+  }
+
   const existing = await Notifications.getPermissionsAsync();
   let status = existing.status;
 
@@ -48,17 +78,17 @@ const requestNotificationPermissions = async () => {
 };
 
 const getExpoPushToken = async () => {
-  if (Constants.appOwnership === "expo") {
-    console.log("Skipping remote push token in Expo Go. Use an EAS development build for push tokens.");
-    return null;
-  }
-
   if (!Device.isDevice) {
     return null;
   }
 
-  const projectId =
-    Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+  const Notifications = await getNotificationsModule();
+
+  if (!Notifications) {
+    return null;
+  }
+
+  const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
 
   const tokenResponse = projectId
     ? await Notifications.getExpoPushTokenAsync({ projectId })
@@ -83,19 +113,31 @@ const savePushToken = async (uid, pushToken) => {
 };
 
 export const getDailyPracticeReminderEnabled = async () => {
+  const Notifications = await getNotificationsModule();
+
+  if (!Notifications) {
+    return false;
+  }
+
   const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
 
   return scheduledNotifications.some(
     (notification) =>
-      notification.request.content.data?.type === DAILY_PRACTICE_NOTIFICATION_TYPE
+      getScheduledNotificationType(notification) === DAILY_PRACTICE_NOTIFICATION_TYPE
   );
 };
 
 export const cancelDailyPracticeNotification = async () => {
+  const Notifications = await getNotificationsModule();
+
+  if (!Notifications) {
+    return;
+  }
+
   const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
   const dailyNotifications = scheduledNotifications.filter(
     (notification) =>
-      notification.request.content.data?.type === DAILY_PRACTICE_NOTIFICATION_TYPE
+      getScheduledNotificationType(notification) === DAILY_PRACTICE_NOTIFICATION_TYPE
   );
 
   await Promise.all(
@@ -106,6 +148,12 @@ export const cancelDailyPracticeNotification = async () => {
 };
 
 export const scheduleDailyPracticeNotification = async () => {
+  const Notifications = await getNotificationsModule();
+
+  if (!Notifications) {
+    return;
+  }
+
   const alreadyScheduled = await getDailyPracticeReminderEnabled();
 
   if (alreadyScheduled) {
@@ -145,6 +193,12 @@ export const setDailyPracticeReminderEnabled = async (enabled) => {
 
 export const showSessionCompleteNotification = async () => {
   try {
+    const Notifications = await getNotificationsModule();
+
+    if (!Notifications) {
+      return;
+    }
+
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "Great job!",
@@ -162,6 +216,10 @@ export const setupNotifications = async (user = auth.currentUser) => {
   const uid = user?.uid;
 
   if (!uid || setupUid === uid) {
+    return;
+  }
+
+  if (isExpoGo()) {
     return;
   }
 

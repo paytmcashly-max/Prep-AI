@@ -1,14 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
+import SkeletonBox from "../components/SkeletonBox";
 import {
   calculateAverageScore,
   calculateCurrentStreak,
@@ -36,7 +30,10 @@ function TopicBadge({ label, tone }) {
 
   return (
     <View style={[styles.badge, isStrong ? styles.strongBadge : styles.improvementBadge]}>
-      <Text selectable style={[styles.badgeText, isStrong ? styles.strongText : styles.improvementText]}>
+      <Text
+        selectable
+        style={[styles.badgeText, isStrong ? styles.strongText : styles.improvementText]}
+      >
         {label}
       </Text>
     </View>
@@ -139,10 +136,9 @@ export default function ProgressScreen() {
 
       {isLoading ? (
         <View style={styles.loadingCard}>
-          <ActivityIndicator color={COLORS.accent} size="large" />
-          <Text selectable style={styles.loadingText}>
-            Loading your interview progress...
-          </Text>
+          <SkeletonBox style={styles.loadingSkeletonTitle} />
+          <SkeletonBox style={styles.loadingSkeletonLine} />
+          <SkeletonBox style={[styles.loadingSkeletonLine, styles.loadingSkeletonShort]} />
         </View>
       ) : null}
 
@@ -402,6 +398,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     textAlign: "center"
+  },
+  loadingSkeletonLine: {
+    height: 18,
+    width: "82%"
+  },
+  loadingSkeletonShort: {
+    width: "54%"
+  },
+  loadingSkeletonTitle: {
+    height: 24,
+    width: "64%"
   },
   scoreLabel: {
     color: COLORS.text,

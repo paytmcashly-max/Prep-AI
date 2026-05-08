@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,7 +11,10 @@ import {
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 
-import { analyzeResume } from "../services/openaiService";
+import HapticPressable from "../components/HapticPressable";
+import { trackEvent } from "../services/analyticsService";
+import { analyzeResume, analyzeResumePdf } from "../services/openaiService";
+import { validateResumePdfAsset } from "../services/resumeService";
 import { useUserStore } from "../store/userStore";
 
 const JOB_ROLES = [
@@ -51,7 +53,7 @@ function JobRolePicker({ selectedValue, onSelect }) {
       <Text selectable style={styles.label}>
         Job Role
       </Text>
-      <Pressable
+      <HapticPressable
         onPress={() => setIsOpen((current) => !current)}
         style={({ pressed }) => [styles.selectButton, pressed && styles.pressed]}
       >
@@ -59,7 +61,7 @@ function JobRolePicker({ selectedValue, onSelect }) {
           {selectedValue || "Select target role"}
         </Text>
         <Text style={styles.chevron}>{isOpen ? "Up" : "Down"}</Text>
-      </Pressable>
+      </HapticPressable>
 
       {isOpen ? (
         <View style={styles.optionsPanel}>
@@ -67,7 +69,7 @@ function JobRolePicker({ selectedValue, onSelect }) {
             const selected = selectedValue === role;
 
             return (
-              <Pressable
+              <HapticPressable
                 key={role}
                 onPress={() => {
                   onSelect(role);
@@ -82,7 +84,7 @@ function JobRolePicker({ selectedValue, onSelect }) {
                 <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
                   {role}
                 </Text>
-              </Pressable>
+              </HapticPressable>
             );
           })}
         </View>
@@ -106,7 +108,7 @@ function SectionFeedbackCard({ title, value }) {
 
   return (
     <View style={styles.feedbackItem}>
-      <Pressable
+      <HapticPressable
         onPress={() => setIsOpen((current) => !current)}
         style={({ pressed }) => [styles.feedbackHeader, pressed && styles.pressed]}
       >
@@ -114,12 +116,25 @@ function SectionFeedbackCard({ title, value }) {
           {title}
         </Text>
         <Text style={styles.chevron}>{isOpen ? "Hide" : "Show"}</Text>
-      </Pressable>
+      </HapticPressable>
       {isOpen ? (
         <Text selectable style={styles.feedbackText}>
           {value || "No feedback available yet."}
         </Text>
       ) : null}
+    </View>
+  );
+}
+
+function MessageCard({ message, title, tone = "default" }) {
+  return (
+    <View style={[styles.messageCard, tone === "error" && styles.errorMessageCard]}>
+      <Text selectable style={styles.messageTitle}>
+        {title}
+      </Text>
+      <Text selectable style={[styles.messageText, tone === "error" && styles.errorText]}>
+        {message}
+      </Text>
     </View>
   );
 }
@@ -133,7 +148,7 @@ export default function ResumeScreen() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
-
+  const [showPasteFallback, setShowPasteFallback] = useState(false);
   const atsColor = useMemo(() => {
     const score = Number(analysis?.atsScore || 0);
 
@@ -161,19 +176,22 @@ export default function ResumeScreen() {
         return;
       }
 
-      setSelectedFile(result.assets?.[0] || null);
+      const asset = result.assets?.[0];
+      validateResumePdfAsset(asset);
+      setSelectedFile(asset);
       setAnalysis(null);
       setErrorMessage("");
     } catch (error) {
-      Alert.alert("Upload failed", error.message || "Could not pick this PDF.");
+      setSelectedFile(null);
+      setErrorMessage(error.message || "Could not pick this PDF.");
     } finally {
       setIsPickingPdf(false);
     }
   };
 
   const analyzeSelectedResume = async () => {
-    if (!resumeText.trim()) {
-      Alert.alert("Paste resume text", "Please paste your resume text before analyzing.");
+    if (!selectedFile && !resumeText.trim()) {
+      Alert.alert("Add resume", "Please upload a PDF or paste your resume text first.");
       return;
     }
 
@@ -182,16 +200,36 @@ export default function ResumeScreen() {
       return;
     }
 
+    const trimmedText = resumeText.trim();
+
+    if (!selectedFile && trimmedText.length < 100) {
+      setErrorMessage("Resume text is too short. Please paste at least 100 characters.");
+      return;
+    }
+
     try {
       setIsAnalyzing(true);
       setErrorMessage("");
       setAnalysis(null);
+      trackEvent("resume_analysis_started", {
+        inputType: selectedFile ? "pdf" : "text",
+        jobRole
+      });
 
-      const trimmedText = resumeText.trim().substring(0, 3000);
-      console.log("Resume pasted text length:", resumeText.trim().length);
+      if (selectedFile) {
+        validateResumePdfAsset(selectedFile);
+      }
 
-      const result = await analyzeResume(trimmedText, jobRole);
+      const result = selectedFile
+        ? await analyzeResumePdf(selectedFile, jobRole)
+        : await analyzeResume(trimmedText, jobRole);
+
       setAnalysis(result);
+      trackEvent("resume_analysis_completed", {
+        atsScore: Number(result.atsScore || 0),
+        inputType: selectedFile ? "pdf" : "text",
+        jobRole
+      });
     } catch (error) {
       setErrorMessage(error.message || "Could not analyze this resume. Please try again.");
     } finally {
@@ -205,6 +243,7 @@ export default function ResumeScreen() {
     setAnalysis(null);
     setErrorMessage("");
     setIsAnalyzing(false);
+    setShowPasteFallback(false);
   };
 
   return (
@@ -221,12 +260,13 @@ export default function ResumeScreen() {
           Resume Analyzer
         </Text>
         <Text selectable style={styles.subtitle}>
-          For best results, paste your resume text below. PDF parsing will move to the backend later.
+          Upload a text-based PDF resume for backend analysis, or paste resume text as a development
+          fallback.
         </Text>
       </View>
 
       <View style={styles.card}>
-        <Pressable
+        <HapticPressable
           disabled={isPickingPdf}
           onPress={pickPdf}
           style={({ pressed }) => [
@@ -240,61 +280,80 @@ export default function ResumeScreen() {
           ) : (
             <Text style={styles.uploadButtonText}>Upload PDF</Text>
           )}
-        </Pressable>
+        </HapticPressable>
 
         {selectedFile ? (
           <View style={styles.fileBox}>
             <Text selectable style={styles.fileLabel}>
-              PDF uploaded ✓
+              PDF selected
             </Text>
             <Text selectable style={styles.fileName}>
               {selectedFile.name}
             </Text>
           </View>
-        ) : null}
-
-        <View style={styles.field}>
-          <Text selectable style={styles.label}>
-            Or paste your resume text here
-          </Text>
-          <Text selectable style={styles.helperText}>
-            For best results, paste your resume text below.
-          </Text>
-          <TextInput
-            multiline
-            numberOfLines={8}
-            onChangeText={setResumeText}
-            placeholder="Paste your resume content..."
-            placeholderTextColor={COLORS.muted}
-            style={styles.resumeInput}
-            textAlignVertical="top"
-            value={resumeText}
+        ) : (
+          <MessageCard
+            title="No PDF selected"
+            message="Choose a text-based PDF under 5MB, or use the paste fallback."
           />
-        </View>
+        )}
+
+        <HapticPressable
+          onPress={() => setShowPasteFallback((current) => !current)}
+          style={({ pressed }) => [styles.fallbackButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.fallbackButtonText}>
+            {showPasteFallback ? "Hide Paste Text Fallback" : "Paste Resume Text Instead"}
+          </Text>
+        </HapticPressable>
+
+        {showPasteFallback ? (
+          <View style={styles.field}>
+            <Text selectable style={styles.label}>
+              Paste your resume text here
+            </Text>
+            <Text selectable style={styles.helperText}>
+              Use this if your PDF is scanned, image-only, or fails text extraction.
+            </Text>
+            <TextInput
+              multiline
+              numberOfLines={8}
+              onChangeText={setResumeText}
+              placeholder="Paste your resume content..."
+              placeholderTextColor={COLORS.muted}
+              style={styles.resumeInput}
+              textAlignVertical="top"
+              value={resumeText}
+            />
+          </View>
+        ) : null}
 
         <JobRolePicker selectedValue={jobRole} onSelect={setJobRole} />
 
         {errorMessage ? (
-          <Text selectable style={styles.errorText}>
-            {errorMessage}
-          </Text>
+          <MessageCard title="Resume check stopped" message={errorMessage} tone="error" />
         ) : null}
 
-        <Pressable
-          disabled={!resumeText.trim() || !jobRole || isAnalyzing}
+        <HapticPressable
+          disabled={!jobRole || isAnalyzing}
           onPress={analyzeSelectedResume}
           style={({ pressed }) => [
             styles.analyzeButton,
-            (!resumeText.trim() || !jobRole || isAnalyzing) && styles.disabledButton,
+            (!jobRole || isAnalyzing) && styles.disabledButton,
             pressed && !isAnalyzing && styles.pressed
           ]}
         >
           {isAnalyzing ? (
-            <ActivityIndicator color={COLORS.text} />
+            <View style={styles.buttonLoadingRow}>
+              <ActivityIndicator color={COLORS.text} />
+              <Text style={styles.analyzeButtonText}>Analyzing...</Text>
+            </View>
           ) : (
-            <Text style={styles.analyzeButtonText}>Analyze Resume</Text>
+            <Text style={styles.analyzeButtonText}>
+              {selectedFile ? "Analyze PDF" : "Analyze Resume"}
+            </Text>
           )}
-        </Pressable>
+        </HapticPressable>
       </View>
 
       {analysis ? (
@@ -343,12 +402,12 @@ export default function ResumeScreen() {
             ))}
           </View>
 
-          <Pressable
+          <HapticPressable
             onPress={resetScreen}
             style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
           >
             <Text style={styles.secondaryButtonText}>Analyze Another</Text>
-          </Pressable>
+          </HapticPressable>
         </View>
       ) : null}
     </ScrollView>
@@ -410,16 +469,34 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.45
   },
+  buttonLoadingRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10
+  },
   errorText: {
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    borderColor: "rgba(239, 68, 68, 0.35)",
-    borderRadius: 8,
-    borderWidth: 1,
     color: "#FCA5A5",
     fontSize: 14,
     fontWeight: "700",
-    lineHeight: 20,
-    padding: 12
+    lineHeight: 20
+  },
+  errorMessageCard: {
+    borderColor: "rgba(239, 68, 68, 0.35)"
+  },
+  fallbackButton: {
+    alignItems: "center",
+    backgroundColor: "#111111",
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 48,
+    paddingHorizontal: 16
+  },
+  fallbackButtonText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "900"
   },
   feedbackHeader: {
     alignItems: "center",
@@ -497,6 +574,25 @@ const styles = StyleSheet.create({
   label: {
     color: COLORS.text,
     fontSize: 15,
+    fontWeight: "900"
+  },
+  messageCard: {
+    backgroundColor: "#111111",
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+    padding: 14
+  },
+  messageText: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20
+  },
+  messageTitle: {
+    color: COLORS.text,
+    fontSize: 14,
     fontWeight: "900"
   },
   optionRow: {

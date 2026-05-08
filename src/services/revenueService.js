@@ -1,17 +1,7 @@
-import Purchases from "react-native-purchases";
-
-export const configureRevenueCat = ({ apiKey, appUserId } = {}) => {
-  if (!apiKey) {
-    return;
-  }
-
-  Purchases.configure({ apiKey, appUserID: appUserId });
+export const configureRevenueCat = () => {
+  console.log("RevenueCat is not configured yet. Add react-native-purchases in Week 5.");
 };
 
-export const getCustomerInfo = () => Purchases.getCustomerInfo();
+export const getCustomerInfo = async () => null;
 
-export const isPremiumCustomer = async () => {
-  const customerInfo = await getCustomerInfo();
-
-  return Boolean(customerInfo.entitlements.active.premium);
-};
+export const isPremiumCustomer = async () => false;

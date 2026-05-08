@@ -2,37 +2,43 @@
   "expo": {
     "name": "PrepAI",
     "slug": "prepai",
+    "description": "AI interview preparation coach for mock interviews, resume analysis, and job readiness practice.",
     "scheme": "prepai",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#0A0A0A",
+    "primaryColor": "#6C63FF",
     "icon": "./assets/icon.png",
     "splash": {
       "backgroundColor": "#0A0A0A",
-      "image": "./assets/icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.prepai.app"
+      "bundleIdentifier": "com.prepai.app",
+      "infoPlist": {
+        "CFBundleDisplayName": "PrepAI"
+      }
     },
     "android": {
       "package": "com.prepai.prepai",
       "versionCode": 1,
-      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
       }
     },
-    "plugins": [
-      "expo-notifications",
-      "expo-image-picker",
-      "expo-document-picker"
-    ]
+    "plugins": ["expo-font", "expo-notifications", "expo-image-picker", "expo-document-picker"],
+    "extra": {
+      "privacyPolicyUrl": "https://example.com/prepai/privacy",
+      "termsUrl": "https://example.com/prepai/terms",
+      "supportEmail": "support@example.com",
+      "eas": {
+        "projectId": "b1741c61-796c-457e-ac99-18d4e06fd66e"
+      }
+    }
   }
 }

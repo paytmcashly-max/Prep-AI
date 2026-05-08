@@ -20,11 +20,11 @@ const envFirebaseConfig = {
 
 export const isFirebaseConfigured = Boolean(
   envFirebaseConfig.apiKey &&
-    envFirebaseConfig.authDomain &&
-    envFirebaseConfig.projectId &&
-    envFirebaseConfig.storageBucket &&
-    envFirebaseConfig.messagingSenderId &&
-    envFirebaseConfig.appId
+  envFirebaseConfig.authDomain &&
+  envFirebaseConfig.projectId &&
+  envFirebaseConfig.storageBucket &&
+  envFirebaseConfig.messagingSenderId &&
+  envFirebaseConfig.appId
 );
 
 const firebaseConfig = envFirebaseConfig;

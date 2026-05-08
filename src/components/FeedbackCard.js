@@ -17,7 +17,15 @@ export default function FeedbackCard({ score = 0, title = "Feedback", points = [
       <Text selectable style={{ color: COLORS.text, fontSize: 18, fontWeight: "800" }}>
         {title}
       </Text>
-      <Text selectable style={{ color: COLORS.primary, fontSize: 28, fontVariant: ["tabular-nums"], fontWeight: "900" }}>
+      <Text
+        selectable
+        style={{
+          color: COLORS.primary,
+          fontSize: 28,
+          fontVariant: ["tabular-nums"],
+          fontWeight: "900"
+        }}
+      >
         {score}/10
       </Text>
       {points.map((point) => (

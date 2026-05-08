@@ -17,7 +17,10 @@ export default function QuestionCard({ category = "HR", question }) {
       <Text selectable style={{ color: COLORS.primary, fontSize: 13, fontWeight: "800" }}>
         {category}
       </Text>
-      <Text selectable style={{ color: COLORS.text, fontSize: 18, fontWeight: "700", lineHeight: 25 }}>
+      <Text
+        selectable
+        style={{ color: COLORS.text, fontSize: 18, fontWeight: "700", lineHeight: 25 }}
+      >
         {question}
       </Text>
     </View>

@@ -1,5 +1,6 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
+import HapticPressable from "../components/HapticPressable";
 import { COLORS, SPACING } from "../utils/constants";
 
 export default function ScreenTemplate({ title, subtitle, actions = [], children }) {
@@ -28,7 +29,7 @@ export default function ScreenTemplate({ title, subtitle, actions = [], children
       {actions.length ? (
         <View style={{ gap: SPACING.sm }}>
           {actions.map((action) => (
-            <Pressable
+            <HapticPressable
               key={action.label}
               disabled={action.disabled || action.loading}
               onPress={action.onPress}
@@ -52,7 +53,7 @@ export default function ScreenTemplate({ title, subtitle, actions = [], children
               >
                 {action.label}
               </Text>
-            </Pressable>
+            </HapticPressable>
           ))}
         </View>
       ) : null}

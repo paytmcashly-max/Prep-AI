@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
-  Pressable,
   ScrollView,
   Share,
   StyleSheet,
@@ -12,7 +11,10 @@ import {
   View
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import Constants from "expo-constants";
 
+import HapticPressable from "../components/HapticPressable";
+import SkeletonBox from "../components/SkeletonBox";
 import { getCurrentUser, signOut } from "../services/authService";
 import {
   getDailyPracticeReminderEnabled,
@@ -26,6 +28,11 @@ import {
 import { useUserStore } from "../store/userStore";
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.prepai.prepai";
+const APP_CONFIG_EXTRA = Constants.expoConfig?.extra || Constants.manifest?.extra || {};
+const PRIVACY_POLICY_URL =
+  APP_CONFIG_EXTRA.privacyPolicyUrl || "https://example.com/prepai/privacy";
+const TERMS_URL = APP_CONFIG_EXTRA.termsUrl || "https://example.com/prepai/terms";
+const SUPPORT_EMAIL = APP_CONFIG_EXTRA.supportEmail || "support@example.com";
 
 const COLORS = {
   accent: "#6C63FF",
@@ -48,6 +55,9 @@ const getInitials = (name, email) => {
   return `${words[0][0]}${words[1][0]}`.toUpperCase();
 };
 
+const isPlaceholderValue = (value) =>
+  !value || value.includes("example.com") || value === "support@example.com";
+
 function StatCard({ label, value }) {
   return (
     <View style={styles.statCard}>
@@ -63,7 +73,7 @@ function StatCard({ label, value }) {
 
 function SettingRow({ label, detail, onPress, right, destructive }) {
   return (
-    <Pressable
+    <HapticPressable
       disabled={!onPress && !right}
       onPress={onPress}
       style={({ pressed }) => [styles.settingRow, pressed && onPress && styles.pressed]}
@@ -79,14 +89,15 @@ function SettingRow({ label, detail, onPress, right, destructive }) {
         ) : null}
       </View>
       {right || (onPress ? <Text style={styles.chevron}>›</Text> : null)}
-    </Pressable>
+    </HapticPressable>
   );
 }
 
 export default function ProfileScreen({ navigation }) {
   const profile = useUserStore((state) => state.profile);
   const user = getCurrentUser();
-  const displayName = user?.displayName?.trim() || profile.fullName || profile.name || "PrepAI User";
+  const displayName =
+    user?.displayName?.trim() || profile.fullName || profile.name || "PrepAI User";
   const email = user?.email || "Email not available";
   const initials = useMemo(() => getInitials(displayName, email), [displayName, email]);
   const [stats, setStats] = useState({
@@ -180,6 +191,32 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  const openLegalUrl = async (title, url) => {
+    if (isPlaceholderValue(url)) {
+      Alert.alert(title, `Placeholder URL:\n${url}`);
+      return;
+    }
+
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert("Unable to open link", "Please try again later.");
+    }
+  };
+
+  const contactSupport = async () => {
+    if (isPlaceholderValue(SUPPORT_EMAIL)) {
+      Alert.alert("Support", `Placeholder email:\n${SUPPORT_EMAIL}`);
+      return;
+    }
+
+    try {
+      await Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
+    } catch {
+      Alert.alert("Unable to open email", "Please try again later.");
+    }
+  };
+
   const handleLogout = async () => {
     if (isSigningOut) {
       return;
@@ -215,7 +252,8 @@ export default function ProfileScreen({ navigation }) {
           </Text>
           <View style={styles.rolePill}>
             <Text selectable style={styles.roleText}>
-              {profile.jobRole || "Job role not set"} · {profile.experienceLevel || "Experience not set"}
+              {profile.jobRole || "Job role not set"} ·{" "}
+              {profile.experienceLevel || "Experience not set"}
             </Text>
           </View>
         </View>
@@ -224,10 +262,8 @@ export default function ProfileScreen({ navigation }) {
       <View style={styles.statsRow}>
         {isStatsLoading ? (
           <View style={styles.loadingStats}>
-            <ActivityIndicator color={COLORS.accent} />
-            <Text selectable style={styles.loadingText}>
-              Loading stats...
-            </Text>
+            <SkeletonBox style={styles.statsSkeletonTitle} />
+            <SkeletonBox style={styles.statsSkeletonLine} />
           </View>
         ) : (
           <>
@@ -287,6 +323,25 @@ export default function ProfileScreen({ navigation }) {
             onPress={handleLogout}
             right={isSigningOut ? <ActivityIndicator color={COLORS.danger} /> : null}
           />
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text selectable style={styles.sectionTitle}>
+          Legal
+        </Text>
+        <View style={styles.sectionCard}>
+          <SettingRow
+            label="Privacy Policy"
+            detail={PRIVACY_POLICY_URL}
+            onPress={() => openLegalUrl("Privacy Policy", PRIVACY_POLICY_URL)}
+          />
+          <SettingRow
+            label="Terms of Service"
+            detail={TERMS_URL}
+            onPress={() => openLegalUrl("Terms of Service", TERMS_URL)}
+          />
+          <SettingRow label="Support Email" detail={SUPPORT_EMAIL} onPress={contactSupport} />
         </View>
       </View>
 
@@ -364,6 +419,14 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 14,
     fontWeight: "800"
+  },
+  statsSkeletonLine: {
+    height: 15,
+    width: "52%"
+  },
+  statsSkeletonTitle: {
+    height: 26,
+    width: "70%"
   },
   name: {
     color: COLORS.text,

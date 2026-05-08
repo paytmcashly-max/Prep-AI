@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
+import HapticPressable from "../components/HapticPressable";
+import SkeletonBox from "../components/SkeletonBox";
 import { getCurrentUser } from "../services/authService";
 import { showSessionCompleteNotification } from "../services/notificationService";
 import { generateDailyTip } from "../services/openaiService";
@@ -12,7 +14,9 @@ import { useUserStore } from "../store/userStore";
 const COLORS = {
   accent: "#6C63FF",
   background: "#0A0A0A",
+  border: "#2A2A2A",
   card: "#1A1A1A",
+  danger: "#FCA5A5",
   muted: "#A3A3A3",
   text: "#FFFFFF"
 };
@@ -193,7 +197,7 @@ export default function HomeScreen({ navigation, route }) {
         )}
       </View>
 
-      <Pressable
+      <HapticPressable
         disabled={isStartingInterview}
         onPress={() => {
           setIsStartingInterview(true);
@@ -210,7 +214,7 @@ export default function HomeScreen({ navigation, route }) {
         ) : (
           <Text style={styles.ctaText}>Start Mock Interview</Text>
         )}
-      </Pressable>
+      </HapticPressable>
 
       <View style={styles.card}>
         <Text selectable style={styles.cardTitle}>
@@ -218,12 +222,24 @@ export default function HomeScreen({ navigation, route }) {
         </Text>
         {isTipLoading ? (
           <View style={styles.tipSkeleton}>
-            <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
-            <View style={[styles.skeletonLine, styles.skeletonLineMedium]} />
+            <SkeletonBox style={[styles.skeletonLine, styles.skeletonLineLong]} />
+            <SkeletonBox style={[styles.skeletonLine, styles.skeletonLineMedium]} />
+            <Text selectable style={styles.loadingText}>
+              Preparing the daily tip...
+            </Text>
+          </View>
+        ) : tipError ? (
+          <View style={styles.errorState}>
+            <Text selectable style={styles.stateTitle}>
+              Tip unavailable
+            </Text>
+            <Text selectable style={styles.errorText}>
+              {tipError}
+            </Text>
           </View>
         ) : (
-          <Text selectable style={[styles.tipText, tipError && styles.errorText]}>
-            {tipError || dailyTip}
+          <Text selectable style={styles.tipText}>
+            {dailyTip}
           </Text>
         )}
       </View>
@@ -234,24 +250,34 @@ export default function HomeScreen({ navigation, route }) {
         </Text>
 
         {isSessionsLoading ? (
-          <View style={styles.emptyState}>
-            <ActivityIndicator color={COLORS.accent} />
-            <Text selectable style={styles.emptyText}>
-              Loading recent sessions...
-            </Text>
+          <View style={styles.sessionSkeletonStack}>
+            {[0, 1, 2].map((item) => (
+              <View key={item} style={styles.sessionCard}>
+                <SkeletonBox style={styles.sessionSkeletonLine} />
+                <SkeletonBox style={[styles.sessionSkeletonLine, styles.sessionSkeletonShort]} />
+              </View>
+            ))}
           </View>
         ) : null}
 
         {sessionsError ? (
-          <Text selectable style={styles.sessionErrorText}>
-            {sessionsError}
-          </Text>
+          <View style={styles.errorState}>
+            <Text selectable style={styles.stateTitle}>
+              Sessions unavailable
+            </Text>
+            <Text selectable style={styles.errorText}>
+              {sessionsError}
+            </Text>
+          </View>
         ) : null}
 
         {!isSessionsLoading && !sessionsError && !recentSessions.length ? (
           <View style={styles.emptyState}>
+            <Text selectable style={styles.stateTitle}>
+              No practice yet
+            </Text>
             <Text selectable style={styles.emptyText}>
-              No sessions yet. Start practicing!
+              Start a mock interview and your latest sessions will appear here.
             </Text>
           </View>
         ) : null}
@@ -281,7 +307,7 @@ export default function HomeScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
+    borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 12,
@@ -333,7 +359,20 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   errorText: {
-    color: "#FCA5A5"
+    color: COLORS.danger,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+    textAlign: "center"
+  },
+  errorState: {
+    alignItems: "center",
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    borderColor: "rgba(239, 68, 68, 0.35)",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+    padding: 14
   },
   disabledButton: {
     opacity: 0.6
@@ -374,22 +413,11 @@ const styles = StyleSheet.create({
   },
   sessionCard: {
     backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
+    borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 8,
     padding: 16
-  },
-  sessionErrorText: {
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    borderColor: "rgba(239, 68, 68, 0.35)",
-    borderRadius: 8,
-    borderWidth: 1,
-    color: "#FCA5A5",
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20,
-    padding: 12
   },
   sessionMeta: {
     color: COLORS.muted,
@@ -401,6 +429,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontVariant: ["tabular-nums"],
     fontWeight: "900"
+  },
+  sessionSkeletonLine: {
+    height: 18,
+    width: "86%"
+  },
+  sessionSkeletonShort: {
+    width: "58%"
+  },
+  sessionSkeletonStack: {
+    gap: 10
   },
   sessionTitle: {
     color: COLORS.text,
@@ -428,7 +466,7 @@ const styles = StyleSheet.create({
   streakCard: {
     alignItems: "center",
     backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
+    borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 6,
@@ -452,7 +490,7 @@ const styles = StyleSheet.create({
     gap: 12
   },
   tipSkeleton: {
-    gap: 10,
+    gap: 12,
     paddingVertical: 4
   },
   tipText: {
@@ -462,5 +500,11 @@ const styles = StyleSheet.create({
   },
   topBar: {
     paddingTop: 8
+  },
+  stateTitle: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "900",
+    textAlign: "center"
   }
 });

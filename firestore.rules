@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Baseline production rules must be tested with the Firebase Emulator Suite before launch.
+    // Deny by default. Add narrow, reviewed exceptions only when a feature requires them.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User-owned app data. Users may only access their own subtree.
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /{document=**} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+  }
+}

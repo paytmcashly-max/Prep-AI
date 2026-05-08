@@ -19,7 +19,10 @@ export default function ScoreGraph({ scores = [6, 7, 8, 7, 9] }) {
       </Text>
       <View style={{ flexDirection: "row", gap: SPACING.sm, height: 120, alignItems: "flex-end" }}>
         {scores.map((score, index) => (
-          <View key={`${score}-${index}`} style={{ alignItems: "center", flex: 1, gap: SPACING.xs }}>
+          <View
+            key={`${score}-${index}`}
+            style={{ alignItems: "center", flex: 1, gap: SPACING.xs }}
+          >
             <View
               style={{
                 backgroundColor: COLORS.primary,
@@ -28,7 +31,10 @@ export default function ScoreGraph({ scores = [6, 7, 8, 7, 9] }) {
                 width: "100%"
               }}
             />
-            <Text selectable style={{ color: COLORS.muted, fontSize: 12, fontVariant: ["tabular-nums"] }}>
+            <Text
+              selectable
+              style={{ color: COLORS.muted, fontSize: 12, fontVariant: ["tabular-nums"] }}
+            >
               {score}
             </Text>
           </View>

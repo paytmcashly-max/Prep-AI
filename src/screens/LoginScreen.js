@@ -4,7 +4,7 @@ import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
-  Pressable,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +13,8 @@ import {
 } from "react-native";
 
 import { signInWithEmail } from "../services/authService";
+import HapticPressable from "../components/HapticPressable";
+import { trackEvent } from "../services/analyticsService";
 import { COLORS } from "../utils/constants";
 
 export default function LoginScreen({ navigation }) {
@@ -30,6 +32,7 @@ export default function LoginScreen({ navigation }) {
 
     try {
       await signInWithEmail(email, password);
+      trackEvent("login_success");
     } catch (error) {
       Alert.alert("Login failed", error.message || "Please check your details and try again.");
     } finally {
@@ -39,7 +42,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      behavior={process.env.EXPO_OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.keyboardView}
     >
       <ScrollView
@@ -94,7 +97,7 @@ export default function LoginScreen({ navigation }) {
             />
           </View>
 
-          <Pressable
+          <HapticPressable
             disabled={isSubmitting}
             onPress={handleLogin}
             style={({ pressed }) => [
@@ -110,18 +113,18 @@ export default function LoginScreen({ navigation }) {
                 Login
               </Text>
             )}
-          </Pressable>
+          </HapticPressable>
         </View>
 
         <View style={styles.footerRow}>
           <Text selectable style={styles.footerText}>
             New to PrepAI?
           </Text>
-          <Pressable onPress={() => navigation.navigate("Signup")} hitSlop={10}>
+          <HapticPressable onPress={() => navigation.navigate("Signup")} hitSlop={10}>
             <Text selectable style={styles.footerLink}>
               Create account
             </Text>
-          </Pressable>
+          </HapticPressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

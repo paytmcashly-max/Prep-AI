@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
+import HapticPressable from "../components/HapticPressable";
 import { COLORS } from "../utils/constants";
 
 const slides = [
@@ -43,11 +44,11 @@ export default function OnboardingScreen({ navigation }) {
         <Text selectable style={styles.progressText}>
           {progressLabel}
         </Text>
-        <Pressable onPress={() => navigation.navigate("Login")} hitSlop={12}>
+        <HapticPressable onPress={() => navigation.navigate("Login")} hitSlop={12}>
           <Text selectable style={styles.skipText}>
             Skip
           </Text>
-        </Pressable>
+        </HapticPressable>
       </View>
 
       <View style={styles.slide}>
@@ -86,24 +87,24 @@ export default function OnboardingScreen({ navigation }) {
 
         <View style={styles.actions}>
           {activeIndex > 0 ? (
-            <Pressable
+            <HapticPressable
               onPress={() => setActiveIndex((current) => current - 1)}
               style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
             >
               <Text selectable style={styles.secondaryButtonText}>
                 Back
               </Text>
-            </Pressable>
+            </HapticPressable>
           ) : null}
 
-          <Pressable
+          <HapticPressable
             onPress={handleNext}
             style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
           >
             <Text selectable style={styles.primaryButtonText}>
               {isLastSlide ? "Get started" : "Next"}
             </Text>
-          </Pressable>
+          </HapticPressable>
         </View>
       </View>
     </View>

@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+
+import HapticPressable from "../components/HapticPressable";
 
 const COLORS = {
   accent: "#6C63FF",
@@ -86,7 +88,7 @@ export default function PracticeScreen({ navigation }) {
 
       <View style={styles.categoryGrid}>
         {PRACTICE_CATEGORIES.map((category) => (
-          <Pressable
+          <HapticPressable
             key={category.routeCategory}
             disabled={Boolean(startingCategory)}
             onPress={() => startCategory(category.routeCategory)}
@@ -109,7 +111,7 @@ export default function PracticeScreen({ navigation }) {
                 {category.subtitle}
               </Text>
             </View>
-          </Pressable>
+          </HapticPressable>
         ))}
       </View>
 

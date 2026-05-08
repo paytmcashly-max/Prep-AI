@@ -1,20 +1,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getAuth } from "firebase/auth";
-import { addDoc, collection, doc, getDoc, getFirestore, increment, setDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getFirestore,
+  increment,
+  setDoc
+} from "firebase/firestore";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   Keyboard,
   KeyboardAvoidingView,
-  Pressable,
+  Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
   View
 } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 
+import HapticPressable from "../components/HapticPressable";
+import SkeletonBox from "../components/SkeletonBox";
 import "../services/firebaseConfig";
+import { trackEvent } from "../services/analyticsService";
 import { evaluateAnswer, generateQuestion } from "../services/openaiService";
 import { useProgressStore } from "../store/progressStore";
 import { useUserStore } from "../store/userStore";
@@ -22,6 +37,12 @@ import { useUserStore } from "../store/userStore";
 const TOTAL_QUESTIONS = 5;
 const QUESTION_TIME_SECONDS = 60;
 const FREE_DAILY_QUESTION_LIMIT = 5;
+const TIMER_SIZE = 150;
+const TIMER_STROKE_WIDTH = 8;
+const TIMER_RADIUS = (TIMER_SIZE - TIMER_STROKE_WIDTH) / 2;
+const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const COLORS = {
   accent: "#6C63FF",
@@ -58,18 +79,6 @@ const formatCategory = (category) => {
   return category;
 };
 
-const getTimerColor = (secondsLeft) => {
-  if (secondsLeft > 30) {
-    return COLORS.green;
-  }
-
-  if (secondsLeft >= 15) {
-    return COLORS.yellow;
-  }
-
-  return COLORS.red;
-};
-
 const getAverageScore = (scores) => {
   if (!scores.length) {
     return "0.0";
@@ -78,6 +87,83 @@ const getAverageScore = (scores) => {
   const total = scores.reduce((sum, score) => sum + Number(score || 0), 0);
   return (total / scores.length).toFixed(1);
 };
+
+function CircularTimer({ secondsLeft }) {
+  const progress = useRef(new Animated.Value(1)).current;
+  const colorProgress = useRef(new Animated.Value(0)).current;
+  const animatedTimerColor = colorProgress.interpolate({
+    inputRange: [0, 1, 2],
+    outputRange: [COLORS.green, COLORS.yellow, COLORS.red]
+  });
+  const strokeDashoffset = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [TIMER_CIRCUMFERENCE, 0]
+  });
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      duration: 450,
+      easing: Easing.out(Easing.quad),
+      toValue: secondsLeft / QUESTION_TIME_SECONDS,
+      useNativeDriver: false
+    }).start();
+
+    Animated.timing(colorProgress, {
+      duration: 350,
+      easing: Easing.out(Easing.quad),
+      toValue: secondsLeft < 15 ? 2 : secondsLeft <= 30 ? 1 : 0,
+      useNativeDriver: false
+    }).start();
+  }, [colorProgress, progress, secondsLeft]);
+
+  return (
+    <View style={styles.timerRingWrap}>
+      <Svg height={TIMER_SIZE} width={TIMER_SIZE} style={styles.timerSvg}>
+        <Circle
+          cx={TIMER_SIZE / 2}
+          cy={TIMER_SIZE / 2}
+          fill="transparent"
+          r={TIMER_RADIUS}
+          stroke="#2A2A2A"
+          strokeWidth={TIMER_STROKE_WIDTH}
+        />
+        <AnimatedCircle
+          cx={TIMER_SIZE / 2}
+          cy={TIMER_SIZE / 2}
+          fill="transparent"
+          r={TIMER_RADIUS}
+          stroke={animatedTimerColor}
+          strokeDasharray={`${TIMER_CIRCUMFERENCE} ${TIMER_CIRCUMFERENCE}`}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          strokeWidth={TIMER_STROKE_WIDTH}
+          transform={`rotate(-90 ${TIMER_SIZE / 2} ${TIMER_SIZE / 2})`}
+        />
+      </Svg>
+      <View style={styles.timerCenter}>
+        <Animated.Text selectable style={[styles.timerText, { color: animatedTimerColor }]}>
+          {secondsLeft}s
+        </Animated.Text>
+        <Text selectable style={styles.timerLabel}>
+          Time remaining
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function ErrorState({ message, title = "Something went wrong" }) {
+  return (
+    <View style={styles.errorState}>
+      <Text selectable style={styles.errorTitle}>
+        {title}
+      </Text>
+      <Text selectable style={styles.errorText}>
+        {message}
+      </Text>
+    </View>
+  );
+}
 
 const getTodayDateKey = () => {
   const today = new Date();
@@ -208,45 +294,49 @@ export default function MockInterviewScreen({ navigation, route }) {
   const [isSavingSession, setIsSavingSession] = useState(false);
   const [isSessionComplete, setIsSessionComplete] = useState(false);
 
-  const timerColor = getTimerColor(secondsLeft);
-  const averageScore = getAverageScore(scores);
+  const finalScores = scoresRef.current.length ? scoresRef.current : scores;
+  const averageScore = getAverageScore(finalScores);
 
   const showDailyLimitAlert = useCallback(() => {
-    Alert.alert(
-      "Daily limit reached!",
-      "Upgrade to Premium for unlimited questions.",
-      [
-        {
-          text: "Maybe Later",
-          style: "cancel",
-          onPress: () => navigation.goBack()
-        },
-        {
-          text: "Upgrade Now",
-          onPress: () => navigation.navigate("Paywall")
-        }
-      ]
-    );
+    Alert.alert("Daily limit reached!", "Upgrade to Premium for unlimited questions.", [
+      {
+        text: "Maybe Later",
+        style: "cancel",
+        onPress: () => navigation.goBack()
+      },
+      {
+        text: "Upgrade Now",
+        onPress: () => navigation.navigate("Paywall")
+      }
+    ]);
   }, [navigation]);
 
-  const loadQuestion = useCallback(async () => {
-    try {
-      setIsQuestionLoading(true);
-      setErrorMessage("");
-      setFeedback(null);
-      setShowIdealAnswer(false);
-      setAnswer("");
-      setSecondsLeft(QUESTION_TIME_SECONDS);
+  const loadQuestion = useCallback(
+    async (nextQuestionNumber) => {
+      try {
+        setIsQuestionLoading(true);
+        setErrorMessage("");
+        setFeedback(null);
+        setShowIdealAnswer(false);
+        setAnswer("");
+        setSecondsLeft(QUESTION_TIME_SECONDS);
 
-      const nextQuestion = await generateQuestion(category, undefined, "medium");
-      setQuestion(nextQuestion);
-    } catch (error) {
-      setQuestion("");
-      setErrorMessage(error.message || "Could not generate a question. Please try again.");
-    } finally {
-      setIsQuestionLoading(false);
-    }
-  }, [category]);
+        const nextQuestion = await generateQuestion(category, undefined, "medium");
+        setQuestion(nextQuestion);
+        trackEvent("interview_question_generated", {
+          category,
+          difficulty: "medium",
+          questionNumber: nextQuestionNumber
+        });
+      } catch (error) {
+        setQuestion("");
+        setErrorMessage(error.message || "Could not generate a question. Please try again.");
+      } finally {
+        setIsQuestionLoading(false);
+      }
+    },
+    [category]
+  );
 
   const recordQuestionScore = useCallback((score) => {
     const numericScore = Number(score);
@@ -271,13 +361,14 @@ export default function MockInterviewScreen({ navigation, route }) {
         return;
       }
 
-      await loadQuestion();
+      trackEvent("interview_started", { category });
+      await loadQuestion(1);
     } catch (error) {
       setErrorMessage(error.message || "Could not generate a question. Please try again.");
     } finally {
       setIsCheckingUsage(false);
     }
-  }, [loadQuestion, showDailyLimitAlert]);
+  }, [category, loadQuestion, showDailyLimitAlert]);
 
   useEffect(() => {
     checkUsageAndStart();
@@ -339,8 +430,10 @@ export default function MockInterviewScreen({ navigation, route }) {
       return;
     }
 
-    setQuestionNumber((current) => current + 1);
-    loadQuestion();
+    const nextQuestionNumber = questionNumber + 1;
+
+    setQuestionNumber(nextQuestionNumber);
+    loadQuestion(nextQuestionNumber);
   };
 
   const submitAnswer = async () => {
@@ -361,6 +454,7 @@ export default function MockInterviewScreen({ navigation, route }) {
         return;
       }
 
+      trackEvent("answer_submitted", { category, questionNumber });
       const result = await evaluateAnswer(question, answer.trim());
       const parsedScore = Number(result.score);
 
@@ -373,6 +467,11 @@ export default function MockInterviewScreen({ navigation, route }) {
 
       setFeedback(result);
       recordQuestionScore(parsedScore);
+      trackEvent("answer_evaluated", {
+        category,
+        questionNumber,
+        score: parsedScore
+      });
 
       const nextQuestionsUsed = await incrementQuestionsUsedTodaySafely();
 
@@ -400,6 +499,16 @@ export default function MockInterviewScreen({ navigation, route }) {
     });
   };
 
+  const shareResult = async () => {
+    try {
+      await Share.share({
+        message: `\uD83C\uDFAF Mock Interview Complete!\n\nCategory: ${categoryName}\nScore: ${averageScore}/10 \u2B50\n\nPreparing for my dream job with PrepAI!\n\n#PrepAI #InterviewPrep #JobSearch`
+      });
+    } catch (error) {
+      Alert.alert("Share failed", error.message || "Could not open sharing options.");
+    }
+  };
+
   if (isSessionComplete) {
     return (
       <ScrollView
@@ -423,16 +532,47 @@ export default function MockInterviewScreen({ navigation, route }) {
             </Text>
           </View>
           {sessionSaveError ? (
-            <Text selectable style={styles.errorText}>
-              {sessionSaveError}
-            </Text>
+            <ErrorState title="Progress not saved" message={sessionSaveError} />
           ) : null}
-          <Pressable
+          <View style={styles.shareCard}>
+            <Text selectable style={styles.shareLogo}>
+              PrepAI
+            </Text>
+            <Text selectable style={styles.shareHeadline}>
+              {"I just completed a Mock Interview! \uD83C\uDFAF"}
+            </Text>
+            <View style={styles.shareMetricRow}>
+              <Text selectable style={styles.shareMetricLabel}>
+                Category
+              </Text>
+              <Text selectable style={styles.shareMetricValue}>
+                {categoryName}
+              </Text>
+            </View>
+            <View style={styles.shareMetricRow}>
+              <Text selectable style={styles.shareMetricLabel}>
+                Score
+              </Text>
+              <Text selectable style={styles.shareScore}>
+                {averageScore}/10 {"\u2B50"}
+              </Text>
+            </View>
+            <Text selectable style={styles.shareFooter}>
+              Practice with PrepAI - AI Interview Coach
+            </Text>
+          </View>
+          <HapticPressable
+            onPress={shareResult}
+            style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.shareButtonText}>{"Share Result \uD83D\uDCE4"}</Text>
+          </HapticPressable>
+          <HapticPressable
             onPress={backToHome}
             style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
           >
             <Text style={styles.primaryButtonText}>Back to Home</Text>
-          </Pressable>
+          </HapticPressable>
         </View>
       </ScrollView>
     );
@@ -440,7 +580,7 @@ export default function MockInterviewScreen({ navigation, route }) {
 
   return (
     <KeyboardAvoidingView
-      behavior={process.env.EXPO_OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.keyboardView}
     >
       <ScrollView
@@ -468,33 +608,45 @@ export default function MockInterviewScreen({ navigation, route }) {
           </Text>
           {isCheckingUsage ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator color={COLORS.accent} size="large" />
+              <SkeletonBox style={styles.questionSkeletonTitle} />
+              <SkeletonBox style={styles.questionSkeletonLine} />
+              <SkeletonBox style={[styles.questionSkeletonLine, styles.questionSkeletonShort]} />
               <Text selectable style={styles.loadingText}>
                 Checking your free questions...
+              </Text>
+              <Text selectable style={styles.loadingSubText}>
+                This only takes a moment.
               </Text>
             </View>
           ) : isQuestionLoading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator color={COLORS.accent} size="large" />
+              <SkeletonBox style={styles.questionSkeletonTitle} />
+              <SkeletonBox style={styles.questionSkeletonLine} />
+              <SkeletonBox style={[styles.questionSkeletonLine, styles.questionSkeletonShort]} />
               <Text selectable style={styles.loadingText}>
                 Generating your question...
+              </Text>
+              <Text selectable style={styles.loadingSubText}>
+                Matching the question to your selected category.
+              </Text>
+            </View>
+          ) : !question ? (
+            <View style={styles.emptyQuestionState}>
+              <Text selectable style={styles.emptyQuestionTitle}>
+                No question loaded
+              </Text>
+              <Text selectable style={styles.emptyQuestionText}>
+                The interview will continue once a question is available.
               </Text>
             </View>
           ) : (
             <Text selectable style={styles.questionText}>
-              {question || "No question loaded yet."}
+              {question}
             </Text>
           )}
         </View>
 
-        <View style={[styles.timerCard, { borderColor: timerColor }]}>
-          <Text selectable style={[styles.timerText, { color: timerColor }]}>
-            {secondsLeft}s
-          </Text>
-          <Text selectable style={styles.timerLabel}>
-            Time remaining
-          </Text>
-        </View>
+        <CircularTimer secondsLeft={secondsLeft} />
 
         <View style={styles.answerSection}>
           <Text selectable style={styles.sectionTitle}>
@@ -512,15 +664,11 @@ export default function MockInterviewScreen({ navigation, route }) {
           />
         </View>
 
-        {errorMessage ? (
-          <Text selectable style={styles.errorText}>
-            {errorMessage}
-          </Text>
-        ) : null}
+        {errorMessage ? <ErrorState message={errorMessage} /> : null}
 
         {!feedback ? (
           <View style={styles.buttonRow}>
-            <Pressable
+            <HapticPressable
               disabled={isCheckingUsage || isQuestionLoading || isEvaluating || !question}
               onPress={submitAnswer}
               style={({ pressed }) => [
@@ -535,20 +683,26 @@ export default function MockInterviewScreen({ navigation, route }) {
               ) : (
                 <Text style={styles.primaryButtonText}>Submit Answer</Text>
               )}
-            </Pressable>
+            </HapticPressable>
 
-            <Pressable
-              disabled={isCheckingUsage || isQuestionLoading || isEvaluating || isSavingSession || !question}
+            <HapticPressable
+              disabled={
+                isCheckingUsage || isQuestionLoading || isEvaluating || isSavingSession || !question
+              }
               onPress={skipQuestion}
               style={({ pressed }) => [
                 styles.secondaryButton,
                 pressed && styles.pressed,
-                (isCheckingUsage || isQuestionLoading || isEvaluating || isSavingSession || !question) &&
+                (isCheckingUsage ||
+                  isQuestionLoading ||
+                  isEvaluating ||
+                  isSavingSession ||
+                  !question) &&
                   styles.disabledButton
               ]}
             >
               <Text style={styles.secondaryButtonText}>Skip Question</Text>
-            </Pressable>
+            </HapticPressable>
           </View>
         ) : null}
 
@@ -569,7 +723,7 @@ export default function MockInterviewScreen({ navigation, route }) {
               </Text>
               {(feedback.strengths || []).map((strength) => (
                 <Text key={strength} selectable style={styles.strengthText}>
-                  • {strength}
+                  {"\u2022"} {strength}
                 </Text>
               ))}
             </View>
@@ -580,19 +734,19 @@ export default function MockInterviewScreen({ navigation, route }) {
               </Text>
               {(feedback.improvements || []).map((improvement) => (
                 <Text key={improvement} selectable style={styles.improvementText}>
-                  • {improvement}
+                  {"\u2022"} {improvement}
                 </Text>
               ))}
             </View>
 
-            <Pressable
+            <HapticPressable
               onPress={() => setShowIdealAnswer((current) => !current)}
               style={({ pressed }) => [styles.collapsibleButton, pressed && styles.pressed]}
             >
               <Text style={styles.collapsibleButtonText}>
                 {showIdealAnswer ? "Hide Ideal Answer" : "Show Ideal Answer"}
               </Text>
-            </Pressable>
+            </HapticPressable>
 
             {showIdealAnswer ? (
               <Text selectable style={styles.idealAnswerText}>
@@ -600,7 +754,7 @@ export default function MockInterviewScreen({ navigation, route }) {
               </Text>
             ) : null}
 
-            <Pressable
+            <HapticPressable
               disabled={isSavingSession}
               onPress={completeOrLoadNext}
               style={({ pressed }) => [
@@ -616,7 +770,7 @@ export default function MockInterviewScreen({ navigation, route }) {
                   {questionNumber >= TOTAL_QUESTIONS ? "View Summary" : "Next Question"}
                 </Text>
               )}
-            </Pressable>
+            </HapticPressable>
           </View>
         ) : null}
       </ScrollView>
@@ -708,15 +862,43 @@ const styles = StyleSheet.create({
     opacity: 0.5
   },
   errorText: {
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    borderColor: "rgba(239, 68, 68, 0.35)",
-    borderRadius: 8,
-    borderWidth: 1,
     color: "#FCA5A5",
     fontSize: 14,
     fontWeight: "700",
     lineHeight: 20,
-    padding: 12
+    textAlign: "center"
+  },
+  errorState: {
+    alignItems: "center",
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    borderColor: "rgba(239, 68, 68, 0.35)",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+    padding: 14
+  },
+  errorTitle: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  emptyQuestionState: {
+    alignItems: "center",
+    gap: 8
+  },
+  emptyQuestionText: {
+    color: COLORS.muted,
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 22,
+    textAlign: "center"
+  },
+  emptyQuestionTitle: {
+    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: "900",
+    textAlign: "center"
   },
   feedbackCard: {
     backgroundColor: COLORS.card,
@@ -765,6 +947,13 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 15,
     fontWeight: "800"
+  },
+  loadingSubText: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 19,
+    textAlign: "center"
   },
   nextButton: {
     alignItems: "center",
@@ -821,6 +1010,17 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     textAlign: "center"
   },
+  questionSkeletonLine: {
+    height: 24,
+    width: "86%"
+  },
+  questionSkeletonShort: {
+    width: "62%"
+  },
+  questionSkeletonTitle: {
+    height: 16,
+    width: 140
+  },
   scoreText: {
     color: COLORS.accent,
     fontSize: 22,
@@ -844,6 +1044,76 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.text,
     fontSize: 18,
+    fontWeight: "900"
+  },
+  shareButton: {
+    alignItems: "center",
+    backgroundColor: "#26215F",
+    borderColor: COLORS.accent,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 56,
+    paddingHorizontal: 18
+  },
+  shareButtonText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "900"
+  },
+  shareCard: {
+    backgroundColor: "#111111",
+    borderColor: "#2A2A2A",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+    padding: 18
+  },
+  shareFooter: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 20,
+    textAlign: "center"
+  },
+  shareHeadline: {
+    color: COLORS.text,
+    fontSize: 19,
+    fontWeight: "900",
+    lineHeight: 26,
+    textAlign: "center"
+  },
+  shareLogo: {
+    color: COLORS.accent,
+    fontSize: 16,
+    fontWeight: "900",
+    letterSpacing: 0,
+    textAlign: "center",
+    textTransform: "uppercase"
+  },
+  shareMetricLabel: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  shareMetricRow: {
+    alignItems: "center",
+    borderColor: "#2A2A2A",
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  shareMetricValue: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  shareScore: {
+    color: COLORS.yellow,
+    fontSize: 16,
     fontWeight: "900"
   },
   strengthText: {
@@ -890,6 +1160,26 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 13,
     fontWeight: "800"
+  },
+  timerCenter: {
+    alignItems: "center",
+    gap: 2,
+    justifyContent: "center",
+    position: "absolute"
+  },
+  timerRingWrap: {
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: COLORS.card,
+    borderColor: "#2A2A2A",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 166,
+    justifyContent: "center",
+    width: 166
+  },
+  timerSvg: {
+    transform: [{ rotate: "0deg" }]
   },
   timerText: {
     fontSize: 34,

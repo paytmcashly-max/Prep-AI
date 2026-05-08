@@ -14,7 +14,15 @@ export default function StreakCounter({ days = 0 }) {
         padding: SPACING.md
       }}
     >
-      <Text selectable style={{ color: COLORS.accent, fontSize: 30, fontVariant: ["tabular-nums"], fontWeight: "900" }}>
+      <Text
+        selectable
+        style={{
+          color: COLORS.accent,
+          fontSize: 30,
+          fontVariant: ["tabular-nums"],
+          fontWeight: "900"
+        }}
+      >
         {days}
       </Text>
       <Text selectable style={{ color: COLORS.muted, fontSize: 14, fontWeight: "700" }}>

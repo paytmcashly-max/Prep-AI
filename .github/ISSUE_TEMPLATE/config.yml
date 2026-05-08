@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Sensitive security or privacy report
+    url: mailto:support@example.com
+    about: Do not post secrets, tokens, resume text, or private personal data in public issues.

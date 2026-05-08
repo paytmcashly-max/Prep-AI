@@ -4,7 +4,7 @@ import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
-  Pressable,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { doc, serverTimestamp, writeBatch } from "firebase/firestore";
 
+import HapticPressable from "../components/HapticPressable";
 import { getCurrentUser } from "../services/authService";
 import { firestore } from "../services/firebaseConfig";
 import { useUserStore } from "../store/userStore";
@@ -45,7 +46,7 @@ function JobRolePicker({ selectedValue, onSelect }) {
       <Text selectable style={styles.label}>
         Job Role
       </Text>
-      <Pressable
+      <HapticPressable
         onPress={() => setIsOpen((current) => !current)}
         style={({ pressed }) => [styles.selectButton, pressed && styles.pressed]}
       >
@@ -53,7 +54,7 @@ function JobRolePicker({ selectedValue, onSelect }) {
           {selectedValue || "Select your job role"}
         </Text>
         <Text style={styles.chevron}>{isOpen ? "Up" : "Down"}</Text>
-      </Pressable>
+      </HapticPressable>
 
       {isOpen ? (
         <View style={styles.optionsPanel}>
@@ -62,7 +63,7 @@ function JobRolePicker({ selectedValue, onSelect }) {
               const selected = role === selectedValue;
 
               return (
-                <Pressable
+                <HapticPressable
                   key={role}
                   onPress={() => {
                     onSelect(role);
@@ -77,7 +78,7 @@ function JobRolePicker({ selectedValue, onSelect }) {
                   <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
                     {role}
                   </Text>
-                </Pressable>
+                </HapticPressable>
               );
             })}
           </ScrollView>
@@ -91,9 +92,7 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
   const currentUser = getCurrentUser();
   const profile = useUserStore((state) => state.profile);
   const updateProfile = useUserStore((state) => state.updateProfile);
-  const [fullName, setFullName] = useState(
-    () => currentUser?.displayName || profile.name || ""
-  );
+  const [fullName, setFullName] = useState(() => currentUser?.displayName || profile.name || "");
   const [jobRole, setJobRole] = useState(profile.jobRole || "");
   const [experienceLevel, setExperienceLevel] = useState(profile.experienceLevel || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -120,7 +119,10 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
     const user = currentUser || getCurrentUser();
 
     if (!user) {
-      Alert.alert("Login required", "Please create an account or login before saving your profile.");
+      Alert.alert(
+        "Login required",
+        "Please create an account or login before saving your profile."
+      );
       return;
     }
 
@@ -183,7 +185,7 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
 
   return (
     <KeyboardAvoidingView
-      behavior={process.env.EXPO_OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.keyboardView}
     >
       <ScrollView
@@ -233,7 +235,7 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
                 const selected = experienceLevel === level;
 
                 return (
-                  <Pressable
+                  <HapticPressable
                     key={level}
                     onPress={() => setExperienceLevel(level)}
                     style={({ pressed }) => [
@@ -245,14 +247,14 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
                     <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>
                       {level}
                     </Text>
-                  </Pressable>
+                  </HapticPressable>
                 );
               })}
             </View>
           </View>
         </View>
 
-        <Pressable
+        <HapticPressable
           disabled={!canSubmit}
           onPress={saveProfile}
           style={({ pressed }) => [
@@ -266,7 +268,7 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
           ) : (
             <Text style={styles.saveButtonText}>Save Profile</Text>
           )}
-        </Pressable>
+        </HapticPressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

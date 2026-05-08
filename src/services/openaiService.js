@@ -1,115 +1,31 @@
-import Groq from "groq-sdk";
-import Constants from "expo-constants";
 import { doc, getDoc } from "firebase/firestore";
 
 import { auth, firestore } from "./firebaseConfig";
+import { ApiClientError, postAuthenticatedFormData, postAuthenticatedJson } from "./apiClient";
 import { useUserStore } from "../store/userStore";
 
-const GROQ_MODEL = "llama-3.3-70b-versatile";
-const DEFAULT_JOB_ROLE = "Full Stack Developer";
-const GROQ_TIMEOUT_MS = 10000;
+const DEFAULT_CATEGORY = "HR";
+const DEFAULT_DIFFICULTY = "easy";
+const DEFAULT_JOB_ROLE = "Software Developer";
+const LOCAL_DAILY_TIP =
+  "Start with brief context, then give a specific example. Keep your answer structured and tied to the role.";
 
-let groqClient;
-
-const getGroqClient = () => {
-  const apiKey = process.env.GROQ_API_KEY || Constants.expoConfig?.extra?.groqApiKey;
-
-  if (!apiKey || apiKey === "your_key_here") {
-    throw new Error("Missing GROQ_API_KEY. Add your Groq key to .env.");
-  }
-
-  if (!groqClient) {
-    groqClient = new Groq({
-      apiKey,
-      dangerouslyAllowBrowser: true
-    });
-  }
-
-  return groqClient;
-};
-
-const getMessageContent = (completion) => {
-  const content = completion.choices?.[0]?.message?.content?.trim();
-
-  if (!content) {
-    throw new Error("Groq returned an empty response.");
-  }
-
-  return content;
-};
-
-const createChatCompletion = async ({
-  messages,
-  temperature = 0.5,
-  maxTokens = 900,
-  responseFormat
-}) => {
-  let timeoutId;
-
-  const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error("Request timed out. Try again."));
-    }, GROQ_TIMEOUT_MS);
+const callInterviewApi = async (body) => {
+  const payload = await postAuthenticatedJson("/api/interview", body, {
+    badRequestMessage: "Please complete your profile before starting an interview.",
+    usageLimitMessage:
+      "You have used your free interview questions for today. Please try again tomorrow."
   });
 
-  try {
-    const completion = await Promise.race([
-      getGroqClient().chat.completions.create({
-        model: GROQ_MODEL,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        ...(responseFormat ? { response_format: responseFormat } : {})
-      }),
-      timeoutPromise
-    ]);
-
-    return getMessageContent(completion);
-  } finally {
-    clearTimeout(timeoutId);
+  if (typeof payload?.question !== "string" || !payload.question.trim()) {
+    throw new ApiClientError(
+      "Invalid response from server. Please try again.",
+      0,
+      "INVALID_RESPONSE"
+    );
   }
-};
 
-const parseJsonResponse = (content) => {
-  try {
-    return JSON.parse(content);
-  } catch (error) {
-    const jsonStart = content.indexOf("{");
-    const jsonEnd = content.lastIndexOf("}");
-
-    if (jsonStart >= 0 && jsonEnd > jsonStart) {
-      return JSON.parse(content.slice(jsonStart, jsonEnd + 1));
-    }
-
-    throw error;
-  }
-};
-
-const normalizeResumeAnalysis = (analysis) => {
-  const parsedScore = parseFloat(String(analysis.atsScore ?? "0").replace(/[^0-9.]/g, ""));
-
-  return {
-    atsScore: Number.isFinite(parsedScore) ? parsedScore : 0,
-    missingKeywords: Array.isArray(analysis.missingKeywords) ? analysis.missingKeywords : [],
-    grammarIssues: Array.isArray(analysis.grammarIssues) ? analysis.grammarIssues : [],
-    sectionFeedback: {
-      summary: analysis.sectionFeedback?.summary || "",
-      experience: analysis.sectionFeedback?.experience || "",
-      skills: analysis.sectionFeedback?.skills || "",
-      education: analysis.sectionFeedback?.education || ""
-    }
-  };
-};
-
-const normalizeEvaluationFeedback = (feedback) => {
-  const parsedScore = parseFloat(String(feedback.score ?? "0").replace(/[^0-9.]/g, ""));
-
-  return {
-    score: Number.isFinite(parsedScore) ? Math.max(0, Math.min(10, parsedScore)) : 0,
-    strengths: Array.isArray(feedback.strengths) ? feedback.strengths : [],
-    improvements: Array.isArray(feedback.improvements) ? feedback.improvements : [],
-    idealAnswer: feedback.idealAnswer || ""
-  };
+  return payload.question.trim();
 };
 
 const normalizeProfile = (profile, fallbackName = "") => ({
@@ -176,16 +92,38 @@ const normalizeQuestionArgs = (category, jobRole, difficulty) => {
   if (typeof category === "object" && category !== null) {
     return {
       category: category.category,
+      company: category.company,
       jobRole: category.jobRole,
-      difficulty: category.difficulty || "medium"
+      difficulty: category.difficulty
     };
   }
 
   return {
     category,
     jobRole,
-    difficulty: difficulty || "medium"
+    difficulty: difficulty || DEFAULT_DIFFICULTY
   };
+};
+
+const normalizeRequiredString = (value, fallback) => {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized || fallback;
+};
+
+const createInterviewRequestBody = ({ category, company, difficulty, jobRole }) => {
+  const body = {
+    category: normalizeRequiredString(category, DEFAULT_CATEGORY),
+    difficulty: normalizeRequiredString(difficulty, DEFAULT_DIFFICULTY),
+    jobRole: normalizeRequiredString(jobRole, DEFAULT_JOB_ROLE)
+  };
+
+  const normalizedCompany = typeof company === "string" ? company.trim() : "";
+
+  if (normalizedCompany) {
+    body.company = normalizedCompany;
+  }
+
+  return body;
 };
 
 const normalizeEvaluationArgs = (question, answer, jobRole) => {
@@ -211,121 +149,169 @@ const normalizeResumeArgs = (resumeText, jobRole) => {
   return { resumeText, jobRole };
 };
 
-export const generateQuestion = async (category, jobRole, difficulty = "medium") => {
-  try {
-    const args = normalizeQuestionArgs(category, jobRole, difficulty);
-    const resolvedJobRole = await resolveJobRole(args.jobRole);
-    const prompt = `
-Generate one ${args.difficulty} interview question for a ${resolvedJobRole} candidate.
-Category: ${args.category}
-Return ONLY the question string, no numbering, no explanation.
-`;
-
-    return await createChatCompletion({
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      maxTokens: 120
-    });
-  } catch (error) {
-    console.error("generateQuestion failed:", error);
-    throw error;
+const normalizeEvaluationFeedback = (feedback) => {
+  if (!feedback || typeof feedback !== "object") {
+    throw new ApiClientError(
+      "Invalid response from server. Please try again.",
+      0,
+      "INVALID_RESPONSE"
+    );
   }
+
+  const parsedScore = parseFloat(String(feedback?.score ?? "0").replace(/[^0-9.]/g, ""));
+
+  if (!Number.isFinite(parsedScore)) {
+    throw new ApiClientError(
+      "Invalid response from server. Please try again.",
+      0,
+      "INVALID_RESPONSE"
+    );
+  }
+
+  if (
+    !Array.isArray(feedback.strengths) ||
+    !Array.isArray(feedback.improvements) ||
+    typeof feedback.idealAnswer !== "string"
+  ) {
+    throw new ApiClientError(
+      "Invalid response from server. Please try again.",
+      0,
+      "INVALID_RESPONSE"
+    );
+  }
+
+  return {
+    score: Math.max(0, Math.min(10, parsedScore)),
+    strengths: feedback.strengths,
+    improvements: feedback.improvements,
+    idealAnswer: feedback.idealAnswer
+  };
+};
+
+const normalizeResumeAnalysis = (analysis) => {
+  if (!analysis || typeof analysis !== "object") {
+    throw new ApiClientError(
+      "Invalid response from server. Please try again.",
+      0,
+      "INVALID_RESPONSE"
+    );
+  }
+
+  const parsedScore = parseFloat(String(analysis?.atsScore ?? "0").replace(/[^0-9.]/g, ""));
+
+  if (!Number.isFinite(parsedScore)) {
+    throw new ApiClientError(
+      "Invalid response from server. Please try again.",
+      0,
+      "INVALID_RESPONSE"
+    );
+  }
+
+  if (
+    !Array.isArray(analysis.missingKeywords) ||
+    !Array.isArray(analysis.grammarIssues) ||
+    typeof analysis.sectionFeedback?.summary !== "string" ||
+    typeof analysis.sectionFeedback?.experience !== "string" ||
+    typeof analysis.sectionFeedback?.skills !== "string" ||
+    typeof analysis.sectionFeedback?.education !== "string"
+  ) {
+    throw new ApiClientError(
+      "Invalid response from server. Please try again.",
+      0,
+      "INVALID_RESPONSE"
+    );
+  }
+
+  return {
+    atsScore: parsedScore,
+    missingKeywords: analysis.missingKeywords,
+    grammarIssues: analysis.grammarIssues,
+    sectionFeedback: {
+      summary: analysis.sectionFeedback.summary,
+      experience: analysis.sectionFeedback.experience,
+      skills: analysis.sectionFeedback.skills,
+      education: analysis.sectionFeedback.education
+    }
+  };
+};
+
+export const generateQuestion = async (category, jobRole, difficulty = DEFAULT_DIFFICULTY) => {
+  const args = normalizeQuestionArgs(category, jobRole, difficulty);
+  const resolvedJobRole = await resolveJobRole(args.jobRole);
+
+  return callInterviewApi(
+    createInterviewRequestBody({
+      category: args.category,
+      company: args.company,
+      difficulty: args.difficulty,
+      jobRole: resolvedJobRole
+    })
+  );
 };
 
 export const evaluateAnswer = async (question, answer, jobRole) => {
-  try {
-    const args = normalizeEvaluationArgs(question, answer, jobRole);
-    const resolvedJobRole = await resolveJobRole(args.jobRole);
-    const prompt = `
-You are an expert ${resolvedJobRole} interviewer.
-Evaluate this interview answer.
+  const args = normalizeEvaluationArgs(question, answer, jobRole);
+  const resolvedJobRole = await resolveJobRole(args.jobRole);
+  const feedback = await postAuthenticatedJson(
+    "/api/evaluate",
+    {
+      answer: args.answer,
+      jobRole: resolvedJobRole,
+      question: args.question
+    },
+    {
+      usageLimitMessage:
+        "You have used your free answer evaluations for today. Please try again tomorrow."
+    }
+  );
 
-Question: ${args.question}
-Candidate's Answer: ${args.answer}
-
-Respond ONLY in valid JSON, no extra text:
-{
-  "score": 7,
-  "strengths": ["Specific strength 1", "Specific strength 2"],
-  "improvements": ["Specific improvement 1", "Specific improvement 2"],
-  "idealAnswer": "An ideal answer in 3-4 sentences."
-}
-`;
-
-    const content = await createChatCompletion({
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.2,
-      maxTokens: 900,
-      responseFormat: { type: "json_object" }
-    });
-
-    return normalizeEvaluationFeedback(parseJsonResponse(content));
-  } catch (error) {
-    console.error("evaluateAnswer failed:", error);
-    throw error;
-  }
+  return normalizeEvaluationFeedback(feedback);
 };
 
-export const generateDailyTip = async (jobRole) => {
-  try {
-    const role = typeof jobRole === "object" && jobRole !== null ? jobRole.jobRole : jobRole;
-    const resolvedJobRole = await resolveJobRole(role);
-    const prompt = `
-Give ONE actionable interview tip for a ${resolvedJobRole} candidate in exactly 2 sentences.
-Make it specific, practical, and motivating.
-Return only the tip.
-`;
-
-    return await createChatCompletion({
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      maxTokens: 120
-    });
-  } catch (error) {
-    console.error("generateDailyTip failed:", error);
-    throw error;
-  }
-};
+export const generateDailyTip = async () => LOCAL_DAILY_TIP;
 
 export const analyzeResume = async (resumeText, jobRole) => {
-  try {
-    const args = normalizeResumeArgs(resumeText, jobRole);
-    const resolvedJobRole = await resolveJobRole(args.jobRole);
-    const safeText = String(args.resumeText || "").substring(0, 3000);
-    const prompt = `
-Analyze this resume for a ${resolvedJobRole} position.
+  const args = normalizeResumeArgs(resumeText, jobRole);
+  const resolvedJobRole = await resolveJobRole(args.jobRole);
+  const analysis = await postAuthenticatedJson(
+    "/api/resume/analyze",
+    {
+      jobRole: resolvedJobRole,
+      resumeText: String(args.resumeText || "").substring(0, 12000)
+    },
+    {
+      usageLimitMessage: "You have used your free resume analysis for this month."
+    }
+  );
 
-Resume:
-${safeText}
+  return normalizeResumeAnalysis(analysis);
+};
 
-Respond ONLY in valid JSON, no extra text:
-{
-  "atsScore": 82,
-  "missingKeywords": ["keyword1", "keyword2"],
-  "grammarIssues": ["issue1", "issue2"],
-  "sectionFeedback": {
-    "summary": "Feedback for summary section.",
-    "experience": "Feedback for experience section.",
-    "skills": "Feedback for skills section.",
-    "education": "Feedback for education section."
+export const analyzeResumePdf = async (asset, jobRole) => {
+  const resolvedJobRole = await resolveJobRole(jobRole);
+
+  if (!asset?.uri) {
+    throw new ApiClientError("Please upload a PDF resume.", 400, "MISSING_RESUME_FILE");
   }
-}
-`;
 
-    const content = await createChatCompletion({
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.2,
-      maxTokens: 1400,
-      responseFormat: { type: "json_object" }
-    });
+  const formData = new FormData();
 
-    console.log("Groq analyzeResume response:", content);
+  formData.append("jobRole", resolvedJobRole);
+  formData.append("resume", {
+    uri: asset.uri,
+    type: "application/pdf",
+    name: asset.name || "resume.pdf"
+  });
 
-    return normalizeResumeAnalysis(parseJsonResponse(content));
-  } catch (error) {
-    console.error("analyzeResume failed:", error);
-    throw error;
-  }
+  const analysis = await postAuthenticatedFormData("/api/resume/analyze", formData, {
+    logBody: {
+      hasResumeFile: true,
+      jobRole: resolvedJobRole
+    },
+    usageLimitMessage: "You have used your free resume analysis for this month."
+  });
+
+  return normalizeResumeAnalysis(analysis);
 };
 
 export const generateInterviewQuestion = generateQuestion;

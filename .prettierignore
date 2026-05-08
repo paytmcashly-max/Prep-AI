@@ -1,0 +1,13 @@
+node_modules
+dist
+.expo
+android/.gradle
+android/.kotlin
+android/build
+android/app/build
+android/**/.cxx
+qa-screenshots
+server/node_modules
+server/dist
+package-lock.json
+server/package-lock.json
