@@ -64,6 +64,7 @@ const SENSITIVE_REQUEST_KEYS = new Set([
   "authorization",
   "firebaseIdToken",
   "idToken",
+  "previousQuestions",
   "question",
   "resumeText",
   "token"

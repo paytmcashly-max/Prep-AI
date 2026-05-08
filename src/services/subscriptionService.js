@@ -22,6 +22,7 @@ const PREMIUM_FEATURE_SET = new Set(Object.values(PREMIUM_FEATURES));
 let purchasesModule = null;
 let hasConfiguredPurchases = false;
 let configuredKeySource = "none";
+let configuredRevenueCatUserId = null;
 let cachedCustomerInfo = null;
 
 const createDefaultSubscriptionStatus = () => ({
@@ -46,7 +47,7 @@ const getRevenueCatApiKey = () => {
   const testStoreApiKey =
     process.env.EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY || getExtra("revenueCatTestStoreApiKey");
 
-  if (isDevelopment() && testStoreApiKey) {
+  if (testStoreApiKey) {
     return {
       apiKey: testStoreApiKey,
       keySource: "test_store"
@@ -92,17 +93,49 @@ const getPurchasesModule = async () => {
 const getActiveEntitlements = (customerInfo) =>
   Object.keys(customerInfo?.entitlements?.active || {});
 
+const getEntitlementExpirationDate = (customerInfo, entitlementId) => {
+  const entitlement = customerInfo?.entitlements?.active?.[entitlementId];
+  const expirationDate = entitlement?.expirationDate;
+  const expirationDateMillis = entitlement?.expirationDateMillis;
+
+  if (typeof expirationDate === "string" && expirationDate.trim()) {
+    return expirationDate;
+  }
+
+  if (Number.isFinite(expirationDateMillis)) {
+    return new Date(expirationDateMillis).toISOString();
+  }
+
+  return null;
+};
+
+const revenueCatSetupChecklist = [
+  "RevenueCat entitlement id must be premium",
+  "Purchased product must be attached to entitlement",
+  "Offering must contain product",
+  "Test Store purchase must grant entitlement",
+  "App must be rebuilt or reloaded with correct key/env"
+];
+
 const mapCustomerInfoToStatus = (customerInfo) => {
   const activeEntitlements = getActiveEntitlements(customerInfo);
-  const isPremium = activeEntitlements.includes(getRevenueCatEntitlementId());
+  const entitlementId = getRevenueCatEntitlementId();
+  const isPremium = activeEntitlements.includes(entitlementId);
+  const expirationDate = getEntitlementExpirationDate(customerInfo, entitlementId);
 
   logRevenueCatDebug("entitlement checked", {
-    entitlementActive: isPremium
+    activeEntitlements,
+    entitlementActive: isPremium,
+    entitlementId,
+    expirationDate,
+    keySource: configuredKeySource
   });
 
   return {
     isPremium,
     activeEntitlements,
+    entitlementId,
+    expirationDate,
     source: "revenuecat"
   };
 };
@@ -168,6 +201,45 @@ export const getSubscriptionStatus = async () => {
   }
 };
 
+export const identifyPurchasesUser = async (userId) => {
+  const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
+  const isConfigured = await configurePurchases();
+
+  if (!isConfigured || !normalizedUserId) {
+    return createDefaultSubscriptionStatus();
+  }
+
+  try {
+    const Purchases = await getPurchasesModule();
+
+    if (configuredRevenueCatUserId === normalizedUserId) {
+      cachedCustomerInfo = await Purchases.getCustomerInfo();
+      return mapCustomerInfoToStatus(cachedCustomerInfo);
+    }
+
+    const loginResult = await Purchases.logIn(normalizedUserId);
+    configuredRevenueCatUserId = normalizedUserId;
+    cachedCustomerInfo = loginResult.customerInfo;
+
+    logRevenueCatDebug("customer identified", {
+      keySource: configuredKeySource
+    });
+
+    return mapCustomerInfoToStatus(cachedCustomerInfo);
+  } catch (error) {
+    logRevenueCatDebug("customer identify failed", {
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+      keySource: configuredKeySource
+    });
+    return getSubscriptionStatus();
+  }
+};
+
+export const resetPurchasesUser = async () => {
+  configuredRevenueCatUserId = null;
+  cachedCustomerInfo = null;
+};
+
 export const isPremiumUser = async () => {
   const status = await getSubscriptionStatus();
   return status.isPremium;
@@ -221,7 +293,20 @@ export const purchasePackage = async (packageToPurchase) => {
   try {
     const purchaseResult = await Purchases.purchasePackage(packageToPurchase);
     cachedCustomerInfo = purchaseResult.customerInfo;
-    return mapCustomerInfoToStatus(cachedCustomerInfo);
+    const status = mapCustomerInfoToStatus(cachedCustomerInfo);
+
+    if (!status.isPremium) {
+      logRevenueCatDebug("premium entitlement inactive after purchase", {
+        activeEntitlements: status.activeEntitlements,
+        checklist: revenueCatSetupChecklist,
+        entitlementId: getRevenueCatEntitlementId(),
+        keySource: configuredKeySource,
+        productIdentifier: packageToPurchase?.product?.identifier,
+        purchasedPackageIdentifier: packageToPurchase?.identifier
+      });
+    }
+
+    return status;
   } catch (error) {
     if (
       error?.userCancelled ||
@@ -249,7 +334,18 @@ export const restorePurchases = async () => {
   try {
     const Purchases = await getPurchasesModule();
     cachedCustomerInfo = await Purchases.restorePurchases();
-    return mapCustomerInfoToStatus(cachedCustomerInfo);
+    const status = mapCustomerInfoToStatus(cachedCustomerInfo);
+
+    if (!status.isPremium) {
+      logRevenueCatDebug("premium entitlement inactive after restore", {
+        activeEntitlements: status.activeEntitlements,
+        checklist: revenueCatSetupChecklist,
+        entitlementId: getRevenueCatEntitlementId(),
+        keySource: configuredKeySource
+      });
+    }
+
+    return status;
   } catch (error) {
     logRevenueCatDebug("restore failed", {
       errorMessage: error instanceof Error ? error.message : "Unknown error"

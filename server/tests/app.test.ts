@@ -91,10 +91,70 @@ describe("backend app", () => {
     expect(response.body).toEqual({ error: "Authentication required." });
   });
 
+  it("POST /api/subscription/sync without Authorization returns 401", async () => {
+    const response = await request(app)
+      .post("/api/subscription/sync")
+      .send({
+        activeEntitlements: ["premium"],
+        entitlementId: "premium",
+        expirationDate: null,
+        isPremium: true,
+        source: "revenuecat"
+      })
+      .expect(401);
+
+    expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
   it("resume text validation rejects too-short content before analysis", async () => {
     const { normalizeResumeTextForAnalysis, ResumeTextValidationError } =
       await import("../src/services/resumeService.js");
 
     expect(() => normalizeResumeTextForAnalysis("too short")).toThrow(ResumeTextValidationError);
+  });
+
+  it("resume ATS score normalization treats decimals as percentages", async () => {
+    const { normalizeAtsScore } = await import("../src/services/resumeService.js");
+
+    expect(normalizeAtsScore(0.4)).toBe(40);
+    expect(normalizeAtsScore(85)).toBe(85);
+    expect(normalizeAtsScore(130)).toBe(100);
+  });
+
+  it("subscription status treats active premium without expiration as unlimited", async () => {
+    const { isSubscriptionActiveFromData } = await import("../src/services/usageService.js");
+
+    expect(isSubscriptionActiveFromData({ isPremium: true })).toBe(true);
+    expect(
+      isSubscriptionActiveFromData(
+        {
+          expirationDate: "2099-01-01T00:00:00.000Z",
+          isPremium: true
+        },
+        new Date("2026-01-01T00:00:00.000Z")
+      )
+    ).toBe(true);
+  });
+
+  it("subscription status rejects expired or inactive premium", async () => {
+    const { isSubscriptionActiveFromData } = await import("../src/services/usageService.js");
+
+    expect(
+      isSubscriptionActiveFromData(
+        {
+          expirationDate: "2025-01-01T00:00:00.000Z",
+          isPremium: true
+        },
+        new Date("2026-01-01T00:00:00.000Z")
+      )
+    ).toBe(false);
+    expect(isSubscriptionActiveFromData({ isPremium: false })).toBe(false);
+  });
+
+  it("daily usage period resets at India midnight", async () => {
+    const { getDailyPeriodKey } = await import("../src/services/usageService.js");
+
+    expect(getDailyPeriodKey(new Date("2026-05-08T18:29:59.000Z"))).toBe("2026-05-08");
+    expect(getDailyPeriodKey(new Date("2026-05-08T18:30:00.000Z"))).toBe("2026-05-09");
   });
 });

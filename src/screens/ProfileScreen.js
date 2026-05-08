@@ -25,6 +25,7 @@ import {
   calculateCurrentStreak,
   fetchUserSessions
 } from "../services/sessionService";
+import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.prepai.prepai";
@@ -95,6 +96,11 @@ function SettingRow({ label, detail, onPress, right, destructive }) {
 
 export default function ProfileScreen({ navigation }) {
   const profile = useUserStore((state) => state.profile);
+  const isPremium = useSubscriptionStore((state) => state.isPremium);
+  const isSubscriptionLoading = useSubscriptionStore((state) => state.isLoading);
+  const refreshSubscriptionStatus = useSubscriptionStore(
+    (state) => state.refreshSubscriptionStatus
+  );
   const user = getCurrentUser();
   const displayName =
     user?.displayName?.trim() || profile.fullName || profile.name || "PrepAI User";
@@ -143,7 +149,8 @@ export default function ProfileScreen({ navigation }) {
     useCallback(() => {
       loadProfileStats();
       loadReminderState();
-    }, [loadProfileStats, loadReminderState])
+      refreshSubscriptionStatus().catch(() => {});
+    }, [loadProfileStats, loadReminderState, refreshSubscriptionStatus])
   );
 
   const editProfile = () => {
@@ -256,15 +263,26 @@ export default function ProfileScreen({ navigation }) {
               {profile.experienceLevel || "Experience not set"}
             </Text>
           </View>
+          <View style={[styles.planBadge, isPremium ? styles.premiumBadge : styles.freeBadge]}>
+            <Text selectable style={styles.planBadgeText}>
+              {isSubscriptionLoading
+                ? "Checking plan..."
+                : isPremium
+                  ? "Premium Active"
+                  : "Free Plan"}
+            </Text>
+          </View>
         </View>
       </View>
 
       <View style={styles.statsRow}>
         {isStatsLoading ? (
-          <View style={styles.loadingStats}>
-            <SkeletonBox style={styles.statsSkeletonTitle} />
-            <SkeletonBox style={styles.statsSkeletonLine} />
-          </View>
+          ["sessions", "score", "streak"].map((item) => (
+            <View key={item} style={styles.statCard}>
+              <SkeletonBox style={styles.statsSkeletonTitle} />
+              <SkeletonBox style={styles.statsSkeletonLine} />
+            </View>
+          ))
         ) : (
           <>
             <StatCard label="Total Sessions" value={String(stats.totalSessions)} />
@@ -303,8 +321,8 @@ export default function ProfileScreen({ navigation }) {
             }
           />
           <SettingRow
-            label={"Upgrade to Premium \uD83D\uDC51"}
-            detail="Unlock unlimited practice"
+            label={isPremium ? "Manage Premium" : "Upgrade to Premium \uD83D\uDC51"}
+            detail={isPremium ? "Premium entitlement is active" : "Unlock unlimited practice"}
             onPress={() => navigation.navigate("Paywall")}
           />
         </View>
@@ -402,31 +420,18 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     padding: 14
   },
-  loadingStats: {
-    alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    flex: 1,
-    flexDirection: "row",
-    gap: 10,
-    justifyContent: "center",
-    minHeight: 90,
-    padding: 14
-  },
   loadingText: {
     color: COLORS.muted,
     fontSize: 14,
     fontWeight: "800"
   },
   statsSkeletonLine: {
-    height: 15,
-    width: "52%"
+    height: 12,
+    width: "70%"
   },
   statsSkeletonTitle: {
-    height: 26,
-    width: "70%"
+    height: 24,
+    width: "84%"
   },
   name: {
     color: COLORS.text,
@@ -436,6 +441,26 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.75
+  },
+  freeBadge: {
+    backgroundColor: "#111111",
+    borderColor: COLORS.border
+  },
+  planBadge: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 7
+  },
+  planBadgeText: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  premiumBadge: {
+    backgroundColor: "rgba(34, 197, 94, 0.14)",
+    borderColor: "rgba(34, 197, 94, 0.45)"
   },
   profileCard: {
     alignItems: "center",

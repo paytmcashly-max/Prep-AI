@@ -6,6 +6,7 @@ import { ZodError, z } from "zod";
 
 import { type AuthenticatedRequest, requireFirebaseAuth } from "./authMiddleware.js";
 import { config } from "./config.js";
+import { getFirebaseAdmin } from "./firebaseAdmin.js";
 import { logger } from "./logger.js";
 import { interviewRateLimit } from "./rateLimitMiddleware.js";
 import { evaluateInterviewAnswer } from "./services/evaluationService.js";
@@ -39,7 +40,8 @@ const interviewRequestSchema = z.object({
   jobRole: z.string().trim().min(1).max(120),
   category: z.string().trim().min(1).max(80),
   difficulty: z.string().trim().min(1).max(40),
-  company: z.string().trim().min(1).max(120).optional()
+  company: z.string().trim().min(1).max(120).optional(),
+  previousQuestions: z.array(z.string().trim().min(1).max(500)).max(10).optional()
 });
 
 const evaluationRequestSchema = z.object({
@@ -55,6 +57,14 @@ const resumeAnalysisRequestSchema = z.object({
 
 const resumeUploadFieldsSchema = z.object({
   jobRole: z.string().trim().min(1).max(120)
+});
+
+const subscriptionSyncRequestSchema = z.object({
+  activeEntitlements: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
+  entitlementId: z.string().trim().min(1).max(120),
+  expirationDate: z.string().trim().max(120).nullable().optional(),
+  isPremium: z.boolean(),
+  source: z.literal("revenuecat")
 });
 
 const MAX_RESUME_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
@@ -202,8 +212,9 @@ app.post(
     try {
       const input = interviewRequestSchema.parse(request.body);
       await trackInterviewQuestionUsage(getAuthenticatedUid(request));
+      const question = await generateInterviewQuestion(input);
 
-      response.json(generateInterviewQuestion(input));
+      response.json(question);
     } catch (error) {
       next(error);
     }
@@ -244,6 +255,41 @@ app.post(
     }
   }
 );
+
+app.post("/api/subscription/sync", requireFirebaseAuth, async (request, response, next) => {
+  try {
+    const input = subscriptionSyncRequestSchema.parse(request.body);
+    const uid = getAuthenticatedUid(request);
+    const firebaseAdmin = getFirebaseAdmin();
+    const firestore = firebaseAdmin.firestore();
+    const entitlementIsActive = input.activeEntitlements.includes(input.entitlementId);
+    const isPremium = input.isPremium && entitlementIsActive;
+
+    await firestore
+      .collection("users")
+      .doc(uid)
+      .collection("subscription")
+      .doc("main")
+      .set(
+        {
+          activeEntitlements: input.activeEntitlements,
+          entitlementId: input.entitlementId,
+          expirationDate: input.expirationDate || null,
+          isPremium,
+          source: "revenuecat",
+          updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+        },
+        { merge: true }
+      );
+
+    response.json({
+      isPremium,
+      ok: true
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
   if (error instanceof SafeBadRequestError || error instanceof ResumeTextValidationError) {

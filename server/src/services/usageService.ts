@@ -1,4 +1,5 @@
 import { getFirebaseAdmin } from "../firebaseAdmin.js";
+import { logger } from "../logger.js";
 
 export class UsageLimitError extends Error {
   constructor() {
@@ -16,15 +17,99 @@ type UsageLimitConfig = {
 };
 
 const usageLimitsCollection = "usageLimits";
+const subscriptionCollectionPath = "subscription";
+const subscriptionDocumentId = "main";
+const quotaResetTimeZone = "Asia/Kolkata";
 
-const getDailyPeriodKey = () => new Date().toISOString().slice(0, 10);
+const getTimeZoneDateParts = (date: Date, timeZone: string) =>
+  Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone,
+      year: "numeric"
+    })
+      .formatToParts(date)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value])
+  ) as {
+    day: string;
+    month: string;
+    year: string;
+  };
+
+export const getDailyPeriodKey = (date = new Date(), timeZone = quotaResetTimeZone) => {
+  const parts = getTimeZoneDateParts(date, timeZone);
+
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
 
 const getMonthlyPeriodKey = () => new Date().toISOString().slice(0, 7);
 
 const getUsageDocumentId = (uid: string, type: UsageType, period: string) =>
   `${uid}_${type}_${period}`;
 
+type SubscriptionStatusData = {
+  expirationDate?: unknown;
+  isPremium?: unknown;
+};
+
+export const isSubscriptionActiveFromData = (
+  data: SubscriptionStatusData | undefined,
+  now = new Date()
+) => {
+  if (data?.isPremium !== true) {
+    return false;
+  }
+
+  if (!data.expirationDate) {
+    return true;
+  }
+
+  if (typeof data.expirationDate !== "string") {
+    return false;
+  }
+
+  const expiresAt = new Date(data.expirationDate);
+
+  if (Number.isNaN(expiresAt.getTime())) {
+    return false;
+  }
+
+  return expiresAt.getTime() > now.getTime();
+};
+
+export const hasActivePremiumSubscription = async (uid: string) => {
+  try {
+    const firestore = getFirebaseAdmin().firestore();
+    const subscriptionSnapshot = await firestore
+      .collection("users")
+      .doc(uid)
+      .collection(subscriptionCollectionPath)
+      .doc(subscriptionDocumentId)
+      .get();
+
+    if (!subscriptionSnapshot.exists) {
+      return false;
+    }
+
+    return isSubscriptionActiveFromData(subscriptionSnapshot.data());
+  } catch (error) {
+    logger.warn("Premium subscription check failed; enforcing free usage limits", {
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+      errorName: error instanceof Error ? error.name : "UnknownError"
+    });
+    return false;
+  }
+};
+
 const consumeUsage = async (uid: string, config: UsageLimitConfig) => {
+  const isPremium = await hasActivePremiumSubscription(uid);
+
+  if (isPremium) {
+    return;
+  }
+
   const firebaseAdmin = getFirebaseAdmin();
   const firestore = firebaseAdmin.firestore();
   const usageRef = firestore

@@ -13,10 +13,16 @@ qa-screenshots/
 .env.*
 !.env.example
 google-services.json
+firebase-admin*.json
+service-account*.json
+*.pem
+*.p8
 *.keystore
+*.jks
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 expo-server.log
 expo-server.err.log
 expo-*.log

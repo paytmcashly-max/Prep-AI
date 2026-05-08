@@ -8,6 +8,7 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 import { auth, firestore, isFirebaseConfigured } from "./firebaseConfig";
 import { useProgressStore } from "../store/progressStore";
+import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
 
 let lastAuthAction = null;
@@ -105,6 +106,7 @@ export const signOut = async () => {
   } finally {
     useUserStore.getState().resetUser();
     useProgressStore.getState().resetProgress();
+    useSubscriptionStore.getState().resetSubscription();
   }
 };
 

@@ -32,9 +32,11 @@ import "../services/firebaseConfig";
 import { trackEvent } from "../services/analyticsService";
 import { evaluateAnswer, generateQuestion } from "../services/openaiService";
 import { useProgressStore } from "../store/progressStore";
+import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
 
-const TOTAL_QUESTIONS = 5;
+const DEFAULT_QUESTION_COUNT = 5;
+const MAX_PREMIUM_QUESTION_COUNT = 20;
 const QUESTION_TIME_SECONDS = 60;
 const FREE_DAILY_QUESTION_LIMIT = 5;
 const TIMER_SIZE = 150;
@@ -53,6 +55,18 @@ const COLORS = {
   green: "#22C55E",
   yellow: "#FACC15",
   red: "#EF4444"
+};
+
+const formatDifficulty = (difficulty) => {
+  if (difficulty === "hard") {
+    return "Hard";
+  }
+
+  if (difficulty === "medium") {
+    return "Medium";
+  }
+
+  return "Easy";
 };
 
 const formatCategory = (category) => {
@@ -77,6 +91,16 @@ const formatCategory = (category) => {
   }
 
   return category;
+};
+
+const normalizeQuestionCount = (questionCount, isPremium) => {
+  const parsedCount = Number(questionCount);
+
+  if (!isPremium || !Number.isFinite(parsedCount)) {
+    return DEFAULT_QUESTION_COUNT;
+  }
+
+  return Math.max(DEFAULT_QUESTION_COUNT, Math.min(MAX_PREMIUM_QUESTION_COUNT, parsedCount));
 };
 
 const getAverageScore = (scores) => {
@@ -179,8 +203,6 @@ const getDailyUsageDocRef = () => {
   const auth = getAuth();
   const uid = auth.currentUser?.uid;
 
-  console.log("Daily usage uid:", uid);
-
   if (!uid) {
     return null;
   }
@@ -198,21 +220,16 @@ const getQuestionsUsedToday = async () => {
   const usageSnapshot = await getDoc(usageRef);
 
   if (!usageSnapshot.exists()) {
-    console.log("Daily usage questionsUsed:", 0);
     return 0;
   }
 
-  const questionsUsed = Number(usageSnapshot.data().questionsUsed || 0);
-  console.log("Daily usage questionsUsed:", questionsUsed);
-
-  return questionsUsed;
+  return Number(usageSnapshot.data().questionsUsed || 0);
 };
 
 const getQuestionsUsedTodaySafely = async () => {
   try {
     return await getQuestionsUsedToday();
-  } catch (error) {
-    console.log("Could not read daily usage. Continuing without blocking session.", error);
+  } catch (_error) {
     return 0;
   }
 };
@@ -234,7 +251,6 @@ const incrementQuestionsUsedToday = async () => {
   );
 
   const nextQuestionsUsed = await getQuestionsUsedToday();
-  console.log("Daily usage after increment:", nextQuestionsUsed);
 
   return nextQuestionsUsed;
 };
@@ -242,41 +258,42 @@ const incrementQuestionsUsedToday = async () => {
 const incrementQuestionsUsedTodaySafely = async () => {
   try {
     return await incrementQuestionsUsedToday();
-  } catch (error) {
-    console.log("Could not update daily usage. Continuing session.", error);
+  } catch (_error) {
     return null;
   }
 };
 
-const saveSession = async (avgScore, category, jobRole) => {
+const saveSession = async (avgScore, category, jobRole, questionsAttempted) => {
   const db = getFirestore();
   const auth = getAuth();
   const uid = auth.currentUser?.uid;
 
-  console.log("Firestore session save uid:", uid);
-  console.log("Firestore session score:", avgScore);
-
   if (!uid) {
-    console.log("No uid found. Session was not saved.");
     return;
   }
 
   await addDoc(collection(db, "users", uid, "sessions"), {
     category,
     score: Number(avgScore || 0),
-    questionsAttempted: 5,
+    questionsAttempted,
     date: new Date(),
     jobRole
   });
 
-  console.log("Session saved to Firestore!");
   useProgressStore.getState().resetProgress();
 };
 
 export default function MockInterviewScreen({ navigation, route }) {
   const category = route?.params?.category || "HR";
+  const difficulty = route?.params?.difficulty || "easy";
   const categoryName = useMemo(() => formatCategory(category), [category]);
+  const difficultyName = useMemo(() => formatDifficulty(difficulty), [difficulty]);
   const jobRole = useUserStore((state) => state.profile.jobRole);
+  const isPremium = useSubscriptionStore((state) => state.isPremium);
+  const totalQuestions = useMemo(
+    () => normalizeQuestionCount(route?.params?.questionCount, isPremium),
+    [isPremium, route?.params?.questionCount]
+  );
   const [questionNumber, setQuestionNumber] = useState(1);
   const [question, setQuestion] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(QUESTION_TIME_SECONDS);
@@ -293,39 +310,41 @@ export default function MockInterviewScreen({ navigation, route }) {
   const [showIdealAnswer, setShowIdealAnswer] = useState(false);
   const [isSavingSession, setIsSavingSession] = useState(false);
   const [isSessionComplete, setIsSessionComplete] = useState(false);
+  const [isLimitReached, setIsLimitReached] = useState(false);
+  const previousQuestionsRef = useRef([]);
 
   const finalScores = scoresRef.current.length ? scoresRef.current : scores;
   const averageScore = getAverageScore(finalScores);
 
-  const showDailyLimitAlert = useCallback(() => {
-    Alert.alert("Daily limit reached!", "Upgrade to Premium for unlimited questions.", [
-      {
-        text: "Maybe Later",
-        style: "cancel",
-        onPress: () => navigation.goBack()
-      },
-      {
-        text: "Upgrade Now",
-        onPress: () => navigation.navigate("Paywall")
-      }
-    ]);
-  }, [navigation]);
+  const blockForDailyLimit = useCallback(() => {
+    setIsLimitReached(true);
+    setQuestion("");
+    setFeedback(null);
+    setAnswer("");
+    setSecondsLeft(QUESTION_TIME_SECONDS);
+  }, []);
 
   const loadQuestion = useCallback(
     async (nextQuestionNumber) => {
       try {
         setIsQuestionLoading(true);
         setErrorMessage("");
+        setIsLimitReached(false);
         setFeedback(null);
         setShowIdealAnswer(false);
         setAnswer("");
         setSecondsLeft(QUESTION_TIME_SECONDS);
 
-        const nextQuestion = await generateQuestion(category, undefined, "medium");
+        const nextQuestion = await generateQuestion({
+          category,
+          difficulty,
+          previousQuestions: previousQuestionsRef.current
+        });
+        previousQuestionsRef.current = [...previousQuestionsRef.current, nextQuestion].slice(-10);
         setQuestion(nextQuestion);
         trackEvent("interview_question_generated", {
           category,
-          difficulty: "medium",
+          difficulty,
           questionNumber: nextQuestionNumber
         });
       } catch (error) {
@@ -335,7 +354,7 @@ export default function MockInterviewScreen({ navigation, route }) {
         setIsQuestionLoading(false);
       }
     },
-    [category]
+    [category, difficulty]
   );
 
   const recordQuestionScore = useCallback((score) => {
@@ -344,7 +363,6 @@ export default function MockInterviewScreen({ navigation, route }) {
     const nextScores = [...scoresRef.current, safeScore];
 
     scoresRef.current = nextScores;
-    console.log("Updated scores array:", nextScores);
     setScores(nextScores);
   }, []);
 
@@ -352,23 +370,25 @@ export default function MockInterviewScreen({ navigation, route }) {
     try {
       setIsCheckingUsage(true);
       setErrorMessage("");
+      setIsLimitReached(false);
+      previousQuestionsRef.current = [];
 
       const currentQuestionsUsed = await getQuestionsUsedTodaySafely();
       setQuestionsUsedToday(currentQuestionsUsed);
 
-      if (currentQuestionsUsed >= FREE_DAILY_QUESTION_LIMIT) {
-        showDailyLimitAlert();
+      if (!isPremium && currentQuestionsUsed >= FREE_DAILY_QUESTION_LIMIT) {
+        blockForDailyLimit();
         return;
       }
 
-      trackEvent("interview_started", { category });
+      trackEvent("interview_started", { category, difficulty, questionCount: totalQuestions });
       await loadQuestion(1);
     } catch (error) {
       setErrorMessage(error.message || "Could not generate a question. Please try again.");
     } finally {
       setIsCheckingUsage(false);
     }
-  }, [category, loadQuestion, showDailyLimitAlert]);
+  }, [blockForDailyLimit, category, difficulty, isPremium, loadQuestion, totalQuestions]);
 
   useEffect(() => {
     checkUsageAndStart();
@@ -377,10 +397,12 @@ export default function MockInterviewScreen({ navigation, route }) {
   useEffect(() => {
     if (
       isSessionComplete ||
+      isLimitReached ||
       isCheckingUsage ||
       isQuestionLoading ||
       isEvaluating ||
       feedback ||
+      !question ||
       secondsLeft <= 0
     ) {
       return undefined;
@@ -391,7 +413,16 @@ export default function MockInterviewScreen({ navigation, route }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [feedback, isCheckingUsage, isEvaluating, isQuestionLoading, isSessionComplete, secondsLeft]);
+  }, [
+    feedback,
+    isCheckingUsage,
+    isEvaluating,
+    isLimitReached,
+    isQuestionLoading,
+    isSessionComplete,
+    question,
+    secondsLeft
+  ]);
 
   const saveCompletedSession = async () => {
     if (isSavingSession) {
@@ -403,14 +434,12 @@ export default function MockInterviewScreen({ navigation, route }) {
       setSessionSaveError("");
 
       const finalScores = scoresRef.current.length ? scoresRef.current : scores;
-      console.log("Individual question scores:", finalScores);
 
       const avgScore = finalScores.length
         ? finalScores.reduce((a, b) => a + b, 0) / finalScores.length
         : 0;
-      console.log("Final avg score:", avgScore);
 
-      await saveSession(avgScore, category, jobRole || "Not specified");
+      await saveSession(avgScore, category, jobRole || "Not specified", totalQuestions);
     } catch (error) {
       setSessionSaveError(error.message || "Session completed, but progress could not be saved.");
     } finally {
@@ -420,13 +449,13 @@ export default function MockInterviewScreen({ navigation, route }) {
   };
 
   const completeOrLoadNext = async () => {
-    if (questionNumber >= TOTAL_QUESTIONS) {
+    if (questionNumber >= totalQuestions) {
       await saveCompletedSession();
       return;
     }
 
-    if (questionsUsedToday >= FREE_DAILY_QUESTION_LIMIT) {
-      showDailyLimitAlert();
+    if (!isPremium && questionsUsedToday >= FREE_DAILY_QUESTION_LIMIT) {
+      blockForDailyLimit();
       return;
     }
 
@@ -449,17 +478,14 @@ export default function MockInterviewScreen({ navigation, route }) {
       const currentQuestionsUsed = await getQuestionsUsedTodaySafely();
       setQuestionsUsedToday(currentQuestionsUsed);
 
-      if (currentQuestionsUsed >= FREE_DAILY_QUESTION_LIMIT) {
-        showDailyLimitAlert();
+      if (!isPremium && currentQuestionsUsed >= FREE_DAILY_QUESTION_LIMIT) {
+        blockForDailyLimit();
         return;
       }
 
       trackEvent("answer_submitted", { category, questionNumber });
       const result = await evaluateAnswer(question, answer.trim());
       const parsedScore = Number(result.score);
-
-      console.log("Raw feedback score:", result.score);
-      console.log("Parsed question score:", parsedScore);
 
       if (!Number.isFinite(parsedScore)) {
         throw new Error("AI returned an invalid score. Please submit the answer again.");
@@ -521,7 +547,7 @@ export default function MockInterviewScreen({ navigation, route }) {
             Session Complete! 🎉
           </Text>
           <Text selectable style={styles.summarySubtitle}>
-            You completed {TOTAL_QUESTIONS} interview questions for {jobRole || "your role"}.
+            You completed {totalQuestions} interview questions for {jobRole || "your role"}.
           </Text>
           <View style={styles.averageScoreBox}>
             <Text selectable style={styles.averageScoreText}>
@@ -578,6 +604,39 @@ export default function MockInterviewScreen({ navigation, route }) {
     );
   }
 
+  if (isLimitReached) {
+    return (
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={styles.container}
+        contentContainerStyle={[styles.content, styles.summaryContent]}
+      >
+        <View style={styles.limitCard}>
+          <Text selectable style={styles.limitTitle}>
+            Daily free limit reached
+          </Text>
+          <Text selectable style={styles.limitText}>
+            {
+              "You have used today's free interview questions. Upgrade to Premium for unlimited practice or come back tomorrow."
+            }
+          </Text>
+          <HapticPressable
+            onPress={() => navigation.navigate("Paywall")}
+            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.primaryButtonText}>Upgrade to Premium</Text>
+          </HapticPressable>
+          <HapticPressable
+            onPress={() => navigation.goBack()}
+            style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.secondaryButtonText}>Go Back</Text>
+          </HapticPressable>
+        </View>
+      </ScrollView>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -598,7 +657,7 @@ export default function MockInterviewScreen({ navigation, route }) {
             </Text>
           </View>
           <Text selectable style={styles.counterText}>
-            Question {questionNumber}/{TOTAL_QUESTIONS}
+            {difficultyName} - Question {questionNumber}/{totalQuestions}
           </Text>
         </View>
 
@@ -767,7 +826,7 @@ export default function MockInterviewScreen({ navigation, route }) {
                 <ActivityIndicator color={COLORS.text} />
               ) : (
                 <Text style={styles.nextButtonText}>
-                  {questionNumber >= TOTAL_QUESTIONS ? "View Summary" : "Next Question"}
+                  {questionNumber >= totalQuestions ? "View Summary" : "Next Question"}
                 </Text>
               )}
             </HapticPressable>
@@ -938,6 +997,28 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1
+  },
+  limitCard: {
+    backgroundColor: COLORS.card,
+    borderColor: "#2A2A2A",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 16,
+    padding: 22
+  },
+  limitText: {
+    color: COLORS.muted,
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 24,
+    textAlign: "center"
+  },
+  limitTitle: {
+    color: COLORS.text,
+    fontSize: 28,
+    fontWeight: "900",
+    lineHeight: 35,
+    textAlign: "center"
   },
   loadingBox: {
     alignItems: "center",

@@ -45,6 +45,18 @@ const SECTION_LABELS = {
   education: "Education"
 };
 
+const getAtsToneLabel = (score) => {
+  if (score > 70) {
+    return "Strong match";
+  }
+
+  if (score >= 50) {
+    return "Good start";
+  }
+
+  return "Needs work";
+};
+
 function JobRolePicker({ selectedValue, onSelect }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -162,6 +174,10 @@ export default function ResumeScreen() {
 
     return COLORS.red;
   }, [analysis?.atsScore]);
+  const atsToneLabel = useMemo(
+    () => getAtsToneLabel(Number(analysis?.atsScore || 0)),
+    [analysis?.atsScore]
+  );
 
   const pickPdf = async () => {
     try {
@@ -365,6 +381,9 @@ export default function ResumeScreen() {
             <Text selectable style={styles.atsLabel}>
               ATS Score
             </Text>
+            <Text selectable style={styles.atsToneText}>
+              {atsToneLabel}
+            </Text>
           </View>
 
           <View style={styles.resultSection}>
@@ -382,11 +401,34 @@ export default function ResumeScreen() {
             <Text selectable style={styles.sectionTitle}>
               Grammar Issues
             </Text>
-            {(analysis.grammarIssues || []).map((issue) => (
-              <Text key={issue} selectable style={styles.grammarIssue}>
-                - {issue}
+            {(analysis.grammarIssues || []).length ? (
+              (analysis.grammarIssues || []).map((issue) => (
+                <Text key={issue} selectable style={styles.grammarIssue}>
+                  - {issue}
+                </Text>
+              ))
+            ) : (
+              <Text selectable style={styles.emptyResultText}>
+                No obvious grammar issues found.
               </Text>
-            ))}
+            )}
+          </View>
+
+          <View style={styles.resultSection}>
+            <Text selectable style={styles.sectionTitle}>
+              Suggested Lines to Add
+            </Text>
+            {(analysis.rewriteSuggestions || []).length ? (
+              (analysis.rewriteSuggestions || []).map((suggestion) => (
+                <Text key={suggestion} selectable style={styles.rewriteSuggestion}>
+                  {suggestion}
+                </Text>
+              ))
+            ) : (
+              <Text selectable style={styles.emptyResultText}>
+                No suggested lines were returned for this resume.
+              </Text>
+            )}
           </View>
 
           <View style={styles.resultSection}>
@@ -439,6 +481,11 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     lineHeight: 62
   },
+  atsToneText: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontWeight: "800"
+  },
   badgeRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -482,6 +529,12 @@ const styles = StyleSheet.create({
   },
   errorMessageCard: {
     borderColor: "rgba(239, 68, 68, 0.35)"
+  },
+  emptyResultText: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20
   },
   fallbackButton: {
     alignItems: "center",
@@ -628,6 +681,17 @@ const styles = StyleSheet.create({
   },
   resultSection: {
     gap: 12
+  },
+  rewriteSuggestion: {
+    backgroundColor: "rgba(108, 99, 255, 0.12)",
+    borderColor: "rgba(108, 99, 255, 0.35)",
+    borderRadius: 8,
+    borderWidth: 1,
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 21,
+    padding: 12
   },
   resumeInput: {
     backgroundColor: "#111111",

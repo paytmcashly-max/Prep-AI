@@ -29,6 +29,7 @@
     "@shopify/react-native-skia": "2.2.12",
     "expo": "~54.0.0",
     "expo-constants": "~18.0.13",
+    "expo-dev-client": "~6.0.21",
     "expo-device": "~8.0.10",
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.22",
@@ -68,6 +69,7 @@
     "preset": "jest-expo",
     "testPathIgnorePatterns": [
       "/node_modules/",
+      "/server/",
       "/server/dist/",
       "/server/node_modules/"
     ]

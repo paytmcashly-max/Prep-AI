@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
 import HapticPressable from "../components/HapticPressable";
+import { useSubscriptionStore } from "../store/subscriptionStore";
 
 const COLORS = {
   accent: "#6C63FF",
@@ -60,8 +61,38 @@ const PRACTICE_MODES = [
   }
 ];
 
-export default function PracticeScreen({ navigation }) {
+const DIFFICULTY_OPTIONS = [
+  {
+    helper: "Beginner-friendly",
+    label: "Easy",
+    value: "easy"
+  },
+  {
+    helper: "Realistic interview",
+    label: "Medium",
+    value: "medium"
+  },
+  {
+    helper: "Senior/challenging",
+    label: "Hard",
+    value: "hard"
+  }
+];
+
+const FREE_QUESTION_COUNT = 5;
+const PREMIUM_QUESTION_COUNT_OPTIONS = [5, 10, 15, 20];
+
+const isValidDifficulty = (difficulty) =>
+  DIFFICULTY_OPTIONS.some((option) => option.value === difficulty);
+
+const isValidQuestionCount = (questionCount) =>
+  PREMIUM_QUESTION_COUNT_OPTIONS.includes(Number(questionCount));
+
+export default function PracticeScreen({ navigation, route }) {
   const [startingCategory, setStartingCategory] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState("easy");
+  const [selectedQuestionCount, setSelectedQuestionCount] = useState(FREE_QUESTION_COUNT);
+  const isPremium = useSubscriptionStore((state) => state.isPremium);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,9 +100,39 @@ export default function PracticeScreen({ navigation }) {
     }, [])
   );
 
+  useEffect(() => {
+    const nextDifficulty = route?.params?.difficulty;
+    const nextQuestionCount = route?.params?.questionCount;
+
+    if (isValidDifficulty(nextDifficulty)) {
+      setSelectedDifficulty(nextDifficulty);
+    }
+
+    if (isValidQuestionCount(nextQuestionCount)) {
+      setSelectedQuestionCount(Number(nextQuestionCount));
+    }
+  }, [route?.params?.difficulty, route?.params?.questionCount]);
+
   const startCategory = (category) => {
     setStartingCategory(category);
-    navigation.navigate("MockInterview", { category });
+    navigation.navigate("MockInterview", {
+      category,
+      difficulty: selectedDifficulty,
+      questionCount: isPremium ? selectedQuestionCount : FREE_QUESTION_COUNT
+    });
+  };
+
+  const handleModePress = (mode) => {
+    if (!mode.isLocked) {
+      return;
+    }
+
+    if (isPremium) {
+      Alert.alert("Coming soon for Premium", `${mode.title} is not implemented yet.`);
+      return;
+    }
+
+    navigation.navigate("Paywall");
   };
 
   return (
@@ -83,6 +144,82 @@ export default function PracticeScreen({ navigation }) {
       <View style={styles.header}>
         <Text selectable style={styles.title}>
           Choose Practice Category
+        </Text>
+      </View>
+
+      <View style={styles.difficultySection}>
+        <Text selectable style={styles.sectionTitle}>
+          Interview Difficulty
+        </Text>
+        <View style={styles.difficultyRow}>
+          {DIFFICULTY_OPTIONS.map((option) => {
+            const isSelected = selectedDifficulty === option.value;
+
+            return (
+              <HapticPressable
+                key={option.value}
+                onPress={() => setSelectedDifficulty(option.value)}
+                style={({ pressed }) => [
+                  styles.difficultyChip,
+                  isSelected && styles.difficultyChipSelected,
+                  pressed && styles.pressed
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.difficultyChipText,
+                    isSelected && styles.difficultyChipTextSelected
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </HapticPressable>
+            );
+          })}
+        </View>
+        <Text selectable style={styles.difficultyHelper}>
+          {DIFFICULTY_OPTIONS.find((option) => option.value === selectedDifficulty)?.helper}
+        </Text>
+      </View>
+
+      <View style={styles.difficultySection}>
+        <Text selectable style={styles.sectionTitle}>
+          Interview Length
+        </Text>
+        <View style={styles.questionCountRow}>
+          {PREMIUM_QUESTION_COUNT_OPTIONS.map((count) => {
+            const isSelected = selectedQuestionCount === count;
+            const isLocked = !isPremium && count !== FREE_QUESTION_COUNT;
+
+            return (
+              <HapticPressable
+                key={count}
+                disabled={isLocked}
+                onPress={() => setSelectedQuestionCount(count)}
+                style={({ pressed }) => [
+                  styles.questionCountChip,
+                  isSelected && styles.questionCountChipSelected,
+                  isLocked && styles.lockedModeCard,
+                  pressed && !isLocked && styles.pressed
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.questionCountChipText,
+                    isSelected && styles.questionCountChipTextSelected,
+                    isLocked && styles.lockedText
+                  ]}
+                >
+                  {count}
+                </Text>
+              </HapticPressable>
+            );
+          })}
+        </View>
+        <Text selectable style={styles.difficultyHelper}>
+          {isPremium
+            ? "Choose how many questions you want in this session."
+            : "Free plan includes 5 questions. Upgrade for longer interviews."}
         </Text>
       </View>
 
@@ -121,23 +258,35 @@ export default function PracticeScreen({ navigation }) {
         </Text>
 
         <View style={styles.modeList}>
-          {PRACTICE_MODES.map((mode) => (
-            <View
-              key={mode.title}
-              style={[styles.modeCard, mode.isLocked && styles.lockedModeCard]}
-              pointerEvents={mode.isLocked ? "none" : "auto"}
-            >
-              <View style={styles.modeTextGroup}>
-                <Text selectable style={[styles.modeTitle, mode.isLocked && styles.lockedText]}>
-                  {mode.title}
+          {PRACTICE_MODES.map((mode) => {
+            const isPremiumLocked = mode.isLocked && !isPremium;
+            const modeSubtitle =
+              mode.isLocked && isPremium ? "Coming soon for Premium" : mode.subtitle;
+
+            return (
+              <HapticPressable
+                key={mode.title}
+                onPress={() => handleModePress(mode)}
+                style={({ pressed }) => [
+                  styles.modeCard,
+                  isPremiumLocked && styles.lockedModeCard,
+                  pressed && mode.isLocked && styles.pressed
+                ]}
+              >
+                <View style={styles.modeTextGroup}>
+                  <Text selectable style={[styles.modeTitle, isPremiumLocked && styles.lockedText]}>
+                    {mode.title}
+                  </Text>
+                  <Text selectable style={styles.modeSubtitle}>
+                    {modeSubtitle}
+                  </Text>
+                </View>
+                <Text style={styles.modeIcon}>
+                  {mode.isLocked && isPremium ? "Soon" : mode.icon}
                 </Text>
-                <Text selectable style={styles.modeSubtitle}>
-                  {mode.subtitle}
-                </Text>
-              </View>
-              <Text style={styles.modeIcon}>{mode.icon}</Text>
-            </View>
-          ))}
+              </HapticPressable>
+            );
+          })}
         </View>
       </View>
     </ScrollView>
@@ -191,6 +340,41 @@ const styles = StyleSheet.create({
   disabledCard: {
     opacity: 0.55
   },
+  difficultyChip: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: "#2A2A2A",
+    borderRadius: 999,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 12
+  },
+  difficultyChipSelected: {
+    backgroundColor: "rgba(108, 99, 255, 0.18)",
+    borderColor: COLORS.accent
+  },
+  difficultyChipText: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  difficultyChipTextSelected: {
+    color: COLORS.text
+  },
+  difficultyHelper: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  difficultyRow: {
+    flexDirection: "row",
+    gap: 10
+  },
+  difficultySection: {
+    gap: 12
+  },
   header: {
     paddingTop: 8
   },
@@ -239,6 +423,33 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accent,
     opacity: 0.84,
     transform: [{ scale: 0.99 }]
+  },
+  questionCountChip: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: "#2A2A2A",
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 46,
+    paddingHorizontal: 10
+  },
+  questionCountChipSelected: {
+    backgroundColor: "rgba(108, 99, 255, 0.18)",
+    borderColor: COLORS.accent
+  },
+  questionCountChipText: {
+    color: COLORS.muted,
+    fontSize: 16,
+    fontWeight: "900"
+  },
+  questionCountChipTextSelected: {
+    color: COLORS.text
+  },
+  questionCountRow: {
+    flexDirection: "row",
+    gap: 10
   },
   sectionTitle: {
     color: COLORS.text,
