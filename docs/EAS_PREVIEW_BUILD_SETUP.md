@@ -53,3 +53,11 @@ After the build installs, verify:
 - The backend URL is not `localhost` unless testing on an emulator that can reach it.
 - RevenueCat Test Store offerings load if the Test Store key is configured.
 - No Groq or Firebase Admin secrets exist in the mobile build configuration.
+
+## Current CI Follow-Up
+
+The GitHub Actions workflow file exists locally, but it was not pushed because the current GitHub token lacks `workflow` scope. Before relying on CI for preview builds:
+
+- Refresh GitHub authentication with `workflow` scope.
+- Push `.github/workflows/ci.yml`.
+- Verify GitHub Actions runs `npm ci`, format check, lint, server build, and server tests successfully.

@@ -1,5 +1,7 @@
 # App Store Metadata Draft
 
+Status note: this is public listing draft copy, not final store-ready metadata. Final support email, Privacy Policy URL, and Terms URL must be hosted and verified before submission.
+
 ## App Name Ideas
 
 - PrepAI
@@ -75,6 +77,8 @@ support@example.com
 
 Configured placeholder: `EXPO_PUBLIC_SUPPORT_EMAIL`
 
+TODO: replace with the final monitored PrepAI support email before launch.
+
 Replace with the official PrepAI support email before launch.
 
 ## Privacy Policy URL Placeholder
@@ -85,6 +89,8 @@ https://example.com/prepai/privacy
 
 Configured placeholder: `EXPO_PUBLIC_PRIVACY_POLICY_URL`
 
+TODO: replace with the final hosted Privacy Policy URL before launch.
+
 Replace with the hosted PrepAI Privacy Policy URL before launch.
 
 ## Terms URL Placeholder
@@ -94,5 +100,7 @@ https://example.com/prepai/terms
 ```
 
 Configured placeholder: `EXPO_PUBLIC_TERMS_URL`
+
+TODO: replace with the final hosted Terms of Service URL before launch.
 
 Replace with the hosted PrepAI Terms of Service URL before launch.

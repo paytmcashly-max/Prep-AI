@@ -4,57 +4,64 @@ Use this checklist for final manual QA on an EAS preview Android APK.
 
 ## Test Setup
 
-| Item                         | Expected Result                                          | Pass/Fail | Notes |
-| ---------------------------- | -------------------------------------------------------- | --------- | ----- |
-| Install preview APK          | APK installs without errors                              |           |       |
-| Open app                     | App opens without crashing                               |           |       |
-| Backend URL                  | `EXPO_PUBLIC_API_BASE_URL` points to a reachable backend |           |       |
-| Firebase config              | Signup/login screens do not show invalid API key errors  |           |       |
-| RevenueCat Test Store config | Test Store offerings load if configured                  |           |       |
+| Item                         | Expected Result                                          | Pass/Fail | Notes                                                                     |
+| ---------------------------- | -------------------------------------------------------- | --------- | ------------------------------------------------------------------------- |
+| Build release APK            | `app-release.apk` builds successfully                    | Pass      | Verified locally on May 8, 2026                                           |
+| Install preview APK          | APK installs without errors                              | Pass      | Installed on LDPlayer with `adb install -r`                               |
+| Open app                     | App opens without crashing                               | Pass      | Package `com.prepai.prepai` launched; no fatal launch crash found         |
+| Backend URL                  | `EXPO_PUBLIC_API_BASE_URL` points to a reachable backend | Pending   | Full API flow not verified in installed APK                               |
+| Firebase config              | Signup/login screens do not show invalid API key errors  | Pending   | Screens rendered; valid signup/login success still needs APK verification |
+| RevenueCat Test Store config | Test Store offerings load if configured                  | Pending   | Test Store offering/purchase/restore not verified                         |
+| Real device test             | APK opens on a physical Android phone                    | Pending   | LDPlayer smoke passed; real phone not tested                              |
 
 ## Core App Flow
 
-| Item        | Expected Result                                            | Pass/Fail | Notes |
-| ----------- | ---------------------------------------------------------- | --------- | ----- |
-| Signup      | New test user can create an account                        |           |       |
-| Login       | Existing test user can log in                              |           |       |
-| Home screen | Home loads with greeting, streak, tip, and recent sessions |           |       |
-| AI tip      | Tip does not show `Invalid interview request`              |           |       |
-| Legal links | Privacy Policy and Terms of Service open safely            |           |       |
+| Item                  | Expected Result                                            | Pass/Fail | Notes                                             |
+| --------------------- | ---------------------------------------------------------- | --------- | ------------------------------------------------- |
+| Onboarding render     | Onboarding screen appears after launch                     | Pass      | Verified in installed APK                         |
+| Skip to Login         | Skip navigates to Login                                    | Pass      | Verified in installed APK                         |
+| Signup screen render  | Signup screen appears                                      | Pass      | Verified in installed APK                         |
+| Invalid signup error  | Invalid signup shows a friendly error                      | Pass      | Verified with invalid email input                 |
+| Signup                | New test user can create an account                        | Pending   | Valid signup success still needs APK verification |
+| Login                 | Existing test user can log in                              | Pending   | Not verified in installed APK                     |
+| Home screen           | Home loads with greeting, streak, tip, and recent sessions | Pending   | Not verified in installed APK after valid login   |
+| AI tip                | Tip does not show `Invalid interview request`              | Pending   | Not verified in installed APK after valid login   |
+| Legal links           | Privacy Policy and Terms of Service open safely            | Pending   | Not verified in installed APK                     |
+| No fatal launch crash | Logcat has no app `FATAL EXCEPTION` during launch smoke    | Pass      | Verified during LDPlayer APK launch/smoke test    |
 
 ## Interview Flow
 
 | Item                    | Expected Result                                                | Pass/Fail | Notes |
 | ----------------------- | -------------------------------------------------------------- | --------- | ----- |
-| Start interview         | First question loads from backend                              |           |       |
-| Question requests       | Requests include `jobRole`, `category`, and `difficulty`       |           |       |
-| Safe defaults           | Missing profile fields use safe defaults                       |           |       |
-| Answer evaluation       | Submitting an answer returns score and feedback                |           |       |
-| Full 5-question session | User can complete all 5 questions without crash                |           |       |
-| Summary screen          | Summary screen shows average score                             |           |       |
-| Firestore session save  | Session is saved under the user if implemented                 |           |       |
-| Sensitive logging       | User answers, tokens, and Authorization headers are not logged |           |       |
+| Start interview         | First question loads from backend                              | Pending   |       |
+| Question requests       | Requests include `jobRole`, `category`, and `difficulty`       | Pending   |       |
+| Safe defaults           | Missing profile fields use safe defaults                       | Pending   |       |
+| Answer evaluation       | Submitting an answer returns score and feedback                | Pending   |       |
+| Full 5-question session | User can complete all 5 questions without crash                | Pending   |       |
+| Summary screen          | Summary screen shows average score                             | Pending   |       |
+| Firestore session save  | Session is saved under the user if implemented                 | Pending   |       |
+| Sensitive logging       | User answers, tokens, and Authorization headers are not logged | Pending   |       |
 
 ## Resume Analyzer
 
 | Item                | Expected Result                              | Pass/Fail | Notes |
 | ------------------- | -------------------------------------------- | --------- | ----- |
-| No file selected    | Analyze action shows friendly prompt         |           |       |
-| Valid PDF under 5MB | PDF uploads and analysis result appears      |           |       |
-| Non-PDF file        | File is rejected with friendly message       |           |       |
-| PDF over 5MB        | File is rejected if file size is available   |           |       |
-| Paste fallback      | Optional pasted text fallback still works    |           |       |
-| Sensitive logging   | Resume text and file contents are not logged |           |       |
+| No file selected    | Analyze action shows friendly prompt         | Pending   |       |
+| Valid PDF under 5MB | PDF uploads and analysis result appears      | Pending   |       |
+| Non-PDF file        | File is rejected with friendly message       | Pending   |       |
+| PDF over 5MB        | File is rejected if file size is available   | Pending   |       |
+| Paste fallback      | Optional pasted text fallback still works    | Pending   |       |
+| Sensitive logging   | Resume text and file contents are not logged | Pending   |       |
 
 ## RevenueCat Test Store
 
 | Item                  | Expected Result                                                | Pass/Fail | Notes |
 | --------------------- | -------------------------------------------------------------- | --------- | ----- |
-| Offerings load        | Paywall shows available Test Store packages if configured      |           |       |
-| Empty offerings       | Paywall shows safe no-offerings message and does not crash     |           |       |
-| Test purchase         | Test purchase completes and premium entitlement becomes active |           |       |
-| Purchase cancellation | Cancellation shows safe message and does not crash             |           |       |
-| Restore purchases     | Restore flow completes or shows no active purchase safely      |           |       |
+| Offerings load        | Paywall shows available Test Store packages if configured      | Pending   |       |
+| Empty offerings       | Paywall shows safe no-offerings message and does not crash     | Pending   |       |
+| Test purchase         | Test purchase completes and premium entitlement becomes active | Pending   |       |
+| Purchase cancellation | Cancellation shows safe message and does not crash             | Pending   |       |
+| Restore purchases     | Restore flow completes or shows no active purchase safely      | Pending   |       |
 
 ## Expected Limitations
 
@@ -67,6 +74,6 @@ Use this checklist for final manual QA on an EAS preview Android APK.
 
 ## Final Result
 
-| Decision                   | Pass/Fail | Notes |
-| -------------------------- | --------- | ----- |
-| Ready for beta APK sharing |           |       |
+| Decision                   | Pass/Fail | Notes                                                                                                                                     |
+| -------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Ready for beta APK sharing | Pending   | Launch smoke passed, but valid signup/login, full interview, resume PDF edge cases, RevenueCat Test Store, and real device QA remain open |
