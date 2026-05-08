@@ -2,6 +2,8 @@
 
 This is a draft and should be reviewed by a legal professional before launch.
 
+TODO before launch: replace the support email placeholder with the final monitored PrepAI support email, and publish these terms at the final Terms of Service URL used by the app and store listing.
+
 ## Acceptance of Terms
 
 By accessing or using Prep-AI, you agree to these Terms of Service. If you do not agree, do not use the app.

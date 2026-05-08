@@ -6,6 +6,8 @@ May 7, 2026
 
 Beta cleanup update: May 8, 2026
 
+APK smoke update: May 8, 2026
+
 ## Test Environment
 
 - Workspace: `C:\Users\kk701\Desktop\PrepAI`
@@ -16,6 +18,9 @@ Beta cleanup update: May 8, 2026
 - Backend local liveness: `GET /health` returned `{ "ok": true }`
 - Backend local readiness: `GET /ready` returned `200` with Firebase and Groq checks passing
 - Root/mobile env check: root `.env` only exposed `EXPO_PUBLIC_*` keys. No root/mobile Groq key, OpenAI key, or Firebase Admin private key was found.
+- APK smoke build: `android/app/build/outputs/apk/release/app-release.apk`
+- APK smoke package: `com.prepai.prepai`
+- APK smoke version: `1.0.0`, `versionCode=1`, `minSdk=24`, `targetSdk=36`
 
 ## Screens Tested
 
@@ -30,6 +35,7 @@ Beta cleanup update: May 8, 2026
 - Profile/settings
 - Legal placeholders
 - Paywall placeholder
+- APK launch smoke test
 
 ## Flows Passed
 
@@ -60,6 +66,15 @@ Beta cleanup update: May 8, 2026
 - May 8 cleanup: interview question loading was inspected so each generated question is requested with a valid category, difficulty, and resolved job role defaults.
 - May 8 cleanup: answer evaluation request construction was inspected and still sends question, answer, and resolved job role through the backend only.
 - May 8 cleanup: Resume Analyzer now keeps PDF upload as the primary flow and hides pasted-text fallback behind an explicit toggle.
+- May 8 APK smoke: release APK built successfully.
+- May 8 APK smoke: APK installed on LDPlayer successfully.
+- May 8 APK smoke: package `com.prepai.prepai` launched successfully.
+- May 8 APK smoke: app opened without crashing.
+- May 8 APK smoke: onboarding rendered correctly.
+- May 8 APK smoke: Skip navigated to Login.
+- May 8 APK smoke: Signup screen rendered.
+- May 8 APK smoke: invalid signup showed a friendly error.
+- May 8 APK smoke: no app `FATAL EXCEPTION` was found in logcat during launch/smoke testing.
 
 ## Backend Request Validation Observed
 
@@ -97,6 +112,15 @@ Beta cleanup update: May 8, 2026
   - empty file rejection where detectable
   - file larger than 5MB rejection where file size is available
 - Replace legal placeholder alerts with final Privacy Policy and Terms URLs before launch.
+- Complete valid signup/login success testing in the APK build.
+- Complete a full 5-question interview session in the APK build.
+- Verify answer evaluation in the APK build after a valid interview session starts.
+- Test Resume Analyzer PDF picker edge cases in the APK build:
+  - valid PDF under 5MB
+  - non-PDF rejection
+  - PDF over 5MB rejection where file size is available
+- Verify RevenueCat Test Store offering, purchase, cancellation, and restore flows.
+- Test the APK on a real Android phone, not only LDPlayer.
 
 ## Screenshot Paths
 
@@ -113,6 +137,10 @@ Beta cleanup update: May 8, 2026
 - `qa-screenshots/41_profile_legal_after_paywall.png` - Legal section
 - `qa-screenshots/42_terms_placeholder.png` - Terms placeholder alert
 - `qa-screenshots/39_paywall_alert.png` - Paywall payment placeholder alert
+- `qa-screenshots/apk-launch.png` - APK onboarding launch screen
+- `qa-screenshots/apk-after-skip.png` - APK Login screen after onboarding Skip
+- `qa-screenshots/apk-signup.png` - APK Signup screen
+- `qa-screenshots/apk-signup-error.png` - APK invalid signup friendly error
 
 ## Security Checks
 
@@ -136,9 +164,13 @@ Beta cleanup update: May 8, 2026
 - May 8: `npm run security:audit` - passed
 - May 8: `cd server && npm run build` - passed
 - May 8: `cd server && npm test` - passed
+- May 8 APK smoke: local Android release build passed with system JDK 17 and NDK `27.3.13750724`
+- May 8 APK smoke: `adb install -r app-release.apk` on LDPlayer passed
+- May 8 APK smoke: `adb shell monkey -p com.prepai.prepai` launched the app
+- May 8 APK smoke: logcat review found no app `FATAL EXCEPTION` during launch/smoke testing
 
 ## Final Recommendation
 
-Not ready for beta testing yet.
+Not ready for beta until pending manual QA passes.
 
-Formatting, lint warnings, and the Resume Analyzer primary PDF flow have been cleaned up. The repo should not be marked beta-ready until a fresh LDPlayer run manually verifies a complete 5-question interview session and PDF file-picker edge cases with real emulator files.
+Formatting, lint warnings, Resume Analyzer primary PDF flow, and APK launch smoke testing have been cleaned up or verified. The repo should not be marked beta-ready until the APK build manually verifies valid signup/login, a complete 5-question interview session, answer evaluation, Resume Analyzer PDF file-picker edge cases, RevenueCat Test Store purchase/restore, and at least one real-phone run.

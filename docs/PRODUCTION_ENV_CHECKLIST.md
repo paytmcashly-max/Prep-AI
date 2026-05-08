@@ -2,6 +2,8 @@
 
 Use separate development, staging, and production environment values. Do not commit real `.env` files.
 
+Status note: production environment setup has not been verified yet. Keep the items below unchecked until actual production values are configured and tested. EAS preview environment values also still need verification before broader APK sharing.
+
 ## Mobile / Expo Public Env
 
 `EXPO_PUBLIC_*` variables are bundled into the app and are not secret.
@@ -61,3 +63,10 @@ npm run lint
 cd server && npm run build
 cd server && npm test
 ```
+
+## Current Follow-Up
+
+- Verify EAS `preview` environment variables before the next preview APK build.
+- Configure production backend/private env on the deployment platform.
+- Configure production Expo public env with final backend URL and legal/support values.
+- Run staging and production smoke tests before marking this checklist complete.

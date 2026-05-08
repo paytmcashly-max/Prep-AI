@@ -2,6 +2,8 @@
 
 Use this checklist after deploying the backend and building the mobile app against the staging environment.
 
+Status note: local LDPlayer APK launch smoke testing passed on May 8, 2026, but staging has not been verified. Keep this checklist unchecked until the backend is deployed to staging and the mobile app is built against the staging `EXPO_PUBLIC_API_BASE_URL`.
+
 ## Backend Tests
 
 - [ ] `GET /health` returns HTTP 200
@@ -42,3 +44,10 @@ npm run security:audit
 cd server && npm run build
 cd server && npm test
 ```
+
+## Current Follow-Up
+
+- Deploy backend to staging.
+- Build/install an APK that points to the staging backend.
+- Run all backend, mobile, and privacy/security checks above.
+- Record pass/fail results before beta distribution.

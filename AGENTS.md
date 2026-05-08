@@ -13,14 +13,16 @@ Help users practice interviews, analyze resumes, and improve job readiness using
 - Expo / React Native
 - Firebase Auth / Firestore / Storage
 - RevenueCat
-- Node.js backend planned
-- OpenAI/Groq through backend only
+- Node.js / Express / TypeScript backend in `/server`
+- Groq through backend only
 
 ## Non-Negotiable Rules
 
 - Keep PRs small and focused.
 - Do not expose API keys in the mobile app.
-- Do not call OpenAI, Groq, or any AI provider directly from React Native.
+- Groq is used for free/dev-stage AI usage and must stay backend-only.
+- OpenAI is not used for now.
+- Do not call Groq, OpenAI, or any AI provider directly from React Native.
 - All privileged AI calls must go through a backend.
 - Do not add dependencies unless necessary.
 - Explain every new dependency.
@@ -45,6 +47,11 @@ Help users practice interviews, analyze resumes, and improve job readiness using
 - `npm run android`
 - `npm run ios`
 - `npm run web`
+- `npm run format:check`
+- `npm run lint`
+- `npm run security:audit`
+- `cd server && npm run build`
+- `cd server && npm test`
 
 ## Before Finishing Any Task
 
@@ -57,10 +64,8 @@ Help users practice interviews, analyze resumes, and improve job readiness using
 
 Stabilize the codebase before adding more features:
 
-1. Documentation
-2. Toolchain pinning
-3. Linting and formatting
-4. CI
-5. Backend for AI calls
-6. Auth verification and rate limiting
-7. Tests
+1. Finish manual APK QA
+2. Verify full interview, resume, and RevenueCat flows
+3. Replace legal/support placeholders before launch
+4. Push and verify GitHub Actions CI after auth has `workflow` scope
+5. Keep backend AI, auth verification, usage limits, and tests stable

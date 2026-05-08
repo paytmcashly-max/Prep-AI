@@ -2,6 +2,8 @@
 
 This is a draft and should be reviewed by a legal professional before launch.
 
+TODO before launch: replace the support email placeholder with the final monitored PrepAI support email, and publish this policy at the final Privacy Policy URL used by the app and store listing.
+
 ## Data We Collect
 
 Prep-AI may collect the following data when you use the app:
