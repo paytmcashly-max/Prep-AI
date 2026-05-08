@@ -2,20 +2,85 @@ import { doc, getDoc } from "firebase/firestore";
 
 import { auth, firestore } from "./firebaseConfig";
 import { ApiClientError, postAuthenticatedFormData, postAuthenticatedJson } from "./apiClient";
+import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
 
 const DEFAULT_CATEGORY = "HR";
 const DEFAULT_DIFFICULTY = "easy";
 const DEFAULT_JOB_ROLE = "Software Developer";
-const LOCAL_DAILY_TIP =
-  "Start with brief context, then give a specific example. Keep your answer structured and tied to the role.";
+const PREMIUM_SYNC_MESSAGE =
+  "Premium is active, but your server access has not synced yet. Please refresh or reopen the app.";
+const LOCAL_DAILY_TIPS = [
+  "Start with brief context, then give a specific example. Keep your answer structured and tied to the role.",
+  "For HR answers, use a simple flow: situation, action, result, and what you learned.",
+  "Before a technical answer, name the tradeoff you considered. Interviewers notice structured thinking.",
+  "For resume bullets, pair your work with a metric: built X, using Y, improving Z by N%.",
+  "Keep one strong project story ready. You can adapt it for ownership, teamwork, debugging, and impact questions.",
+  "Practice one answer out loud today. Clarity improves faster when you hear your own pacing.",
+  "When you do not know an answer, explain your approach instead of guessing. Process matters.",
+  "Review the job description before practice and reuse its keywords naturally in your examples."
+];
+
+const getTodayDateKey = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getDeterministicTipIndex = (dateKey) =>
+  Array.from(dateKey).reduce((sum, char) => sum + char.charCodeAt(0), 0) % LOCAL_DAILY_TIPS.length;
+
+const normalizeAtsScore = (score) => {
+  const numericScore = Number(score);
+
+  if (!Number.isFinite(numericScore)) {
+    return 0;
+  }
+
+  const percentScore = numericScore > 0 && numericScore <= 1 ? numericScore * 100 : numericScore;
+  return Math.max(0, Math.min(100, Math.round(percentScore)));
+};
+
+const getPremiumAwareUsageLimitMessage = (freeLimitMessage) =>
+  useSubscriptionStore.getState().isPremium ? PREMIUM_SYNC_MESSAGE : freeLimitMessage;
+
+const callWithPremiumSyncRetry = async (requestFn) => {
+  try {
+    return await requestFn();
+  } catch (error) {
+    if (error instanceof ApiClientError && error.status === 429) {
+      const wasPremium = useSubscriptionStore.getState().isPremium;
+
+      if (wasPremium) {
+        await useSubscriptionStore
+          .getState()
+          .refreshSubscriptionStatus()
+          .catch(() => null);
+
+        if (useSubscriptionStore.getState().isPremium) {
+          return requestFn();
+        }
+
+        throw new ApiClientError(PREMIUM_SYNC_MESSAGE, 429, error.code);
+      }
+    }
+
+    throw error;
+  }
+};
 
 const callInterviewApi = async (body) => {
-  const payload = await postAuthenticatedJson("/api/interview", body, {
-    badRequestMessage: "Please complete your profile before starting an interview.",
-    usageLimitMessage:
-      "You have used your free interview questions for today. Please try again tomorrow."
-  });
+  const payload = await callWithPremiumSyncRetry(() =>
+    postAuthenticatedJson("/api/interview", body, {
+      badRequestMessage: "Please complete your profile before starting an interview.",
+      usageLimitMessage: getPremiumAwareUsageLimitMessage(
+        "You have used your free interview questions for today. Please try again tomorrow."
+      )
+    })
+  );
 
   if (typeof payload?.question !== "string" || !payload.question.trim()) {
     throw new ApiClientError(
@@ -94,7 +159,8 @@ const normalizeQuestionArgs = (category, jobRole, difficulty) => {
       category: category.category,
       company: category.company,
       jobRole: category.jobRole,
-      difficulty: category.difficulty
+      difficulty: category.difficulty,
+      previousQuestions: category.previousQuestions
     };
   }
 
@@ -110,7 +176,13 @@ const normalizeRequiredString = (value, fallback) => {
   return normalized || fallback;
 };
 
-const createInterviewRequestBody = ({ category, company, difficulty, jobRole }) => {
+const createInterviewRequestBody = ({
+  category,
+  company,
+  difficulty,
+  jobRole,
+  previousQuestions
+}) => {
   const body = {
     category: normalizeRequiredString(category, DEFAULT_CATEGORY),
     difficulty: normalizeRequiredString(difficulty, DEFAULT_DIFFICULTY),
@@ -121,6 +193,17 @@ const createInterviewRequestBody = ({ category, company, difficulty, jobRole }) 
 
   if (normalizedCompany) {
     body.company = normalizedCompany;
+  }
+
+  if (Array.isArray(previousQuestions)) {
+    const safePreviousQuestions = previousQuestions
+      .filter((question) => typeof question === "string" && question.trim())
+      .map((question) => question.trim())
+      .slice(-10);
+
+    if (safePreviousQuestions.length) {
+      body.previousQuestions = safePreviousQuestions;
+    }
   }
 
   return body;
@@ -223,9 +306,12 @@ const normalizeResumeAnalysis = (analysis) => {
   }
 
   return {
-    atsScore: parsedScore,
+    atsScore: normalizeAtsScore(parsedScore),
     missingKeywords: analysis.missingKeywords,
     grammarIssues: analysis.grammarIssues,
+    rewriteSuggestions: Array.isArray(analysis.rewriteSuggestions)
+      ? analysis.rewriteSuggestions
+      : [],
     sectionFeedback: {
       summary: analysis.sectionFeedback.summary,
       experience: analysis.sectionFeedback.experience,
@@ -244,7 +330,8 @@ export const generateQuestion = async (category, jobRole, difficulty = DEFAULT_D
       category: args.category,
       company: args.company,
       difficulty: args.difficulty,
-      jobRole: resolvedJobRole
+      jobRole: resolvedJobRole,
+      previousQuestions: args.previousQuestions
     })
   );
 };
@@ -252,36 +339,46 @@ export const generateQuestion = async (category, jobRole, difficulty = DEFAULT_D
 export const evaluateAnswer = async (question, answer, jobRole) => {
   const args = normalizeEvaluationArgs(question, answer, jobRole);
   const resolvedJobRole = await resolveJobRole(args.jobRole);
-  const feedback = await postAuthenticatedJson(
-    "/api/evaluate",
-    {
-      answer: args.answer,
-      jobRole: resolvedJobRole,
-      question: args.question
-    },
-    {
-      usageLimitMessage:
-        "You have used your free answer evaluations for today. Please try again tomorrow."
-    }
+  const feedback = await callWithPremiumSyncRetry(() =>
+    postAuthenticatedJson(
+      "/api/evaluate",
+      {
+        answer: args.answer,
+        jobRole: resolvedJobRole,
+        question: args.question
+      },
+      {
+        usageLimitMessage: getPremiumAwareUsageLimitMessage(
+          "You have used your free answer evaluations for today. Please try again tomorrow."
+        )
+      }
+    )
   );
 
   return normalizeEvaluationFeedback(feedback);
 };
 
-export const generateDailyTip = async () => LOCAL_DAILY_TIP;
+export const generateDailyTip = async () => {
+  const dateKey = getTodayDateKey();
+  return LOCAL_DAILY_TIPS[getDeterministicTipIndex(dateKey)];
+};
 
 export const analyzeResume = async (resumeText, jobRole) => {
   const args = normalizeResumeArgs(resumeText, jobRole);
   const resolvedJobRole = await resolveJobRole(args.jobRole);
-  const analysis = await postAuthenticatedJson(
-    "/api/resume/analyze",
-    {
-      jobRole: resolvedJobRole,
-      resumeText: String(args.resumeText || "").substring(0, 12000)
-    },
-    {
-      usageLimitMessage: "You have used your free resume analysis for this month."
-    }
+  const analysis = await callWithPremiumSyncRetry(() =>
+    postAuthenticatedJson(
+      "/api/resume/analyze",
+      {
+        jobRole: resolvedJobRole,
+        resumeText: String(args.resumeText || "").substring(0, 12000)
+      },
+      {
+        usageLimitMessage: getPremiumAwareUsageLimitMessage(
+          "You have used your free resume analysis for this month."
+        )
+      }
+    )
   );
 
   return normalizeResumeAnalysis(analysis);
@@ -294,22 +391,30 @@ export const analyzeResumePdf = async (asset, jobRole) => {
     throw new ApiClientError("Please upload a PDF resume.", 400, "MISSING_RESUME_FILE");
   }
 
-  const formData = new FormData();
+  const createResumeFormData = () => {
+    const formData = new FormData();
 
-  formData.append("jobRole", resolvedJobRole);
-  formData.append("resume", {
-    uri: asset.uri,
-    type: "application/pdf",
-    name: asset.name || "resume.pdf"
-  });
+    formData.append("jobRole", resolvedJobRole);
+    formData.append("resume", {
+      uri: asset.uri,
+      type: "application/pdf",
+      name: asset.name || "resume.pdf"
+    });
 
-  const analysis = await postAuthenticatedFormData("/api/resume/analyze", formData, {
-    logBody: {
-      hasResumeFile: true,
-      jobRole: resolvedJobRole
-    },
-    usageLimitMessage: "You have used your free resume analysis for this month."
-  });
+    return formData;
+  };
+
+  const analysis = await callWithPremiumSyncRetry(() =>
+    postAuthenticatedFormData("/api/resume/analyze", createResumeFormData(), {
+      logBody: {
+        hasResumeFile: true,
+        jobRole: resolvedJobRole
+      },
+      usageLimitMessage: getPremiumAwareUsageLimitMessage(
+        "You have used your free resume analysis for this month."
+      )
+    })
+  );
 
   return normalizeResumeAnalysis(analysis);
 };

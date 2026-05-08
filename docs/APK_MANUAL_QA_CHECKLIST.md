@@ -92,12 +92,13 @@ Beta can start only after:
 
 ## Expected Limitations
 
-| Limitation            | Notes                                                                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Local backend IP      | A local IP backend only works when the phone/emulator can reach the developer machine on the same network. For external testers, use a deployed backend URL. |
-| Google Play billing   | Real Google Play billing should be tested later through internal or closed testing tracks.                                                                   |
-| RevenueCat Test Store | RevenueCat Test Store is for development only and should not be treated as production billing validation.                                                    |
-| EAS env changes       | Changing EAS environment variables requires a new APK build.                                                                                                 |
+| Limitation            | Notes                                                                                                                                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local backend IP      | A local IP backend only works when the phone/emulator can reach the developer machine on the same network. For external testers, use a deployed backend URL.                                  |
+| Google Play billing   | Real Google Play billing should be tested later through internal or closed testing tracks.                                                                                                    |
+| RevenueCat Test Store | RevenueCat Test Store is for development only and should not be treated as production billing validation.                                                                                     |
+| EAS env changes       | Changing EAS environment variables requires a new APK build.                                                                                                                                  |
+| Android notifications | Users must enable app notifications and banner/pop-on-screen behavior for the notification channel in system settings. On Redmi/MIUI, floating notifications may need to be enabled manually. |
 
 ## Final Result
 

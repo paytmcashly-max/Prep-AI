@@ -77,7 +77,7 @@ export default function HomeScreen({ navigation, route }) {
         setIsTipLoading(true);
         setTipError("");
 
-        const cacheKey = `daily_tip_date_${getTodayDateKey()}`;
+        const cacheKey = `daily_prep_tip_v2_${getTodayDateKey()}`;
         const cachedTip = await AsyncStorage.getItem(cacheKey);
 
         if (cachedTip) {
@@ -98,7 +98,7 @@ export default function HomeScreen({ navigation, route }) {
         await AsyncStorage.setItem(cacheKey, tip);
       } catch (error) {
         if (isMounted) {
-          setTipError(error.message || "Could not load today's AI tip. Try again.");
+          setTipError(error.message || "Could not load today's prep tip. Try again.");
         }
       } finally {
         if (isMounted) {
@@ -201,7 +201,7 @@ export default function HomeScreen({ navigation, route }) {
         disabled={isStartingInterview}
         onPress={() => {
           setIsStartingInterview(true);
-          navigation.navigate("MockInterview");
+          navigation.navigate("Practice");
         }}
         style={({ pressed }) => [
           styles.ctaButton,
@@ -212,13 +212,13 @@ export default function HomeScreen({ navigation, route }) {
         {isStartingInterview ? (
           <ActivityIndicator color={COLORS.text} />
         ) : (
-          <Text style={styles.ctaText}>Start Mock Interview</Text>
+          <Text style={styles.ctaText}>Choose Interview Round</Text>
         )}
       </HapticPressable>
 
       <View style={styles.card}>
         <Text selectable style={styles.cardTitle}>
-          AI Tip of the Day
+          {"Today's Prep Tip"}
         </Text>
         {isTipLoading ? (
           <View style={styles.tipSkeleton}>

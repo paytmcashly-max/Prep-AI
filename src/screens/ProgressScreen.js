@@ -22,9 +22,6 @@ const COLORS = {
   red: "#EF4444"
 };
 
-const STRONG_TOPICS = ["HR Questions", "Behavioral"];
-const IMPROVEMENT_TOPICS = ["Technical", "System Design"];
-
 function TopicBadge({ label, tone }) {
   const isStrong = tone === "strong";
 
@@ -40,6 +37,53 @@ function TopicBadge({ label, tone }) {
   );
 }
 
+const formatTopicLabel = (category) => {
+  const normalizedCategory = String(category || "General").trim();
+
+  if (normalizedCategory === "HR") {
+    return "HR Questions";
+  }
+
+  if (normalizedCategory === "Technical") {
+    return "Technical Questions";
+  }
+
+  if (normalizedCategory === "Behavioral") {
+    return "Behavioral";
+  }
+
+  if (normalizedCategory === "Company") {
+    return "Company Specific";
+  }
+
+  return normalizedCategory || "General";
+};
+
+const getSessionTopics = (sessions) => {
+  const scoresByCategory = sessions.reduce((topics, session) => {
+    const category = session.category || "General";
+
+    if (!topics[category]) {
+      topics[category] = [];
+    }
+
+    topics[category].push(Number(session.score || 0));
+    return topics;
+  }, {});
+
+  return Object.entries(scoresByCategory)
+    .map(([category, scores]) => {
+      const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+
+      return {
+        average,
+        count: scores.length,
+        label: formatTopicLabel(category)
+      };
+    })
+    .sort((a, b) => b.average - a.average);
+};
+
 export default function ProgressScreen() {
   const sessions = useProgressStore((state) => state.sessions);
   const hasLoadedSessions = useProgressStore((state) => state.hasLoadedSessions);
@@ -51,6 +95,19 @@ export default function ProgressScreen() {
   const weeklyScores = useMemo(() => getLastSevenDayScores(sessions), [sessions]);
   const averageScore = useMemo(() => calculateAverageScore(sessions), [sessions]);
   const currentStreak = useMemo(() => calculateCurrentStreak(sessions), [sessions]);
+  const sessionTopics = useMemo(() => getSessionTopics(sessions), [sessions]);
+  const strongTopics = useMemo(
+    () => sessionTopics.filter((topic) => topic.average >= 7).slice(0, 3),
+    [sessionTopics]
+  );
+  const improvementTopics = useMemo(
+    () =>
+      sessionTopics
+        .filter((topic) => topic.average < 7)
+        .sort((a, b) => a.average - b.average)
+        .slice(0, 3),
+    [sessionTopics]
+  );
   const stats = useMemo(
     () => [
       { label: "Total Sessions", value: String(sessions.length) },
@@ -150,7 +207,10 @@ export default function ProgressScreen() {
 
       <View style={styles.card}>
         <Text selectable style={styles.sectionTitle}>
-          Weekly Performance
+          Last 7 Days Performance
+        </Text>
+        <Text selectable style={styles.cardSubtext}>
+          Rolling view ending today.
         </Text>
         <View style={styles.chartWrap}>
           <View style={styles.yAxis}>
@@ -165,8 +225,8 @@ export default function ProgressScreen() {
             <View style={styles.gridLineMiddle} />
             <View style={styles.gridLineBottom} />
             <View style={styles.barRow}>
-              {weeklyScores.map((item) => (
-                <View key={item.day} style={styles.barColumn}>
+              {weeklyScores.map((item, index) => (
+                <View key={`${item.day}-${index}`} style={styles.barColumn}>
                   <View style={styles.barTrack}>
                     <View style={[styles.barFill, { height: `${item.score * 10}%` }]} />
                   </View>
@@ -174,7 +234,7 @@ export default function ProgressScreen() {
                     {item.score.toFixed(1)}
                   </Text>
                   <Text selectable style={styles.dayText}>
-                    {item.day}
+                    {index === weeklyScores.length - 1 ? "Today" : item.day}
                   </Text>
                 </View>
               ))}
@@ -187,34 +247,49 @@ export default function ProgressScreen() {
         <Text selectable style={styles.sectionTitle}>
           Strong Topics
         </Text>
-        <View style={styles.badgeRow}>
-          {STRONG_TOPICS.map((topic) => (
-            <TopicBadge key={topic} label={topic} tone="strong" />
-          ))}
-        </View>
+        {strongTopics.length ? (
+          <View style={styles.badgeRow}>
+            {strongTopics.map((topic) => (
+              <TopicBadge key={topic.label} label={topic.label} tone="strong" />
+            ))}
+          </View>
+        ) : (
+          <Text selectable style={styles.emptyText}>
+            Complete interviews with scores above 7 to discover strong topics.
+          </Text>
+        )}
       </View>
 
       <View style={styles.card}>
         <Text selectable style={styles.sectionTitle}>
           Needs Improvement
         </Text>
-        <View style={styles.badgeRow}>
-          {IMPROVEMENT_TOPICS.map((topic) => (
-            <TopicBadge key={topic} label={topic} tone="improvement" />
-          ))}
-        </View>
+        {improvementTopics.length ? (
+          <View style={styles.badgeRow}>
+            {improvementTopics.map((topic) => (
+              <TopicBadge key={topic.label} label={topic.label} tone="improvement" />
+            ))}
+          </View>
+        ) : (
+          <Text selectable style={styles.emptyText}>
+            Needs improvement will appear after more scored sessions.
+          </Text>
+        )}
       </View>
 
       <View style={styles.card}>
         <Text selectable style={styles.sectionTitle}>
-          Streak Calendar
+          Last 7 Days Streak
+        </Text>
+        <Text selectable style={styles.cardSubtext}>
+          Rolling view ending today.
         </Text>
         <View style={styles.calendarRow}>
-          {weeklyScores.map((item) => (
-            <View key={item.day} style={styles.dayItem}>
+          {weeklyScores.map((item, index) => (
+            <View key={`${item.day}-${index}`} style={styles.dayItem}>
               <View style={[styles.dayCircle, item.practiced && styles.dayCircleFilled]} />
               <Text selectable style={styles.dayLabel}>
-                {item.day}
+                {index === weeklyScores.length - 1 ? "Today" : item.day}
               </Text>
             </View>
           ))}
@@ -335,6 +410,18 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 10,
     fontWeight: "800"
+  },
+  cardSubtext: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 19
+  },
+  emptyText: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20
   },
   errorText: {
     backgroundColor: "rgba(239, 68, 68, 0.12)",

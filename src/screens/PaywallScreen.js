@@ -2,12 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import HapticPressable from "../components/HapticPressable";
-import {
-  getOfferings,
-  getSubscriptionStatus,
-  purchasePackage,
-  restorePurchases
-} from "../services/subscriptionService";
+import { getOfferings, purchasePackage, restorePurchases } from "../services/subscriptionService";
+import { useSubscriptionStore } from "../store/subscriptionStore";
 
 const COLORS = {
   accent: "#6C63FF",
@@ -89,6 +85,11 @@ function FeatureRow({ available = true, label }) {
 }
 
 export default function PaywallScreen({ navigation }) {
+  const isPremium = useSubscriptionStore((state) => state.isPremium);
+  const refreshSubscriptionStatus = useSubscriptionStore(
+    (state) => state.refreshSubscriptionStatus
+  );
+  const setSubscriptionStatus = useSubscriptionStore((state) => state.setSubscriptionStatus);
   const [isLoadingOfferings, setIsLoadingOfferings] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -106,7 +107,7 @@ export default function PaywallScreen({ navigation }) {
         setStatusMessage("");
 
         const [subscriptionStatus, loadedOfferings] = await Promise.all([
-          getSubscriptionStatus(),
+          refreshSubscriptionStatus(),
           getOfferings()
         ]);
         const packages = getAvailablePackages(loadedOfferings);
@@ -121,7 +122,7 @@ export default function PaywallScreen({ navigation }) {
         if (subscriptionStatus.isPremium) {
           setStatusMessage("Premium is active on this account.");
         } else if (!packages.length) {
-          setStatusMessage("No premium plans are available right now.");
+          setStatusMessage("No premium plans are available for this build yet.");
         }
       } catch {
         if (isMounted) {
@@ -139,7 +140,7 @@ export default function PaywallScreen({ navigation }) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [refreshSubscriptionStatus]);
 
   const startPurchase = async () => {
     if (!selectedPackage) {
@@ -152,11 +153,15 @@ export default function PaywallScreen({ navigation }) {
       setStatusMessage("");
 
       const status = await purchasePackage(selectedPackage);
+      await setSubscriptionStatus(status);
 
       if (status.isPremium) {
         Alert.alert("Premium active", "Your premium access is now active.");
       } else {
-        Alert.alert("Purchase complete", "Purchase finished, but premium is not active yet.");
+        Alert.alert(
+          "Purchase completed",
+          "Purchase completed, but the premium entitlement was not activated. Check RevenueCat entitlement/product mapping."
+        );
       }
     } catch (error) {
       if (error.message === "PURCHASE_CANCELLED") {
@@ -176,11 +181,12 @@ export default function PaywallScreen({ navigation }) {
       setStatusMessage("");
 
       const status = await restorePurchases();
+      await setSubscriptionStatus(status);
 
       if (status.isPremium) {
         Alert.alert("Restored", "Your premium access has been restored.");
       } else {
-        setStatusMessage("No active premium purchase was found.");
+        setStatusMessage("No active premium entitlement found for this account.");
       }
     } finally {
       setIsRestoring(false);
@@ -237,6 +243,15 @@ export default function PaywallScreen({ navigation }) {
               Checking available Test Store or billing packages.
             </Text>
           </View>
+        ) : isPremium ? (
+          <View style={styles.messageCard}>
+            <Text selectable style={styles.messageTitle}>
+              Premium is active on this account
+            </Text>
+            <Text selectable style={styles.messageText}>
+              Your premium entitlement is active. Enjoy unlimited practice.
+            </Text>
+          </View>
         ) : availablePackages.length ? (
           availablePackages.map((availablePackage) => {
             const isSelected = selectedPackage?.identifier === availablePackage.identifier;
@@ -277,7 +292,7 @@ export default function PaywallScreen({ navigation }) {
               No plans available
             </Text>
             <Text selectable style={styles.messageText}>
-              Premium plans are not configured for this build yet.
+              Check RevenueCat Test Store offerings and rebuild after changing EAS env values.
             </Text>
           </View>
         )}
@@ -291,18 +306,21 @@ export default function PaywallScreen({ navigation }) {
 
       <View style={styles.actionSection}>
         <HapticPressable
-          disabled={isLoadingOfferings || isPurchasing || !selectedPackage}
+          disabled={isLoadingOfferings || isPurchasing || !selectedPackage || isPremium}
           onPress={startPurchase}
           style={({ pressed }) => [
             styles.ctaButton,
             pressed && !isPurchasing && styles.pressed,
-            (isLoadingOfferings || isPurchasing || !selectedPackage) && styles.disabledButton
+            (isLoadingOfferings || isPurchasing || !selectedPackage || isPremium) &&
+              styles.disabledButton
           ]}
         >
           {isPurchasing ? (
             <ActivityIndicator color={COLORS.text} />
           ) : (
-            <Text style={styles.ctaButtonText}>Start 3-Day Free Trial</Text>
+            <Text style={styles.ctaButtonText}>
+              {isPremium ? "Premium Active" : "Start 3-Day Free Trial"}
+            </Text>
           )}
         </HapticPressable>
         <Text selectable style={styles.cancelText}>

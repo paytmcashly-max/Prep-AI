@@ -6,15 +6,43 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, firestore } from "./firebaseConfig";
 
 const DAILY_PRACTICE_NOTIFICATION_TYPE = "daily_interview_practice";
-const DAILY_PRACTICE_CHANNEL_ID = "daily-practice";
+const DEFAULT_NOTIFICATION_CHANNEL_ID = "default";
 
 let setupUid = null;
 let notificationsModule = null;
+let notificationHandlerRegistered = false;
 
 const isExpoGo = () => Constants.appOwnership === "expo";
 
+const isDevelopment = () => typeof __DEV__ !== "undefined" && __DEV__;
+
+const logNotificationDebug = (message, metadata = {}) => {
+  if (isDevelopment()) {
+    console.log("Notifications:", {
+      message,
+      ...metadata
+    });
+  }
+};
+
 const getScheduledNotificationType = (notification) =>
   notification?.request?.content?.data?.type || notification?.content?.data?.type;
+
+const registerNotificationHandler = (Notifications) => {
+  if (notificationHandlerRegistered) {
+    return;
+  }
+
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true
+    })
+  });
+  notificationHandlerRegistered = true;
+};
 
 const getNotificationsModule = async () => {
   if (isExpoGo()) {
@@ -25,18 +53,13 @@ const getNotificationsModule = async () => {
 
   if (!notificationsModule) {
     notificationsModule = await import("expo-notifications");
-    notificationsModule.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldPlaySound: false,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true
-      })
-    });
+    registerNotificationHandler(notificationsModule);
   }
 
   return notificationsModule;
 };
+
+void getNotificationsModule();
 
 const configureAndroidChannel = async () => {
   if (Platform.OS !== "android") {
@@ -49,11 +72,27 @@ const configureAndroidChannel = async () => {
     return;
   }
 
-  await Notifications.setNotificationChannelAsync(DAILY_PRACTICE_CHANNEL_ID, {
+  await Notifications.setNotificationChannelAsync(DEFAULT_NOTIFICATION_CHANNEL_ID, {
     name: "Daily practice reminders",
-    importance: Notifications.AndroidImportance.HIGH,
+    importance:
+      Notifications.AndroidImportance.MAX ||
+      Notifications.AndroidImportance.HIGH ||
+      Notifications.AndroidImportance.DEFAULT,
+    sound: "default",
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: "#6C63FF"
+    lightColor: "#6C63FF",
+    lockscreenVisibility:
+      Notifications.AndroidNotificationVisibility?.PUBLIC ||
+      Notifications.AndroidNotificationVisibility?.DEFAULT
+  });
+
+  const channels = await Notifications.getNotificationChannelsAsync();
+  logNotificationDebug("android channels", {
+    channels: channels.map((channel) => ({
+      id: channel.id,
+      importance: channel.importance,
+      name: channel.name
+    }))
   });
 };
 
@@ -73,6 +112,8 @@ const requestNotificationPermissions = async () => {
     const requested = await Notifications.requestPermissionsAsync();
     status = requested.status;
   }
+
+  logNotificationDebug("permission status", { status });
 
   return status === "granted";
 };
@@ -160,18 +201,24 @@ export const scheduleDailyPracticeNotification = async () => {
     return;
   }
 
-  await Notifications.scheduleNotificationAsync({
+  const scheduledNotificationId = await Notifications.scheduleNotificationAsync({
     content: {
       title: "Daily Interview Practice \uD83D\uDD25",
       body: "Keep your streak alive! Practice today's questions.",
-      data: { type: DAILY_PRACTICE_NOTIFICATION_TYPE }
+      data: { type: DAILY_PRACTICE_NOTIFICATION_TYPE },
+      channelId: DEFAULT_NOTIFICATION_CHANNEL_ID,
+      sound: "default"
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: 9,
       minute: 0,
-      channelId: DAILY_PRACTICE_CHANNEL_ID
+      channelId: DEFAULT_NOTIFICATION_CHANNEL_ID
     }
+  });
+
+  logNotificationDebug("scheduled daily reminder", {
+    scheduledNotificationId
   });
 };
 
@@ -199,16 +246,24 @@ export const showSessionCompleteNotification = async () => {
       return;
     }
 
-    await Notifications.scheduleNotificationAsync({
+    const scheduledNotificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title: "Great job!",
         body: "Come back tomorrow to keep your streak! \uD83D\uDD25",
-        data: { type: "session_complete" }
+        data: { type: "session_complete" },
+        channelId: DEFAULT_NOTIFICATION_CHANNEL_ID,
+        sound: "default"
       },
       trigger: null
     });
+
+    logNotificationDebug("scheduled session completion notification", {
+      scheduledNotificationId
+    });
   } catch (error) {
-    console.log("Could not show session complete notification:", error);
+    logNotificationDebug("session completion notification failed", {
+      errorMessage: error instanceof Error ? error.message : "Unknown error"
+    });
   }
 };
 
@@ -236,11 +291,15 @@ export const setupNotifications = async (user = auth.currentUser) => {
       const pushToken = await getExpoPushToken();
       await savePushToken(uid, pushToken);
     } catch (error) {
-      console.log("Could not save push token. Local notifications still work.", error);
+      logNotificationDebug("push token save failed; local notifications still work", {
+        errorMessage: error instanceof Error ? error.message : "Unknown error"
+      });
     }
 
     await scheduleDailyPracticeNotification();
   } catch (error) {
-    console.log("Notification setup failed:", error);
+    logNotificationDebug("notification setup failed", {
+      errorMessage: error instanceof Error ? error.message : "Unknown error"
+    });
   }
 };

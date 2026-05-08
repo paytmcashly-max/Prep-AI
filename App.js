@@ -13,6 +13,7 @@ import {
 } from "./src/services/analyticsService";
 import { initializeErrorTracking, withErrorTracking } from "./src/services/errorTrackingService";
 import { setupNotifications } from "./src/services/notificationService";
+import { useSubscriptionStore } from "./src/store/subscriptionStore";
 
 initializeErrorTracking();
 initializeAnalytics();
@@ -25,8 +26,13 @@ function App() {
       if (user) {
         identifyUser(user.uid);
         setupNotifications(user);
+        useSubscriptionStore
+          .getState()
+          .identifySubscriptionUser(user.uid)
+          .catch(() => {});
       } else {
         resetAnalytics();
+        useSubscriptionStore.getState().resetSubscription();
       }
     });
 
