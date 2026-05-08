@@ -121,6 +121,33 @@ APK smoke update: May 8, 2026
   - PDF over 5MB rejection where file size is available
 - Verify RevenueCat Test Store offering, purchase, cancellation, and restore flows.
 - Test the APK on a real Android phone, not only LDPlayer.
+- Verify CI passes on GitHub after the workflow PR is merged.
+- Verify the backend URL used for beta is reachable from tester devices.
+
+## Next Manual QA Required
+
+- Valid signup/login.
+- Full 5-question interview session.
+- Answer evaluation.
+- Resume valid PDF under 5MB.
+- Non-PDF rejection.
+- PDF over 5MB rejection if file size is available.
+- No file selected friendly prompt.
+- RevenueCat Test Store offering load.
+- RevenueCat test purchase.
+- Restore purchases.
+- Redmi Note 4 real-device test.
+
+## Beta Gate
+
+Beta can start only after:
+
+- CI passes on GitHub.
+- Full APK manual QA passes.
+- RevenueCat Test Store purchase/restore is verified.
+- Real Android device smoke test passes.
+- No secrets are exposed.
+- Backend URL is reachable from tester devices.
 
 ## Screenshot Paths
 

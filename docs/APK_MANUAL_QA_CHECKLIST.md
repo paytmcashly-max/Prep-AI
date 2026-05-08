@@ -63,6 +63,33 @@ Use this checklist for final manual QA on an EAS preview Android APK.
 | Purchase cancellation | Cancellation shows safe message and does not crash             | Pending   |       |
 | Restore purchases     | Restore flow completes or shows no active purchase safely      | Pending   |       |
 
+## Next Manual QA Required
+
+These items must stay pending until they are verified on the installed APK:
+
+- Valid signup/login with a non-personal test account.
+- Full 5-question interview session through summary.
+- Answer evaluation after submitting a safe test answer.
+- Resume valid PDF under 5MB.
+- Non-PDF rejection with a friendly message.
+- PDF over 5MB rejection if file size is available.
+- No file selected friendly prompt.
+- RevenueCat Test Store offering load.
+- RevenueCat test purchase.
+- Restore purchases.
+- Redmi Note 4 real-device smoke test.
+
+## Beta Gate
+
+Beta can start only after:
+
+- CI passes on GitHub.
+- Full APK manual QA passes.
+- RevenueCat Test Store purchase/restore is verified.
+- Real Android device smoke test passes.
+- No secrets are exposed.
+- Backend URL is reachable from tester devices.
+
 ## Expected Limitations
 
 | Limitation            | Notes                                                                                                                                                        |
