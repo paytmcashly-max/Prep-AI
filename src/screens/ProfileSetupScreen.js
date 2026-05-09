@@ -13,10 +13,12 @@ import {
 } from "react-native";
 import { doc, serverTimestamp, writeBatch } from "firebase/firestore";
 
+import AppIcon from "../components/ui/AppIcon";
 import HapticPressable from "../components/HapticPressable";
 import { getCurrentUser } from "../services/authService";
 import { firestore } from "../services/firebaseConfig";
 import { useUserStore } from "../store/userStore";
+import { COLORS } from "../theme";
 
 const JOB_ROLES = [
   "Full Stack Developer",
@@ -28,15 +30,6 @@ const JOB_ROLES = [
 ];
 
 const EXPERIENCE_LEVELS = ["Fresher", "1-2 Years", "3-5 Years"];
-
-const COLORS = {
-  accent: "#6C63FF",
-  background: "#0A0A0A",
-  card: "#1A1A1A",
-  border: "#2A2A2A",
-  muted: "#A3A3A3",
-  text: "#FFFFFF"
-};
 
 function JobRolePicker({ selectedValue, onSelect }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -53,7 +46,7 @@ function JobRolePicker({ selectedValue, onSelect }) {
         <Text style={[styles.selectText, !selectedValue && styles.placeholderText]}>
           {selectedValue || "Select your job role"}
         </Text>
-        <Text style={styles.chevron}>{isOpen ? "Up" : "Down"}</Text>
+        <AppIcon color={COLORS.accent} name={isOpen ? "up" : "down"} size={20} />
       </HapticPressable>
 
       {isOpen ? (
@@ -199,6 +192,9 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
         ) : null}
 
         <View style={styles.header}>
+          <View style={styles.heroIcon}>
+            <AppIcon color={COLORS.accent} name="target" size={34} />
+          </View>
           <Text selectable style={styles.eyebrow}>
             Profile setup
           </Text>
@@ -301,11 +297,6 @@ const styles = StyleSheet.create({
     gap: 22,
     padding: 18
   },
-  chevron: {
-    color: COLORS.accent,
-    fontSize: 13,
-    fontWeight: "900"
-  },
   container: {
     backgroundColor: COLORS.background,
     flex: 1
@@ -328,6 +319,16 @@ const styles = StyleSheet.create({
   header: {
     gap: 10,
     paddingTop: 8
+  },
+  heroIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(108, 99, 255, 0.12)",
+    borderColor: "rgba(108, 99, 255, 0.3)",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 64,
+    justifyContent: "center",
+    width: 64
   },
   input: {
     backgroundColor: "#111111",

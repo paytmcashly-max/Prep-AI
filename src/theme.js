@@ -7,6 +7,9 @@ export const COLORS = {
   danger: "#EF4444",
   dangerSoft: "#FCA5A5",
   muted: "#A3A3A3",
+  primary: "#6C63FF",
+  primaryDark: "#4F46E5",
+  surface: "#111111",
   success: "#22C55E",
   text: "#FFFFFF",
   warning: "#FACC15"

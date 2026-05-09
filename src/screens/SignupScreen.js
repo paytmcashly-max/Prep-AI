@@ -13,9 +13,10 @@ import {
 } from "react-native";
 
 import { signUpWithEmail } from "../services/authService";
+import AppIcon from "../components/ui/AppIcon";
 import HapticPressable from "../components/HapticPressable";
 import { trackEvent } from "../services/analyticsService";
-import { COLORS } from "../utils/constants";
+import { COLORS } from "../theme";
 
 export default function SignupScreen({ navigation }) {
   const [name, setName] = useState("");
@@ -60,6 +61,9 @@ export default function SignupScreen({ navigation }) {
         contentContainerStyle={styles.content}
       >
         <View style={styles.header}>
+          <View style={styles.heroIcon}>
+            <AppIcon color={COLORS.accent} name="premium" size={34} />
+          </View>
           <Text selectable style={styles.eyebrow}>
             Start free
           </Text>
@@ -200,6 +204,16 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 10
+  },
+  heroIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(108, 99, 255, 0.12)",
+    borderColor: "rgba(108, 99, 255, 0.3)",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 64,
+    justifyContent: "center",
+    width: 64
   },
   helperText: {
     color: COLORS.muted,

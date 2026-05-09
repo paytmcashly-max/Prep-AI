@@ -1,17 +1,18 @@
 export const APP_NAME = "PrepAI";
 
 export const COLORS = {
-  background: "#F8FAFC",
-  surface: "#FFFFFF",
-  primary: "#2563EB",
-  primaryDark: "#1E40AF",
-  accent: "#F97316",
-  success: "#16A34A",
-  warning: "#D97706",
-  danger: "#DC2626",
-  text: "#0F172A",
-  muted: "#64748B",
-  border: "#E2E8F0"
+  accent: "#6C63FF",
+  background: "#0A0A0A",
+  border: "#2A2A2A",
+  card: "#1A1A1A",
+  danger: "#EF4444",
+  muted: "#A3A3A3",
+  primary: "#6C63FF",
+  primaryDark: "#4F46E5",
+  success: "#22C55E",
+  surface: "#111111",
+  text: "#FFFFFF",
+  warning: "#FACC15"
 };
 
 export const SPACING = {

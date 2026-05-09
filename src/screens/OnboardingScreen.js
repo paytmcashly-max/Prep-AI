@@ -1,22 +1,26 @@
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import AppIcon from "../components/ui/AppIcon";
 import HapticPressable from "../components/HapticPressable";
-import { COLORS } from "../utils/constants";
+import { COLORS } from "../theme";
 
 const slides = [
   {
     eyebrow: "Mock interviews",
+    icon: "practice",
     title: "Practice the questions Indian recruiters actually ask",
     body: "Choose HR, technical, behavioral, or company-specific rounds and build confidence one answer at a time."
   },
   {
     eyebrow: "Instant AI feedback",
+    icon: "target",
     title: "Know what worked and what needs polish",
     body: "Get a score, strengths, improvement points, and a better sample answer after each response."
   },
   {
     eyebrow: "Resume analyzer",
+    icon: "resume",
     title: "Tune your resume before you apply",
     body: "Upload a PDF and get ATS score, missing keywords, grammar fixes, and role-specific suggestions."
   }
@@ -54,6 +58,9 @@ export default function OnboardingScreen({ navigation }) {
       <View style={styles.slide}>
         <View style={styles.illustration}>
           <View style={styles.phoneFrame}>
+            <View style={styles.illustrationIcon}>
+              <AppIcon color={COLORS.accent} name={activeSlide.icon} size={42} />
+            </View>
             <View style={styles.phoneHeader} />
             <View style={styles.questionLineLarge} />
             <View style={styles.questionLine} />
@@ -161,6 +168,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minHeight: 230
+  },
+  illustrationIcon: {
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "rgba(108, 99, 255, 0.14)",
+    borderColor: "rgba(108, 99, 255, 0.35)",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 72,
+    justifyContent: "center",
+    marginBottom: 4,
+    width: 72
   },
   phoneFrame: {
     backgroundColor: COLORS.surface,

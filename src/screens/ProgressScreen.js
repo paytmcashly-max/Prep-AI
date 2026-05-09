@@ -2,6 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
+import AppIcon from "../components/ui/AppIcon";
+import MessageCard from "../components/ui/MessageCard";
 import SkeletonBox from "../components/SkeletonBox";
 import {
   calculateAverageScore,
@@ -10,17 +12,7 @@ import {
   getLastSevenDayScores
 } from "../services/sessionService";
 import { useProgressStore } from "../store/progressStore";
-
-const COLORS = {
-  accent: "#6C63FF",
-  background: "#0A0A0A",
-  card: "#1A1A1A",
-  border: "#2A2A2A",
-  muted: "#A3A3A3",
-  text: "#FFFFFF",
-  green: "#22C55E",
-  red: "#EF4444"
-};
+import { COLORS } from "../theme";
 
 function TopicBadge({ label, tone }) {
   const isStrong = tone === "strong";
@@ -40,6 +32,7 @@ function TopicBadge({ label, tone }) {
 function EmptyPanel({ title, message }) {
   return (
     <View style={styles.emptyPanel}>
+      <AppIcon color={COLORS.accent} name="chart" size={28} />
       <Text selectable style={styles.emptyTitle}>
         {title}
       </Text>
@@ -183,6 +176,9 @@ export default function ProgressScreen() {
       contentContainerStyle={styles.content}
     >
       <View style={styles.header}>
+        <View style={styles.headerIcon}>
+          <AppIcon color={COLORS.accent} name="progress" size={30} />
+        </View>
         <Text selectable style={styles.title}>
           Your Progress
         </Text>
@@ -213,9 +209,7 @@ export default function ProgressScreen() {
       ) : null}
 
       {errorMessage ? (
-        <Text selectable style={styles.errorText}>
-          {errorMessage}
-        </Text>
+        <MessageCard message={errorMessage} title="Progress unavailable" tone="error" />
       ) : null}
 
       <View style={styles.card}>
@@ -461,17 +455,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center"
   },
-  errorText: {
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    borderColor: "rgba(239, 68, 68, 0.35)",
-    borderRadius: 8,
-    borderWidth: 1,
-    color: "#FCA5A5",
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20,
-    padding: 12
-  },
   gridLineBottom: {
     backgroundColor: "#242424",
     bottom: 50,
@@ -499,6 +482,16 @@ const styles = StyleSheet.create({
   header: {
     gap: 6,
     paddingTop: 8
+  },
+  headerIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(108, 99, 255, 0.12)",
+    borderColor: "rgba(108, 99, 255, 0.3)",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 54,
+    justifyContent: "center",
+    width: 54
   },
   improvementBadge: {
     backgroundColor: "rgba(239, 68, 68, 0.12)",
