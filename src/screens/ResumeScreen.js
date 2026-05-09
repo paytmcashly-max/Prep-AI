@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -161,6 +161,7 @@ export default function ResumeScreen() {
   const [analysis, setAnalysis] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [showPasteFallback, setShowPasteFallback] = useState(false);
+  const analysisRequestInFlightRef = useRef(false);
   const atsColor = useMemo(() => {
     const score = Number(analysis?.atsScore || 0);
 
@@ -206,6 +207,10 @@ export default function ResumeScreen() {
   };
 
   const analyzeSelectedResume = async () => {
+    if (analysisRequestInFlightRef.current || isAnalyzing) {
+      return;
+    }
+
     if (!selectedFile && !resumeText.trim()) {
       Alert.alert("Add resume", "Please upload a PDF or paste your resume text first.");
       return;
@@ -224,6 +229,7 @@ export default function ResumeScreen() {
     }
 
     try {
+      analysisRequestInFlightRef.current = true;
       setIsAnalyzing(true);
       setErrorMessage("");
       setAnalysis(null);
@@ -249,6 +255,7 @@ export default function ResumeScreen() {
     } catch (error) {
       setErrorMessage(error.message || "Could not analyze this resume. Please try again.");
     } finally {
+      analysisRequestInFlightRef.current = false;
       setIsAnalyzing(false);
     }
   };
@@ -415,14 +422,24 @@ export default function ResumeScreen() {
           </View>
 
           <View style={styles.resultSection}>
-            <Text selectable style={styles.sectionTitle}>
-              Suggested Lines to Add
-            </Text>
+            <View style={styles.resultSectionHeader}>
+              <Text selectable style={styles.sectionTitle}>
+                Suggested Lines to Add
+              </Text>
+              <Text selectable style={styles.sectionHint}>
+                Copy the strongest lines into the right resume section.
+              </Text>
+            </View>
             {(analysis.rewriteSuggestions || []).length ? (
-              (analysis.rewriteSuggestions || []).map((suggestion) => (
-                <Text key={suggestion} selectable style={styles.rewriteSuggestion}>
-                  {suggestion}
-                </Text>
+              (analysis.rewriteSuggestions || []).map((suggestion, index) => (
+                <View key={`${suggestion}-${index}`} style={styles.rewriteCard}>
+                  <Text selectable style={styles.rewriteIndex}>
+                    {String(index + 1).padStart(2, "0")}
+                  </Text>
+                  <Text selectable style={styles.rewriteSuggestion}>
+                    {suggestion}
+                  </Text>
+                </View>
               ))
             ) : (
               <Text selectable style={styles.emptyResultText}>
@@ -682,16 +699,32 @@ const styles = StyleSheet.create({
   resultSection: {
     gap: 12
   },
-  rewriteSuggestion: {
+  resultSectionHeader: {
+    gap: 5
+  },
+  rewriteCard: {
+    alignItems: "flex-start",
     backgroundColor: "rgba(108, 99, 255, 0.12)",
     borderColor: "rgba(108, 99, 255, 0.35)",
     borderRadius: 8,
     borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    padding: 12
+  },
+  rewriteIndex: {
+    color: COLORS.accent,
+    fontSize: 13,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "900",
+    lineHeight: 21
+  },
+  rewriteSuggestion: {
     color: COLORS.text,
+    flex: 1,
     fontSize: 14,
     fontWeight: "700",
-    lineHeight: 21,
-    padding: 12
+    lineHeight: 21
   },
   resumeInput: {
     backgroundColor: "#111111",
@@ -740,6 +773,12 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 18,
     fontWeight: "900"
+  },
+  sectionHint: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 19
   },
   selectButton: {
     alignItems: "center",

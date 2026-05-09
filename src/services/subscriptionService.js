@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 
 export const PREMIUM_FEATURES = {
   UNLIMITED_INTERVIEWS: "unlimited_interviews",
@@ -12,8 +12,9 @@ export const PREMIUM_FEATURES = {
 };
 
 const DEFAULT_SUBSCRIPTION_STATUS = {
-  isPremium: false,
   activeEntitlements: [],
+  isPremium: false,
+  managementUrl: null,
   source: "placeholder"
 };
 
@@ -34,6 +35,17 @@ const getExtra = (key) => Constants.expoConfig?.extra?.[key] || Constants.manife
 
 const isDevelopment = () => typeof __DEV__ !== "undefined" && __DEV__;
 
+const canUseTestStoreKey = () => {
+  // RevenueCat Test Store keys are safe for dev-client testing. Standalone preview APKs should
+  // use the platform public key, otherwise login-time subscription refresh can show native
+  // "wrong API key" errors before the user even opens the paywall.
+  if (isDevelopment()) {
+    return true;
+  }
+
+  return Constants.appOwnership !== "standalone";
+};
+
 const logRevenueCatDebug = (message, metadata = {}) => {
   if (isDevelopment()) {
     console.log("RevenueCat:", {
@@ -47,7 +59,7 @@ const getRevenueCatApiKey = () => {
   const testStoreApiKey =
     process.env.EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY || getExtra("revenueCatTestStoreApiKey");
 
-  if (testStoreApiKey) {
+  if (testStoreApiKey && canUseTestStoreKey()) {
     return {
       apiKey: testStoreApiKey,
       keySource: "test_store"
@@ -109,6 +121,8 @@ const getEntitlementExpirationDate = (customerInfo, entitlementId) => {
   return null;
 };
 
+const getManagementUrl = (customerInfo) => customerInfo?.managementURL || null;
+
 const revenueCatSetupChecklist = [
   "RevenueCat entitlement id must be premium",
   "Purchased product must be attached to entitlement",
@@ -132,12 +146,23 @@ const mapCustomerInfoToStatus = (customerInfo) => {
   });
 
   return {
-    isPremium,
     activeEntitlements,
     entitlementId,
     expirationDate,
+    isPremium,
+    managementUrl: getManagementUrl(customerInfo),
     source: "revenuecat"
   };
+};
+
+export const openSubscriptionManagement = async (managementUrl) => {
+  const url = managementUrl || cachedCustomerInfo?.managementURL;
+
+  if (!url) {
+    throw new Error("SUBSCRIPTION_MANAGEMENT_UNAVAILABLE");
+  }
+
+  await Linking.openURL(url);
 };
 
 export const configurePurchases = async () => {

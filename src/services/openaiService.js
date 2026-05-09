@@ -76,6 +76,7 @@ const callInterviewApi = async (body) => {
   const payload = await callWithPremiumSyncRetry(() =>
     postAuthenticatedJson("/api/interview", body, {
       badRequestMessage: "Please complete your profile before starting an interview.",
+      rateLimitMessage: "Too many interview requests. Please wait a moment and try again.",
       usageLimitMessage: getPremiumAwareUsageLimitMessage(
         "You have used your free interview questions for today. Please try again tomorrow."
       )
@@ -348,6 +349,8 @@ export const evaluateAnswer = async (question, answer, jobRole) => {
         question: args.question
       },
       {
+        rateLimitMessage:
+          "Too many answer evaluation requests. Please wait a moment and try again.",
         usageLimitMessage: getPremiumAwareUsageLimitMessage(
           "You have used your free answer evaluations for today. Please try again tomorrow."
         )
@@ -374,6 +377,7 @@ export const analyzeResume = async (resumeText, jobRole) => {
         resumeText: String(args.resumeText || "").substring(0, 12000)
       },
       {
+        rateLimitMessage: "Too many resume analysis requests. Please wait a moment and try again.",
         usageLimitMessage: getPremiumAwareUsageLimitMessage(
           "You have used your free resume analysis for this month."
         )
@@ -410,6 +414,7 @@ export const analyzeResumePdf = async (asset, jobRole) => {
         hasResumeFile: true,
         jobRole: resolvedJobRole
       },
+      rateLimitMessage: "Too many resume analysis requests. Please wait a moment and try again.",
       usageLimitMessage: getPremiumAwareUsageLimitMessage(
         "You have used your free resume analysis for this month."
       )

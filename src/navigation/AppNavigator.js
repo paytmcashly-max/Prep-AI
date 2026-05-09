@@ -20,8 +20,9 @@ import TabNavigator from "./TabNavigator";
 const Stack = createNativeStackNavigator();
 
 const screenOptions = {
-  headerShadowVisible: false,
   headerBackTitleVisible: false,
+  headerShadowVisible: false,
+  headerShown: false,
   contentStyle: { backgroundColor: "#F8FAFC" }
 };
 
@@ -32,14 +33,10 @@ function AuthStack({ initialRouteName = "Splash" }) {
       initialRouteName={initialRouteName}
       screenOptions={screenOptions}
     >
-      <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="Onboarding"
-        component={OnboardingScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login" }} />
-      <Stack.Screen name="Signup" component={SignupScreen} options={{ title: "Create account" }} />
+      <Stack.Screen name="Splash" component={SplashScreen} />
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Signup" component={SignupScreen} />
     </Stack.Navigator>
   );
 }
@@ -53,24 +50,13 @@ function AppStack({ hasCompletedProfile, onProfileCompleted }) {
     >
       <Stack.Screen
         name="ProfileSetup"
-        options={({ route }) => ({
-          title: "Profile setup",
-          headerBackVisible: route.params?.mode === "edit"
-        })}
+        options={({ route }) => ({ headerBackVisible: route.params?.mode === "edit" })}
       >
         {(props) => <ProfileSetupScreen {...props} onProfileCompleted={onProfileCompleted} />}
       </Stack.Screen>
-      <Stack.Screen name="MainTabs" component={TabNavigator} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="MockInterview"
-        component={MockInterviewScreen}
-        options={{ title: "Mock interview" }}
-      />
-      <Stack.Screen
-        name="Paywall"
-        component={PaywallScreen}
-        options={{ title: "PrepAI Premium", presentation: "modal" }}
-      />
+      <Stack.Screen name="MainTabs" component={TabNavigator} />
+      <Stack.Screen name="MockInterview" component={MockInterviewScreen} />
+      <Stack.Screen name="Paywall" component={PaywallScreen} options={{ presentation: "modal" }} />
     </Stack.Navigator>
   );
 }

@@ -2,7 +2,7 @@
 
 Use separate development, staging, and production environment values. Do not commit real `.env` files.
 
-Status note: production environment setup has not been verified yet. Keep the items below unchecked until actual production values are configured and tested. EAS preview environment values also still need verification before broader APK sharing.
+Status note: production environment setup has not been verified yet. Keep the items below unchecked until actual production values are configured and tested. The current preview APK passed as a local same-WiFi beta candidate, but external testers still need a deployed public backend URL and a new APK built with that URL.
 
 ## Mobile / Expo Public Env
 
@@ -66,7 +66,8 @@ cd server && npm test
 
 ## Current Follow-Up
 
-- Verify EAS `preview` environment variables before the next preview APK build.
+- Deploy the backend to a public URL before external beta testing.
+- Build a new preview APK with public `EXPO_PUBLIC_API_BASE_URL`.
 - Configure production backend/private env on the deployment platform.
 - Configure production Expo public env with final backend URL and legal/support values.
 - Run staging and production smoke tests before marking this checklist complete.

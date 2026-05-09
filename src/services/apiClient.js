@@ -53,6 +53,10 @@ const getErrorMessage = (status, payload, options = {}) => {
       return options.usageLimitMessage;
     }
 
+    if (options.rateLimitMessage) {
+      return options.rateLimitMessage;
+    }
+
     return payload?.error || "Usage limit reached";
   }
 

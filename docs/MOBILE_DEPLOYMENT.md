@@ -70,8 +70,10 @@ The security audit helps catch accidental mobile references to server-only secre
 ## Production Build Notes
 
 - Confirm `EXPO_PUBLIC_API_BASE_URL` points to the deployed backend.
+- Confirm `EXPO_PUBLIC_FIREBASE_API_KEY` is the Firebase Web API key, not a RevenueCat Test Store key.
 - Confirm the backend `/health` and `/ready` endpoints pass before testing the app.
 - Confirm Firebase Auth and Firestore projects match the intended production Firebase project.
 - Confirm RevenueCat public API keys are platform-specific and entitlement id matches RevenueCat dashboard configuration.
+- Use the RevenueCat Android public key for standalone APK purchase QA. Keep the Test Store key for dev-client/Test Store development unless the RevenueCat setup explicitly supports the target build.
 - Confirm Privacy Policy URL, Terms URL, and support email placeholders are replaced with final public values before store submission.
 - Confirm Sentry and analytics settings do not capture resume text, user answers, Firebase tokens, Authorization headers, or API keys.

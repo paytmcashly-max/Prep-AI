@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import HapticPressable from "../components/HapticPressable";
-import { getOfferings, purchasePackage, restorePurchases } from "../services/subscriptionService";
+import {
+  getOfferings,
+  openSubscriptionManagement,
+  purchasePackage,
+  restorePurchases
+} from "../services/subscriptionService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 
 const COLORS = {
@@ -90,6 +95,7 @@ export default function PaywallScreen({ navigation }) {
     (state) => state.refreshSubscriptionStatus
   );
   const setSubscriptionStatus = useSubscriptionStore((state) => state.setSubscriptionStatus);
+  const managementUrl = useSubscriptionStore((state) => state.managementUrl);
   const [isLoadingOfferings, setIsLoadingOfferings] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -193,6 +199,17 @@ export default function PaywallScreen({ navigation }) {
     }
   };
 
+  const manageSubscription = async () => {
+    try {
+      await openSubscriptionManagement(managementUrl);
+    } catch {
+      Alert.alert(
+        "Manage subscription",
+        "Open Google Play Store > Payments & subscriptions > Subscriptions to cancel or manage PrepAI Premium."
+      );
+    }
+  };
+
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
@@ -244,12 +261,15 @@ export default function PaywallScreen({ navigation }) {
             </Text>
           </View>
         ) : isPremium ? (
-          <View style={styles.messageCard}>
+          <View style={[styles.messageCard, styles.successMessageCard]}>
+            <Text selectable style={styles.statusEyebrow}>
+              Premium Status
+            </Text>
             <Text selectable style={styles.messageTitle}>
               Premium is active on this account
             </Text>
             <Text selectable style={styles.messageText}>
-              Your premium entitlement is active. Enjoy unlimited practice.
+              Unlimited practice is unlocked. You can return to Practice whenever you are ready.
             </Text>
           </View>
         ) : availablePackages.length ? (
@@ -287,12 +307,15 @@ export default function PaywallScreen({ navigation }) {
             );
           })
         ) : (
-          <View style={styles.messageCard}>
+          <View style={[styles.messageCard, styles.warningMessageCard]}>
+            <Text selectable style={styles.statusEyebrow}>
+              Plans unavailable
+            </Text>
             <Text selectable style={styles.messageTitle}>
               No plans available
             </Text>
             <Text selectable style={styles.messageText}>
-              Check RevenueCat Test Store offerings and rebuild after changing EAS env values.
+              Premium plans are not configured for this build yet. Free practice still works.
             </Text>
           </View>
         )}
@@ -324,9 +347,18 @@ export default function PaywallScreen({ navigation }) {
           )}
         </HapticPressable>
         <Text selectable style={styles.cancelText}>
-          Cancel anytime
+          Cancel anytime from your store subscription settings.
         </Text>
       </View>
+
+      {isPremium ? (
+        <HapticPressable
+          onPress={manageSubscription}
+          style={({ pressed }) => [styles.manageButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.manageButtonText}>Manage / Cancel Premium</Text>
+        </HapticPressable>
+      ) : null}
 
       <HapticPressable
         disabled={isRestoring}
@@ -469,6 +501,22 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center"
   },
+  manageButton: {
+    alignItems: "center",
+    backgroundColor: "rgba(108, 99, 255, 0.12)",
+    borderColor: "rgba(108, 99, 255, 0.45)",
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 52,
+    paddingHorizontal: 16
+  },
+  manageButtonText: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "900",
+    textAlign: "center"
+  },
   planCard: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
@@ -524,6 +572,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900"
   },
+  statusEyebrow: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase"
+  },
+  successMessageCard: {
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    borderColor: "rgba(34, 197, 94, 0.45)"
+  },
   saveBadge: {
     backgroundColor: "rgba(34, 197, 94, 0.14)",
     borderColor: "rgba(34, 197, 94, 0.45)",
@@ -570,5 +628,9 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0,
     lineHeight: 40
+  },
+  warningMessageCard: {
+    backgroundColor: "#141414",
+    borderColor: "rgba(250, 204, 21, 0.35)"
   }
 });

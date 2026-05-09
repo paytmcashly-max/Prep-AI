@@ -1,12 +1,14 @@
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 import { auth, firestore } from "./firebaseConfig";
 
 const DAILY_PRACTICE_NOTIFICATION_TYPE = "daily_interview_practice";
-const DEFAULT_NOTIFICATION_CHANNEL_ID = "default";
+const DEFAULT_NOTIFICATION_CHANNEL_ID = "prepai-practice-high-v2";
+const SESSION_COMPLETE_NOTIFICATION_KEY_PREFIX = "session_complete_notification_date";
 
 let setupUid = null;
 let notificationsModule = null;
@@ -15,6 +17,11 @@ let notificationHandlerRegistered = false;
 const isExpoGo = () => Constants.appOwnership === "expo";
 
 const isDevelopment = () => typeof __DEV__ !== "undefined" && __DEV__;
+
+const getTodayDateKey = () => new Date().toISOString().slice(0, 10);
+
+const getSessionCompleteNotificationKey = (uid) =>
+  `${SESSION_COMPLETE_NOTIFICATION_KEY_PREFIX}_${uid || "anonymous"}`;
 
 const logNotificationDebug = (message, metadata = {}) => {
   if (isDevelopment()) {
@@ -73,7 +80,8 @@ const configureAndroidChannel = async () => {
   }
 
   await Notifications.setNotificationChannelAsync(DEFAULT_NOTIFICATION_CHANNEL_ID, {
-    name: "Daily practice reminders",
+    name: "PrepAI practice alerts",
+    description: "High-priority practice reminders and session completion alerts.",
     importance:
       Notifications.AndroidImportance.MAX ||
       Notifications.AndroidImportance.HIGH ||
@@ -240,6 +248,18 @@ export const setDailyPracticeReminderEnabled = async (enabled) => {
 
 export const showSessionCompleteNotification = async () => {
   try {
+    const uid = auth.currentUser?.uid;
+    const storageKey = getSessionCompleteNotificationKey(uid);
+    const todayDateKey = getTodayDateKey();
+    const lastShownDate = await AsyncStorage.getItem(storageKey);
+
+    if (lastShownDate === todayDateKey) {
+      logNotificationDebug("session completion notification skipped", {
+        reason: "already shown today"
+      });
+      return;
+    }
+
     const Notifications = await getNotificationsModule();
 
     if (!Notifications) {
@@ -260,6 +280,8 @@ export const showSessionCompleteNotification = async () => {
     logNotificationDebug("scheduled session completion notification", {
       scheduledNotificationId
     });
+
+    await AsyncStorage.setItem(storageKey, todayDateKey);
   } catch (error) {
     logNotificationDebug("session completion notification failed", {
       errorMessage: error instanceof Error ? error.message : "Unknown error"

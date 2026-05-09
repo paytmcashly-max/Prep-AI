@@ -41,7 +41,7 @@ function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="auto" />
+      <StatusBar backgroundColor="#0A0A0A" style="light" translucent={false} />
       <AppNavigator />
     </GestureHandlerRootView>
   );

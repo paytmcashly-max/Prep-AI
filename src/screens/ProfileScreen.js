@@ -20,6 +20,7 @@ import {
   getDailyPracticeReminderEnabled,
   setDailyPracticeReminderEnabled
 } from "../services/notificationService";
+import { openSubscriptionManagement } from "../services/subscriptionService";
 import {
   calculateAverageScore,
   calculateCurrentStreak,
@@ -98,6 +99,7 @@ export default function ProfileScreen({ navigation }) {
   const profile = useUserStore((state) => state.profile);
   const isPremium = useSubscriptionStore((state) => state.isPremium);
   const isSubscriptionLoading = useSubscriptionStore((state) => state.isLoading);
+  const managementUrl = useSubscriptionStore((state) => state.managementUrl);
   const refreshSubscriptionStatus = useSubscriptionStore(
     (state) => state.refreshSubscriptionStatus
   );
@@ -198,6 +200,17 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  const manageSubscription = async () => {
+    try {
+      await openSubscriptionManagement(managementUrl);
+    } catch {
+      Alert.alert(
+        "Manage subscription",
+        "Open Google Play Store > Payments & subscriptions > Subscriptions to cancel or manage PrepAI Premium."
+      );
+    }
+  };
+
   const openLegalUrl = async (title, url) => {
     if (isPlaceholderValue(url)) {
       Alert.alert(title, `Placeholder URL:\n${url}`);
@@ -259,18 +272,24 @@ export default function ProfileScreen({ navigation }) {
           </Text>
           <View style={styles.rolePill}>
             <Text selectable style={styles.roleText}>
-              {profile.jobRole || "Job role not set"} ·{" "}
+              {profile.jobRole || "Job role not set"} -{" "}
               {profile.experienceLevel || "Experience not set"}
             </Text>
           </View>
-          <View style={[styles.planBadge, isPremium ? styles.premiumBadge : styles.freeBadge]}>
-            <Text selectable style={styles.planBadgeText}>
-              {isSubscriptionLoading
-                ? "Checking plan..."
-                : isPremium
-                  ? "Premium Active"
-                  : "Free Plan"}
-            </Text>
+          <View style={[styles.planCard, isPremium ? styles.premiumPlanCard : styles.freePlanCard]}>
+            <View style={styles.planTextWrap}>
+              <Text selectable style={styles.planEyebrow}>
+                Current plan
+              </Text>
+              <Text selectable style={styles.planTitle}>
+                {isSubscriptionLoading
+                  ? "Checking plan..."
+                  : isPremium
+                    ? "Premium Active"
+                    : "Free Plan"}
+              </Text>
+            </View>
+            <View style={[styles.planDot, isPremium ? styles.premiumDot : styles.freeDot]} />
           </View>
         </View>
       </View>
@@ -325,6 +344,13 @@ export default function ProfileScreen({ navigation }) {
             detail={isPremium ? "Premium entitlement is active" : "Unlock unlimited practice"}
             onPress={() => navigation.navigate("Paywall")}
           />
+          {isPremium ? (
+            <SettingRow
+              label="Cancel Premium"
+              detail="Manage billing in Google Play"
+              onPress={manageSubscription}
+            />
+          ) : null}
         </View>
       </View>
 
@@ -442,23 +468,48 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.75
   },
-  freeBadge: {
+  freeDot: {
+    backgroundColor: COLORS.muted
+  },
+  freePlanCard: {
     backgroundColor: "#111111",
     borderColor: COLORS.border
   },
-  planBadge: {
-    alignSelf: "flex-start",
-    borderRadius: 999,
+  planCard: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    borderRadius: 8,
     borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
     paddingHorizontal: 12,
-    paddingVertical: 7
+    paddingVertical: 10
   },
-  planBadgeText: {
+  planDot: {
+    borderRadius: 5,
+    height: 10,
+    width: 10
+  },
+  planEyebrow: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase"
+  },
+  planTextWrap: {
+    flex: 1,
+    gap: 2
+  },
+  planTitle: {
     color: COLORS.text,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "900"
   },
-  premiumBadge: {
+  premiumDot: {
+    backgroundColor: "#22C55E"
+  },
+  premiumPlanCard: {
     backgroundColor: "rgba(34, 197, 94, 0.14)",
     borderColor: "rgba(34, 197, 94, 0.45)"
   },

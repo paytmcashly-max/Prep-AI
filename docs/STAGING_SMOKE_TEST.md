@@ -2,7 +2,7 @@
 
 Use this checklist after deploying the backend and building the mobile app against the staging environment.
 
-Status note: local LDPlayer APK launch smoke testing passed on May 8, 2026, but staging has not been verified. Keep this checklist unchecked until the backend is deployed to staging and the mobile app is built against the staging `EXPO_PUBLIC_API_BASE_URL`.
+Status note: local LDPlayer APK launch smoke testing passed on May 8, 2026. Dev-client real-device regression testing passed for the beta blockers on May 9, 2026. EAS preview build `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd` from commit `89d01fe2b2086b0a994e6bf7a28b65c7c3414897` passed as a local same-WiFi beta candidate. Staging has not been verified. Keep this checklist unchecked until the backend is deployed to staging and the mobile app is built against the staging `EXPO_PUBLIC_API_BASE_URL`.
 
 ## Backend Tests
 
@@ -49,5 +49,6 @@ cd server && npm test
 
 - Deploy backend to staging.
 - Build/install an APK that points to the staging backend.
+- Use the local same-WiFi APK smoke pass as confidence only; external testers still need a public backend URL.
 - Run all backend, mobile, and privacy/security checks above.
 - Record pass/fail results before beta distribution.

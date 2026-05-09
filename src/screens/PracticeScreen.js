@@ -143,13 +143,16 @@ export default function PracticeScreen({ navigation, route }) {
     >
       <View style={styles.header}>
         <Text selectable style={styles.title}>
-          Choose Practice Category
+          Set Up Practice
+        </Text>
+        <Text selectable style={styles.subtitle}>
+          Choose the difficulty and length first, then tap a category to start.
         </Text>
       </View>
 
       <View style={styles.difficultySection}>
         <Text selectable style={styles.sectionTitle}>
-          Interview Difficulty
+          1. Interview Difficulty
         </Text>
         <View style={styles.difficultyRow}>
           {DIFFICULTY_OPTIONS.map((option) => {
@@ -184,7 +187,7 @@ export default function PracticeScreen({ navigation, route }) {
 
       <View style={styles.difficultySection}>
         <Text selectable style={styles.sectionTitle}>
-          Interview Length
+          2. Interview Length
         </Text>
         <View style={styles.questionCountRow}>
           {PREMIUM_QUESTION_COUNT_OPTIONS.map((count) => {
@@ -223,33 +226,49 @@ export default function PracticeScreen({ navigation, route }) {
         </Text>
       </View>
 
-      <View style={styles.categoryGrid}>
-        {PRACTICE_CATEGORIES.map((category) => (
-          <HapticPressable
-            key={category.routeCategory}
-            disabled={Boolean(startingCategory)}
-            onPress={() => startCategory(category.routeCategory)}
-            style={({ pressed }) => [
-              styles.categoryCard,
-              pressed && !startingCategory && styles.pressed,
-              startingCategory && startingCategory !== category.routeCategory && styles.disabledCard
-            ]}
-          >
-            {startingCategory === category.routeCategory ? (
-              <ActivityIndicator color={COLORS.accent} size="large" />
-            ) : (
-              <Text style={styles.categoryIcon}>{category.icon}</Text>
-            )}
-            <View style={styles.categoryCopy}>
-              <Text selectable style={styles.categoryTitle}>
-                {category.title}
+      <View style={styles.categorySection}>
+        <View style={styles.sectionHeaderRow}>
+          <Text selectable style={styles.sectionTitle}>
+            3. Pick Category to Start
+          </Text>
+          <Text selectable style={styles.selectionSummary}>
+            {selectedDifficulty} - {isPremium ? selectedQuestionCount : FREE_QUESTION_COUNT} Qs
+          </Text>
+        </View>
+
+        <View style={styles.categoryGrid}>
+          {PRACTICE_CATEGORIES.map((category) => (
+            <HapticPressable
+              key={category.routeCategory}
+              disabled={Boolean(startingCategory)}
+              onPress={() => startCategory(category.routeCategory)}
+              style={({ pressed }) => [
+                styles.categoryCard,
+                pressed && !startingCategory && styles.pressed,
+                startingCategory &&
+                  startingCategory !== category.routeCategory &&
+                  styles.disabledCard
+              ]}
+            >
+              {startingCategory === category.routeCategory ? (
+                <ActivityIndicator color={COLORS.accent} size="large" />
+              ) : (
+                <Text style={styles.categoryIcon}>{category.icon}</Text>
+              )}
+              <View style={styles.categoryCopy}>
+                <Text selectable style={styles.categoryTitle}>
+                  {category.title}
+                </Text>
+                <Text selectable style={styles.categorySubtitle}>
+                  {category.subtitle}
+                </Text>
+              </View>
+              <Text selectable style={styles.categoryAction}>
+                Start round
               </Text>
-              <Text selectable style={styles.categorySubtitle}>
-                {category.subtitle}
-              </Text>
-            </View>
-          </HapticPressable>
-        ))}
+            </HapticPressable>
+          ))}
+        </View>
       </View>
 
       <View style={styles.modeSection}>
@@ -317,10 +336,21 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 42
   },
+  categoryAction: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "900",
+    marginTop: "auto",
+    textTransform: "uppercase"
+  },
   categorySubtitle: {
     color: COLORS.muted,
     fontSize: 14,
+    fontWeight: "700",
     lineHeight: 20
+  },
+  categorySection: {
+    gap: 14
   },
   categoryTitle: {
     color: COLORS.text,
@@ -376,6 +406,7 @@ const styles = StyleSheet.create({
     gap: 12
   },
   header: {
+    gap: 8,
     paddingTop: 8
   },
   lockedModeCard: {
@@ -453,8 +484,27 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: COLORS.text,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "900"
+  },
+  sectionHeaderRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    justifyContent: "space-between"
+  },
+  selectionSummary: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase"
+  },
+  subtitle: {
+    color: COLORS.muted,
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 22
   },
   title: {
     color: COLORS.text,

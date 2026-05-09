@@ -39,7 +39,10 @@ Use this checklist before preparing the PrepAI MVP for store submission or publi
 - [ ] Full valid signup/login flow verified in APK
 - [ ] Full 5-question interview session verified in APK
 - [ ] Resume PDF picker edge cases verified in APK
-- [ ] Real Android phone smoke test passes
+- [x] Dev-client real-device regression passes for premium quota bypass, interview length, free-user limit, and resume flow
+- [x] EAS preview APK build completes on merged `main`
+- [x] Latest preview APK real Android phone smoke test passes on local same-WiFi backend
+- [ ] Notification banner/head-up behavior verified in latest preview APK
 
 ## Subscriptions
 
@@ -56,9 +59,9 @@ Use this checklist before preparing the PrepAI MVP for store submission or publi
 - [x] Root format check passes
 - [x] Server build passes
 - [x] Server tests pass
-- [ ] CI passes on GitHub
+- [x] CI passes on GitHub
 
-CI note: `.github/workflows/ci.yml` exists locally but has not been pushed because the current GitHub token lacks `workflow` scope. Follow-up: refresh GitHub auth with `workflow` scope, push the workflow file, and verify CI passes on GitHub.
+CI note: GitHub Actions passed on merged `main` commit `89d01fe2b2086b0a994e6bf7a28b65c7c3414897`. Keep this checked only while the latest required checks continue to pass.
 
 ## Launch
 
@@ -72,6 +75,11 @@ CI note: `.github/workflows/ci.yml` exists locally but has not been pushed becau
 - [ ] Final Terms URL ready
 - [ ] Production backend deployed
 - [ ] Production env verified
+- [x] Local same-WiFi beta candidate smoke test passed
+- [ ] Public backend deployed for external testers
+- [ ] New APK built with public `EXPO_PUBLIC_API_BASE_URL`
+- [ ] Final legal/support URLs replaced before wider beta
+- [ ] Latest preview APK full manual QA completed against public backend
 
 ## Before Launch, Run These Commands
 

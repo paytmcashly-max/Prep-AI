@@ -19,10 +19,14 @@ For preview APK testing, configure these variables in the EAS `preview` environm
 - `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`
 - `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
 - `EXPO_PUBLIC_FIREBASE_APP_ID`
-- `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY`
+- `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` if RevenueCat purchase/restore should be tested in the standalone APK
 - `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID`
 
 `EXPO_PUBLIC_API_BASE_URL` should point to a deployed backend URL for testers. A local IP only works when the phone or emulator can reach the developer machine on the same network.
+
+Important: `EXPO_PUBLIC_FIREBASE_API_KEY` must be the Firebase Web API key. It usually starts with `AIza`. Do not paste a RevenueCat Test Store key such as `test_...` into the Firebase key field.
+
+`EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY` is intended for dev-client/Test Store development. The app does not auto-use the Test Store key in standalone preview APKs, because a standalone APK with only a `test_...` RevenueCat key can show a native "wrong API key" error during login-time subscription refresh. For preview APK purchase QA, configure the Android public RevenueCat API key and keep the entitlement id as `premium`.
 
 ## Never Add Server Secrets To Mobile/EAS Public Env
 
@@ -51,13 +55,17 @@ After the build installs, verify:
 - The app starts without local `.env`.
 - Firebase login works.
 - The backend URL is not `localhost` unless testing on an emulator that can reach it.
-- RevenueCat Test Store offerings load if the Test Store key is configured.
+- RevenueCat offerings load if the Android RevenueCat public key is configured.
 - No Groq or Firebase Admin secrets exist in the mobile build configuration.
 
-## Current CI Follow-Up
+## Current Build Status
 
-The GitHub Actions workflow file exists locally, but it was not pushed because the current GitHub token lacks `workflow` scope. Before relying on CI for preview builds:
+- GitHub Actions CI passed on merged `main` commit `89d01fe2b2086b0a994e6bf7a28b65c7c3414897`.
+- EAS preview Android build `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd` finished successfully.
+- Latest preview APK still needs full physical-device manual QA before broader beta sharing.
 
-- Refresh GitHub authentication with `workflow` scope.
-- Push `.github/workflows/ci.yml`.
-- Verify GitHub Actions runs `npm ci`, format check, lint, server build, and server tests successfully.
+## Remaining Preview QA
+
+- Install the latest preview APK on a real Android phone.
+- Verify signup/login, full interview flow, answer evaluation, Resume Analyzer PDF edge cases, RevenueCat Test Store purchase/restore, and notification banner behavior.
+- Confirm the configured backend URL is reachable from tester devices.

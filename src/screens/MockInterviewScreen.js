@@ -112,6 +112,12 @@ const getAverageScore = (scores) => {
   return (total / scores.length).toFixed(1);
 };
 
+const isInterviewUsageLimitError = (error) =>
+  error?.status === 429 ||
+  String(error?.message || "")
+    .toLowerCase()
+    .includes("free interview questions");
+
 function CircularTimer({ secondsLeft }) {
   const progress = useRef(new Animated.Value(1)).current;
   const colorProgress = useRef(new Animated.Value(0)).current;
@@ -312,6 +318,7 @@ export default function MockInterviewScreen({ navigation, route }) {
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const previousQuestionsRef = useRef([]);
+  const questionRequestInFlightRef = useRef(false);
 
   const finalScores = scoresRef.current.length ? scoresRef.current : scores;
   const averageScore = getAverageScore(finalScores);
@@ -326,7 +333,12 @@ export default function MockInterviewScreen({ navigation, route }) {
 
   const loadQuestion = useCallback(
     async (nextQuestionNumber) => {
+      if (questionRequestInFlightRef.current) {
+        return false;
+      }
+
       try {
+        questionRequestInFlightRef.current = true;
         setIsQuestionLoading(true);
         setErrorMessage("");
         setIsLimitReached(false);
@@ -347,14 +359,23 @@ export default function MockInterviewScreen({ navigation, route }) {
           difficulty,
           questionNumber: nextQuestionNumber
         });
+        return true;
       } catch (error) {
         setQuestion("");
+
+        if (!isPremium && isInterviewUsageLimitError(error)) {
+          blockForDailyLimit();
+          return false;
+        }
+
         setErrorMessage(error.message || "Could not generate a question. Please try again.");
+        return false;
       } finally {
+        questionRequestInFlightRef.current = false;
         setIsQuestionLoading(false);
       }
     },
-    [category, difficulty]
+    [blockForDailyLimit, category, difficulty, isPremium]
   );
 
   const recordQuestionScore = useCallback((score) => {
@@ -449,6 +470,16 @@ export default function MockInterviewScreen({ navigation, route }) {
   };
 
   const completeOrLoadNext = async () => {
+    if (
+      questionRequestInFlightRef.current ||
+      isCheckingUsage ||
+      isEvaluating ||
+      isQuestionLoading ||
+      isSavingSession
+    ) {
+      return;
+    }
+
     if (questionNumber >= totalQuestions) {
       await saveCompletedSession();
       return;
@@ -460,9 +491,11 @@ export default function MockInterviewScreen({ navigation, route }) {
     }
 
     const nextQuestionNumber = questionNumber + 1;
+    const didLoadQuestion = await loadQuestion(nextQuestionNumber);
 
-    setQuestionNumber(nextQuestionNumber);
-    loadQuestion(nextQuestionNumber);
+    if (didLoadQuestion) {
+      setQuestionNumber(nextQuestionNumber);
+    }
   };
 
   const submitAnswer = async () => {
@@ -514,6 +547,17 @@ export default function MockInterviewScreen({ navigation, route }) {
   };
 
   const skipQuestion = () => {
+    if (
+      questionRequestInFlightRef.current ||
+      isCheckingUsage ||
+      isEvaluating ||
+      isQuestionLoading ||
+      isSavingSession ||
+      !question
+    ) {
+      return;
+    }
+
     recordQuestionScore(0);
     completeOrLoadNext();
   };
@@ -630,7 +674,7 @@ export default function MockInterviewScreen({ navigation, route }) {
             onPress={() => navigation.goBack()}
             style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
           >
-            <Text style={styles.secondaryButtonText}>Go Back</Text>
+            <Text style={styles.secondaryButtonText}>Back</Text>
           </HapticPressable>
         </View>
       </ScrollView>
@@ -768,17 +812,27 @@ export default function MockInterviewScreen({ navigation, route }) {
         {feedback ? (
           <View style={styles.feedbackCard}>
             <View style={styles.feedbackHeader}>
-              <Text selectable style={styles.feedbackTitle}>
-                Feedback
-              </Text>
-              <Text selectable style={styles.scoreText}>
-                {feedback.score}/10
-              </Text>
+              <View style={styles.feedbackTitleGroup}>
+                <Text selectable style={styles.feedbackTitle}>
+                  Answer Feedback
+                </Text>
+                <Text selectable style={styles.feedbackSubtitle}>
+                  Review the score, then improve one part at a time.
+                </Text>
+              </View>
+              <View style={styles.scorePill}>
+                <Text selectable style={styles.scoreLabel}>
+                  Score
+                </Text>
+                <Text selectable style={styles.scoreText}>
+                  {feedback.score}/10
+                </Text>
+              </View>
             </View>
 
             <View style={styles.feedbackSection}>
               <Text selectable style={styles.feedbackSectionTitle}>
-                Strengths
+                What worked
               </Text>
               {(feedback.strengths || []).map((strength) => (
                 <Text key={strength} selectable style={styles.strengthText}>
@@ -789,7 +843,7 @@ export default function MockInterviewScreen({ navigation, route }) {
 
             <View style={styles.feedbackSection}>
               <Text selectable style={styles.feedbackSectionTitle}>
-                Improvements
+                What to improve
               </Text>
               {(feedback.improvements || []).map((improvement) => (
                 <Text key={improvement} selectable style={styles.improvementText}>
@@ -803,14 +857,19 @@ export default function MockInterviewScreen({ navigation, route }) {
               style={({ pressed }) => [styles.collapsibleButton, pressed && styles.pressed]}
             >
               <Text style={styles.collapsibleButtonText}>
-                {showIdealAnswer ? "Hide Ideal Answer" : "Show Ideal Answer"}
+                {showIdealAnswer ? "Hide Ideal Answer" : "Try saying it like this"}
               </Text>
             </HapticPressable>
 
             {showIdealAnswer ? (
-              <Text selectable style={styles.idealAnswerText}>
-                {feedback.idealAnswer}
-              </Text>
+              <View style={styles.idealAnswerBox}>
+                <Text selectable style={styles.idealAnswerLabel}>
+                  Ideal answer
+                </Text>
+                <Text selectable style={styles.idealAnswerText}>
+                  {feedback.idealAnswer}
+                </Text>
+              </View>
             ) : null}
 
             <HapticPressable
@@ -968,8 +1027,9 @@ const styles = StyleSheet.create({
     padding: 18
   },
   feedbackHeader: {
-    alignItems: "center",
+    alignItems: "flex-start",
     flexDirection: "row",
+    gap: 12,
     justifyContent: "space-between"
   },
   feedbackSection: {
@@ -983,6 +1043,29 @@ const styles = StyleSheet.create({
   feedbackTitle: {
     color: COLORS.text,
     fontSize: 20,
+    fontWeight: "900"
+  },
+  feedbackSubtitle: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 19
+  },
+  feedbackTitleGroup: {
+    flex: 1,
+    gap: 4
+  },
+  idealAnswerBox: {
+    backgroundColor: "#111111",
+    borderColor: "#2A2A2A",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+    padding: 14
+  },
+  idealAnswerLabel: {
+    color: COLORS.text,
+    fontSize: 14,
     fontWeight: "900"
   },
   idealAnswerText: {
@@ -1104,8 +1187,26 @@ const styles = StyleSheet.create({
   },
   scoreText: {
     color: COLORS.accent,
-    fontSize: 22,
+    fontSize: 20,
+    fontVariant: ["tabular-nums"],
     fontWeight: "900"
+  },
+  scoreLabel: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase"
+  },
+  scorePill: {
+    alignItems: "center",
+    backgroundColor: "#111111",
+    borderColor: COLORS.accent,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 2,
+    minWidth: 82,
+    paddingHorizontal: 10,
+    paddingVertical: 8
   },
   secondaryButton: {
     alignItems: "center",
@@ -1271,6 +1372,7 @@ const styles = StyleSheet.create({
   topBar: {
     alignItems: "center",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     justifyContent: "space-between",
     paddingTop: 8

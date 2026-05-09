@@ -4,30 +4,56 @@ Use this checklist for final manual QA on an EAS preview Android APK.
 
 ## Test Setup
 
-| Item                         | Expected Result                                          | Pass/Fail | Notes                                                                     |
-| ---------------------------- | -------------------------------------------------------- | --------- | ------------------------------------------------------------------------- |
-| Build release APK            | `app-release.apk` builds successfully                    | Pass      | Verified locally on May 8, 2026                                           |
-| Install preview APK          | APK installs without errors                              | Pass      | Installed on LDPlayer with `adb install -r`                               |
-| Open app                     | App opens without crashing                               | Pass      | Package `com.prepai.prepai` launched; no fatal launch crash found         |
-| Backend URL                  | `EXPO_PUBLIC_API_BASE_URL` points to a reachable backend | Pending   | Full API flow not verified in installed APK                               |
-| Firebase config              | Signup/login screens do not show invalid API key errors  | Pending   | Screens rendered; valid signup/login success still needs APK verification |
-| RevenueCat Test Store config | Test Store offerings load if configured                  | Pending   | Test Store offering/purchase/restore not verified                         |
-| Real device test             | APK opens on a physical Android phone                    | Pending   | LDPlayer smoke passed; real phone not tested                              |
+| Item                         | Expected Result                                          | Pass/Fail | Notes                                                                  |
+| ---------------------------- | -------------------------------------------------------- | --------- | ---------------------------------------------------------------------- |
+| Build release APK            | `app-release.apk` builds successfully                    | Pass      | Verified locally on May 8, 2026                                        |
+| EAS preview APK build        | Preview profile produces an Android APK                  | Pass      | Build `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd` finished on merged `main` |
+| Install preview APK          | APK installs without errors                              | Pass      | Installed on LDPlayer and real Android phone                           |
+| Open app                     | App opens without crashing                               | Pass      | Package `com.prepai.prepai` launched; no fatal launch crash found      |
+| Backend URL                  | `EXPO_PUBLIC_API_BASE_URL` points to a reachable backend | Pass      | Local same-WiFi LAN backend reached during real-device smoke           |
+| Firebase config              | Signup/login screens do not show invalid API key errors  | Pass      | Preview APK real-device smoke passed                                   |
+| RevenueCat Test Store config | Test Store offerings load if configured                  | Pending   | Test Store offering/purchase/restore not verified                      |
+| Real device test             | APK opens on a physical Android phone                    | Pass      | Preview APK real-device smoke passed on local same-WiFi backend        |
 
 ## Core App Flow
 
-| Item                  | Expected Result                                            | Pass/Fail | Notes                                             |
-| --------------------- | ---------------------------------------------------------- | --------- | ------------------------------------------------- |
-| Onboarding render     | Onboarding screen appears after launch                     | Pass      | Verified in installed APK                         |
-| Skip to Login         | Skip navigates to Login                                    | Pass      | Verified in installed APK                         |
-| Signup screen render  | Signup screen appears                                      | Pass      | Verified in installed APK                         |
-| Invalid signup error  | Invalid signup shows a friendly error                      | Pass      | Verified with invalid email input                 |
-| Signup                | New test user can create an account                        | Pending   | Valid signup success still needs APK verification |
-| Login                 | Existing test user can log in                              | Pending   | Not verified in installed APK                     |
-| Home screen           | Home loads with greeting, streak, tip, and recent sessions | Pending   | Not verified in installed APK after valid login   |
-| AI tip                | Tip does not show `Invalid interview request`              | Pending   | Not verified in installed APK after valid login   |
-| Legal links           | Privacy Policy and Terms of Service open safely            | Pending   | Not verified in installed APK                     |
-| No fatal launch crash | Logcat has no app `FATAL EXCEPTION` during launch smoke    | Pass      | Verified during LDPlayer APK launch/smoke test    |
+| Item                  | Expected Result                                              | Pass/Fail | Notes                                                              |
+| --------------------- | ------------------------------------------------------------ | --------- | ------------------------------------------------------------------ |
+| Onboarding render     | Onboarding screen appears after launch                       | Pass      | Verified in installed APK                                          |
+| Skip to Login         | Skip navigates to Login                                      | Pass      | Verified in installed APK                                          |
+| Signup screen render  | Signup screen appears                                        | Pass      | Verified in installed APK                                          |
+| Invalid signup error  | Invalid signup shows a friendly error                        | Pass      | Verified with invalid email input                                  |
+| Signup                | New test user can create an account                          | Pending   | Valid signup success still needs APK verification                  |
+| Login                 | Existing test user can log in                                | Pending   | Not verified in installed APK                                      |
+| Home screen           | Home loads with greeting, streak, tip, and recent sessions   | Pending   | Not verified in installed APK after valid login                    |
+| AI tip                | Tip does not show `Invalid interview request`                | Pending   | Not verified in installed APK after valid login                    |
+| Legal links           | Privacy Policy and Terms of Service open safely              | Pending   | Not verified in installed APK                                      |
+| Notification banner   | Local notification can show as a banner/head-up alert        | Pending   | Handler/channel updated; verify Android/MIUI notification settings |
+| UI polish             | Core screens use consistent spacing, cards, and empty states | Pending   | May 9 polish pass needs preview APK visual QA                      |
+| Tab headers           | Tab screens do not show duplicate top titles                 | Pending   | Header hidden in tab navigator; verify no content is cut off       |
+| No fatal launch crash | Logcat has no app `FATAL EXCEPTION` during launch smoke      | Pass      | Verified during LDPlayer APK launch/smoke test                     |
+
+## Latest Preview APK Smoke Result
+
+| Item                  | Value                                                            |
+| --------------------- | ---------------------------------------------------------------- |
+| Commit SHA            | `89d01fe2b2086b0a994e6bf7a28b65c7c3414897`                       |
+| EAS Build ID          | `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd`                           |
+| Status                | Local same-WiFi beta candidate passed                            |
+| Backend               | Local LAN backend at same-WiFi URL; not yet deployed publicly    |
+| External beta blocker | Deploy backend to a public URL and rebuild APK with that API URL |
+
+## Dev-Client Real-Device Regression
+
+These items were verified in the installed development build after the beta fixes. They still need one final pass in the latest preview APK before broader beta sharing.
+
+| Item                    | Expected Result                                          | Pass/Fail | Notes                                 |
+| ----------------------- | -------------------------------------------------------- | --------- | ------------------------------------- |
+| Premium quota bypass    | Premium user is not blocked by free interview quota      | Pass      | Verified in dev-client real-device QA |
+| Interview length        | Premium user can choose 5, 10, 15, or 20 questions       | Pass      | Verified in dev-client real-device QA |
+| Free-user limit         | Free user remains limited to 5 daily interview questions | Pass      | Verified in dev-client real-device QA |
+| Resume flow             | Resume upload/analyze flow works                         | Pass      | Verified in dev-client real-device QA |
+| Home mock interview CTA | Home routes to Practice instead of starting HR directly  | Pass      | Verified after UX fix                 |
 
 ## Interview Flow
 
@@ -65,10 +91,10 @@ Use this checklist for final manual QA on an EAS preview Android APK.
 
 ## Next Manual QA Required
 
-These items must stay pending until they are verified on the installed APK:
+These items must stay pending until they are verified on the latest preview APK:
 
 - Valid signup/login with a non-personal test account.
-- Full 5-question interview session through summary.
+- Full interview session through summary for free and premium accounts.
 - Answer evaluation after submitting a safe test answer.
 - Resume valid PDF under 5MB.
 - Non-PDF rejection with a friendly message.
@@ -77,7 +103,9 @@ These items must stay pending until they are verified on the installed APK:
 - RevenueCat Test Store offering load.
 - RevenueCat test purchase.
 - Restore purchases.
-- Redmi Note 4 real-device smoke test.
+- Notification banner/head-up display on Android, including Redmi/MIUI floating notification settings.
+- Backend deployment to a public URL.
+- New preview APK with public `EXPO_PUBLIC_API_BASE_URL`.
 
 ## Beta Gate
 
@@ -86,7 +114,7 @@ Beta can start only after:
 - CI passes on GitHub.
 - Full APK manual QA passes.
 - RevenueCat Test Store purchase/restore is verified.
-- Real Android device smoke test passes.
+- Backend is deployed to a public URL for external testers.
 - No secrets are exposed.
 - Backend URL is reachable from tester devices.
 
@@ -102,6 +130,7 @@ Beta can start only after:
 
 ## Final Result
 
-| Decision                   | Pass/Fail | Notes                                                                                                                                     |
-| -------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Ready for beta APK sharing | Pending   | Launch smoke passed, but valid signup/login, full interview, resume PDF edge cases, RevenueCat Test Store, and real device QA remain open |
+| Decision                        | Pass/Fail | Notes                                                                                                                                  |
+| ------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Ready for local same-WiFi beta  | Pass      | Preview APK real-device smoke passed with local LAN backend                                                                            |
+| Ready for external beta sharing | Pending   | Requires backend deployment to a public URL, new APK with public API URL, RevenueCat purchase/restore QA, and final legal/support URLs |

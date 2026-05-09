@@ -6,7 +6,7 @@ import {
 } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
-import { auth, firestore, isFirebaseConfigured } from "./firebaseConfig";
+import { auth, firestore, getFirebaseConfigProblem } from "./firebaseConfig";
 import { useProgressStore } from "../store/progressStore";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
@@ -20,9 +20,17 @@ export const consumeLastAuthAction = () => {
 };
 
 const requireFirebaseConfig = () => {
-  if (!isFirebaseConfigured) {
+  const configProblem = getFirebaseConfigProblem();
+
+  if (configProblem === "missing") {
     throw new Error(
       "Missing Firebase environment variables. Add your Firebase config to .env and restart Expo."
+    );
+  }
+
+  if (configProblem === "invalid-api-key") {
+    throw new Error(
+      "Invalid Firebase API key for this build. Check EAS preview env: EXPO_PUBLIC_FIREBASE_API_KEY must be your Firebase Web API key."
     );
   }
 };
@@ -45,6 +53,10 @@ const getFriendlyAuthError = (error) => {
       return new Error("Please use a stronger password.");
     case "auth/network-request-failed":
       return new Error("Network error. Please check your internet connection and try again.");
+    case "auth/invalid-api-key":
+      return new Error(
+        "Invalid Firebase API key for this build. Check EAS preview env: EXPO_PUBLIC_FIREBASE_API_KEY must be your Firebase Web API key."
+      );
     default:
       return error;
   }

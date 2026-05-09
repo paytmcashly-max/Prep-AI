@@ -29,6 +29,7 @@ export default function TabNavigator() {
         }
       }}
       screenOptions={({ route }) => ({
+        headerShown: false,
         headerShadowVisible: false,
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.muted,

@@ -27,6 +27,22 @@ export const isFirebaseConfigured = Boolean(
   envFirebaseConfig.appId
 );
 
+export const isFirebaseApiKeyValid = /^AIza[0-9A-Za-z_-]+$/.test(
+  String(envFirebaseConfig.apiKey || "")
+);
+
+export const getFirebaseConfigProblem = () => {
+  if (!isFirebaseConfigured) {
+    return "missing";
+  }
+
+  if (!isFirebaseApiKeyValid) {
+    return "invalid-api-key";
+  }
+
+  return null;
+};
+
 const firebaseConfig = envFirebaseConfig;
 
 const app = initializeApp(firebaseConfig);

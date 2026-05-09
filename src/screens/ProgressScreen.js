@@ -37,6 +37,19 @@ function TopicBadge({ label, tone }) {
   );
 }
 
+function EmptyPanel({ title, message }) {
+  return (
+    <View style={styles.emptyPanel}>
+      <Text selectable style={styles.emptyTitle}>
+        {title}
+      </Text>
+      <Text selectable style={styles.emptyText}>
+        {message}
+      </Text>
+    </View>
+  );
+}
+
 const formatTopicLabel = (category) => {
   const normalizedCategory = String(category || "General").trim();
 
@@ -212,6 +225,12 @@ export default function ProgressScreen() {
         <Text selectable style={styles.cardSubtext}>
           Rolling view ending today.
         </Text>
+        {!sessions.length ? (
+          <EmptyPanel
+            title="No scored sessions yet"
+            message="Complete a mock interview to start building your last 7 days chart."
+          />
+        ) : null}
         <View style={styles.chartWrap}>
           <View style={styles.yAxis}>
             {[10, 8, 6, 4, 2, 0].map((tick) => (
@@ -254,9 +273,10 @@ export default function ProgressScreen() {
             ))}
           </View>
         ) : (
-          <Text selectable style={styles.emptyText}>
-            Complete interviews with scores above 7 to discover strong topics.
-          </Text>
+          <EmptyPanel
+            title="Still learning your strengths"
+            message="Score above 7 in a few sessions and your strongest categories will appear here."
+          />
         )}
       </View>
 
@@ -271,9 +291,10 @@ export default function ProgressScreen() {
             ))}
           </View>
         ) : (
-          <Text selectable style={styles.emptyText}>
-            Needs improvement will appear after more scored sessions.
-          </Text>
+          <EmptyPanel
+            title="No weak topics yet"
+            message="After a few scored sessions, categories that need attention will show up here."
+          />
         )}
       </View>
 
@@ -421,7 +442,24 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 14,
     fontWeight: "700",
-    lineHeight: 20
+    lineHeight: 20,
+    textAlign: "center"
+  },
+  emptyPanel: {
+    alignItems: "center",
+    backgroundColor: "#111111",
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    borderStyle: "dashed",
+    borderWidth: 1,
+    gap: 6,
+    padding: 14
+  },
+  emptyTitle: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "900",
+    textAlign: "center"
   },
   errorText: {
     backgroundColor: "rgba(239, 68, 68, 0.12)",

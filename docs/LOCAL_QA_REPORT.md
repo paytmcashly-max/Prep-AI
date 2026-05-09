@@ -8,6 +8,18 @@ Beta cleanup update: May 8, 2026
 
 APK smoke update: May 8, 2026
 
+Dev-client real-device beta update: May 9, 2026
+
+Preview APK build update: May 9, 2026
+
+Preview login key-safety update: May 9, 2026
+
+UI polish update: May 9, 2026
+
+Tab header cleanup update: May 9, 2026
+
+Preview APK real-device smoke update: May 9, 2026
+
 ## Test Environment
 
 - Workspace: `C:\Users\kk701\Desktop\PrepAI`
@@ -21,6 +33,12 @@ APK smoke update: May 8, 2026
 - APK smoke build: `android/app/build/outputs/apk/release/app-release.apk`
 - APK smoke package: `com.prepai.prepai`
 - APK smoke version: `1.0.0`, `versionCode=1`, `minSdk=24`, `targetSdk=36`
+- Merged main commit verified by CI: `89d01fe2b2086b0a994e6bf7a28b65c7c3414897`
+- GitHub Actions run: `https://github.com/paytmcashly-max/Prep-AI/actions/runs/25583955425`
+- EAS preview build: `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd`
+- EAS preview APK: `https://expo.dev/artifacts/eas/bSDJsCoEXs2u3tYg8bMNXp.apk`
+- Latest preview APK smoke status: local same-WiFi beta candidate passed
+- Current beta backend: local LAN backend, not public deployment
 
 ## Screens Tested
 
@@ -34,8 +52,9 @@ APK smoke update: May 8, 2026
 - Resume Analyzer
 - Profile/settings
 - Legal placeholders
-- Paywall placeholder
+- Paywall / RevenueCat Test Store
 - APK launch smoke test
+- Dev-client real-device regression
 
 ## Flows Passed
 
@@ -57,7 +76,7 @@ APK smoke update: May 8, 2026
 - Resume analysis displayed ATS score, missing keywords, grammar issues, and section feedback.
 - Profile screen opened and showed settings/account/legal sections.
 - Privacy Policy and Terms of Service placeholders opened safely.
-- Paywall opened without RevenueCat keys and showed the placeholder payment alert.
+- Earlier paywall fallback opened safely without RevenueCat keys; current paywall uses RevenueCat Test Store when configured.
 - Backend tests passed.
 - Backend build passed.
 - Security audit passed.
@@ -75,6 +94,19 @@ APK smoke update: May 8, 2026
 - May 8 APK smoke: Signup screen rendered.
 - May 8 APK smoke: invalid signup showed a friendly error.
 - May 8 APK smoke: no app `FATAL EXCEPTION` was found in logcat during launch/smoke testing.
+- May 9 GitHub Actions: CI passed on merged `main` commit `89d01fe2b2086b0a994e6bf7a28b65c7c3414897`.
+- May 9 EAS: preview Android APK build finished successfully for merged `main`.
+- May 9 dev-client real-device QA: premium quota bypass worked after Firestore subscription sync.
+- May 9 dev-client real-device QA: premium interview length selection worked for 5, 10, 15, and 20 question options.
+- May 9 dev-client real-device QA: free users remained limited to 5 daily interview questions.
+- May 9 dev-client real-device QA: Resume Analyzer flow worked.
+- May 9 dev-client real-device QA: Home mock interview CTA routed to Practice instead of directly starting an HR round.
+- May 9 notification cleanup: notification handler and Android channel were updated for SDK 54 banner/list behavior; actual preview APK banner behavior still needs manual verification.
+- May 9 key-safety cleanup: Firebase login now validates that the bundled Firebase API key looks like a Firebase Web API key and shows a safe message without exposing raw key values.
+- May 9 key-safety cleanup: RevenueCat Test Store keys are no longer auto-used for login-time subscription refresh in standalone preview APKs; standalone APK purchase QA should use the Android public RevenueCat key.
+- May 9 UI polish: Home, Practice, Mock Interview, Resume, Progress, Profile, and Paywall screens were visually tightened for spacing, empty states, wording, and status clarity without adding new features.
+- May 9 tab header cleanup: default tab headers for Home, Practice, Resume, Progress, and Profile were hidden so content starts from the app screen itself without the extra top title bar.
+- May 9 preview APK real-device smoke: EAS build `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd` from commit `89d01fe2b2086b0a994e6bf7a28b65c7c3414897` passed as a local same-WiFi beta candidate.
 
 ## Backend Request Validation Observed
 
@@ -112,31 +144,40 @@ APK smoke update: May 8, 2026
   - empty file rejection where detectable
   - file larger than 5MB rejection where file size is available
 - Replace legal placeholder alerts with final Privacy Policy and Terms URLs before launch.
-- Complete valid signup/login success testing in the APK build.
-- Complete a full 5-question interview session in the APK build.
-- Verify answer evaluation in the APK build after a valid interview session starts.
+- Rebuild after correcting EAS preview env if login shows an invalid Firebase API key message.
+- Complete valid signup/login success testing in the latest preview APK.
+- Complete a full interview session in the latest preview APK for both free and premium flows.
+- Verify difficulty selection and premium interview length selection in the latest preview APK.
+- Verify answer evaluation in the latest preview APK after a valid interview session starts.
 - Test Resume Analyzer PDF picker edge cases in the APK build:
   - valid PDF under 5MB
   - non-PDF rejection
   - PDF over 5MB rejection where file size is available
 - Verify RevenueCat Test Store offering, purchase, cancellation, and restore flows.
-- Test the APK on a real Android phone, not only LDPlayer.
-- Verify CI passes on GitHub after the workflow PR is merged.
-- Verify the backend URL used for beta is reachable from tester devices.
+- Verify Android notification banner/head-up behavior in the latest preview APK and enable channel/floating notification settings if needed.
+- Deploy backend to a public URL before inviting external testers.
+- Build a new preview APK with the public `EXPO_PUBLIC_API_BASE_URL`.
+- Replace legal/support placeholder URLs before wider beta.
 
 ## Next Manual QA Required
 
-- Valid signup/login.
-- Full 5-question interview session.
-- Answer evaluation.
-- Resume valid PDF under 5MB.
-- Non-PDF rejection.
+- Valid signup/login in the preview APK.
+- Full interview session in the preview APK.
+- Difficulty selection and premium interview length selection in the preview APK.
+- Answer evaluation in the preview APK.
+- Resume valid PDF under 5MB in the preview APK.
+- Non-PDF rejection in the preview APK.
 - PDF over 5MB rejection if file size is available.
 - No file selected friendly prompt.
 - RevenueCat Test Store offering load.
 - RevenueCat test purchase.
 - Restore purchases.
-- Redmi Note 4 real-device test.
+- Notification banner/head-up display on Android.
+- Small-screen visual QA for the May 9 UI polish pass.
+- Verify tab screens do not show duplicate top titles and content remains visible on small Android screens.
+- Deploy backend to a public URL.
+- Build and test a new APK pointing at the public backend URL.
+- Replace final Privacy Policy, Terms, and support email placeholders before wider beta.
 
 ## Beta Gate
 
@@ -145,7 +186,7 @@ Beta can start only after:
 - CI passes on GitHub.
 - Full APK manual QA passes.
 - RevenueCat Test Store purchase/restore is verified.
-- Real Android device smoke test passes.
+- Backend is deployed to a public URL for external testers.
 - No secrets are exposed.
 - Backend URL is reachable from tester devices.
 
@@ -195,9 +236,12 @@ Beta can start only after:
 - May 8 APK smoke: `adb install -r app-release.apk` on LDPlayer passed
 - May 8 APK smoke: `adb shell monkey -p com.prepai.prepai` launched the app
 - May 8 APK smoke: logcat review found no app `FATAL EXCEPTION` during launch/smoke testing
+- May 9: GitHub Actions CI passed on merged `main` commit `89d01fe2b2086b0a994e6bf7a28b65c7c3414897`
+- May 9: EAS preview Android build `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd` finished successfully
+- May 9: Preview APK real-device smoke passed as local same-WiFi beta candidate
 
 ## Final Recommendation
 
-Not ready for beta until pending manual QA passes.
+Ready for local same-WiFi beta testing. Not ready for external beta sharing yet.
 
-Formatting, lint warnings, Resume Analyzer primary PDF flow, and APK launch smoke testing have been cleaned up or verified. The repo should not be marked beta-ready until the APK build manually verifies valid signup/login, a complete 5-question interview session, answer evaluation, Resume Analyzer PDF file-picker edge cases, RevenueCat Test Store purchase/restore, and at least one real-phone run.
+The preview APK real-device smoke test passed against the local LAN backend. External testers should wait until the backend is deployed to a public URL, a new APK is built with that public API URL, RevenueCat purchase/restore is verified as needed, and final legal/support URLs replace placeholders.

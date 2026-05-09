@@ -13,6 +13,7 @@ const defaultSubscriptionState = {
   isLoading: false,
   isPremium: false,
   lastUpdatedAt: null,
+  managementUrl: null,
   source: "unknown"
 };
 
@@ -43,6 +44,7 @@ export const useSubscriptionStore = create((set) => ({
         isLoading: false,
         isPremium: Boolean(status.isPremium),
         lastUpdatedAt: new Date().toISOString(),
+        managementUrl: status.managementUrl || null,
         source: status.source || "revenuecat"
       });
 
@@ -69,6 +71,7 @@ export const useSubscriptionStore = create((set) => ({
         isLoading: false,
         isPremium: Boolean(status.isPremium),
         lastUpdatedAt: new Date().toISOString(),
+        managementUrl: status.managementUrl || null,
         source: status.source || "revenuecat"
       });
 
@@ -93,6 +96,7 @@ export const useSubscriptionStore = create((set) => ({
       expirationDate: status.expirationDate || null,
       isPremium: Boolean(status.isPremium),
       lastUpdatedAt: new Date().toISOString(),
+      managementUrl: status.managementUrl || null,
       source: status.source || "revenuecat"
     });
   }

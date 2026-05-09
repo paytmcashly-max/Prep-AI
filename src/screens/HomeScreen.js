@@ -172,6 +172,9 @@ export default function HomeScreen({ navigation, route }) {
         <Text selectable style={styles.greeting}>
           Good Morning, {userName}!
         </Text>
+        <Text selectable style={styles.greetingSubtext}>
+          Keep today simple: choose a round, answer clearly, and review one improvement.
+        </Text>
       </View>
 
       <View style={styles.streakCard}>
@@ -212,7 +215,10 @@ export default function HomeScreen({ navigation, route }) {
         {isStartingInterview ? (
           <ActivityIndicator color={COLORS.text} />
         ) : (
-          <Text style={styles.ctaText}>Choose Interview Round</Text>
+          <View style={styles.ctaCopy}>
+            <Text style={styles.ctaText}>Start Mock Interview</Text>
+            <Text style={styles.ctaSubText}>Choose category, difficulty, and length</Text>
+          </View>
         )}
       </HapticPressable>
 
@@ -332,8 +338,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
     borderRadius: 8,
     justifyContent: "center",
-    minHeight: 64,
+    minHeight: 72,
     paddingHorizontal: 18
+  },
+  ctaCopy: {
+    alignItems: "center",
+    gap: 4
+  },
+  ctaSubText: {
+    color: "rgba(255, 255, 255, 0.78)",
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "center"
   },
   ctaText: {
     color: COLORS.text,
@@ -387,6 +403,12 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0,
     lineHeight: 36
+  },
+  greetingSubtext: {
+    color: COLORS.muted,
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 22
   },
   loadingInline: {
     alignItems: "center",
@@ -499,6 +521,7 @@ const styles = StyleSheet.create({
     lineHeight: 24
   },
   topBar: {
+    gap: 8,
     paddingTop: 8
   },
   stateTitle: {
