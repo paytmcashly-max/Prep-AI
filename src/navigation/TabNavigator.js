@@ -7,7 +7,9 @@ import PracticeScreen from "../screens/PracticeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import ProgressScreen from "../screens/ProgressScreen";
 import ResumeScreen from "../screens/ResumeScreen";
-import { COLORS } from "../utils/constants";
+import { DARK_COLORS } from "../theme";
+
+const COLORS = DARK_COLORS;
 
 const Tab = createBottomTabNavigator();
 
@@ -31,14 +33,14 @@ export default function TabNavigator() {
       screenOptions={({ route }) => ({
         headerShown: false,
         headerShadowVisible: false,
-        tabBarActiveTintColor: COLORS.primary,
+        tabBarActiveTintColor: COLORS.accent,
         tabBarInactiveTintColor: COLORS.muted,
         tabBarIcon: ({ color, size }) => (
           <Ionicons color={color} name={TAB_ICONS[route.name] || "ellipse"} size={size} />
         ),
         tabBarStyle: {
           borderTopColor: COLORS.border,
-          backgroundColor: COLORS.surface
+          backgroundColor: COLORS.background
         }
       })}
     >

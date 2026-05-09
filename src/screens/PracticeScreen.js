@@ -186,39 +186,65 @@ export default function PracticeScreen({ navigation }) {
     navigation.navigate("Paywall");
   };
 
-  return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
-      {isLoadingUsage ? (
+  if (isLoadingUsage) {
+    return (
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
         <StatusCard
           isLoading
           message="Checking your free interview quota."
           title="Preparing practice"
         />
-      ) : null}
+      </ScrollView>
+    );
+  }
 
-      {!isLoadingUsage && usageError ? (
+  if (usageError) {
+    return (
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
         <StatusCard
           actionLabel="Try Again"
           message={usageError}
           onAction={loadUsageStatus}
           title="Could not check quota"
         />
-      ) : null}
+      </ScrollView>
+    );
+  }
 
-      {!usageError && isInterviewLimitReached ? (
+  if (isInterviewLimitReached) {
+    return (
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
         <FreeLimitCard
           countdownLabel="Available again"
           message="You have used today's free interview questions. Upgrade to Premium for unlimited practice or come back tomorrow."
+          onBack={() => navigation.navigate("Home")}
           onUpgrade={() => navigation.navigate("Paywall")}
           resetCountdown={limitCountdown}
+          secondaryLabel="Come back later"
           title="Daily free interview limit reached"
         />
-      ) : null}
+      </ScrollView>
+    );
+  }
 
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <View style={styles.header}>
         <Text selectable style={styles.title}>
           Set Up Practice

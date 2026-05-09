@@ -471,8 +471,7 @@ export default function ResumeScreen({ navigation }) {
           Resume Analyzer
         </Text>
         <Text selectable style={styles.subtitle}>
-          Upload a text-based PDF resume for backend analysis, or paste resume text as a development
-          fallback.
+          Upload a text-based PDF resume, or paste resume text if your PDF cannot be read.
         </Text>
       </View>
 
@@ -495,91 +494,89 @@ export default function ResumeScreen({ navigation }) {
         </View>
       ) : null}
 
-      <View style={styles.card}>
-        <HapticPressable
-          disabled={isPickingPdf}
-          onPress={pickPdf}
-          style={({ pressed }) => [
-            styles.uploadButton,
-            isPickingPdf && styles.disabledButton,
-            pressed && !isPickingPdf && styles.pressed
-          ]}
-        >
-          {isPickingPdf ? (
-            <ActivityIndicator color={COLORS.text} />
+      {isBlockedByResumeLimit ? (
+        <FreeLimitCard
+          benefits={RESUME_LIMIT_BENEFITS}
+          countdownLabel="Next free scan in"
+          message={
+            analysis
+              ? "Your previous resume check is saved below. Upgrade to Premium for more scans or wait for the next free scan."
+              : "Upgrade to Premium for more scans or wait for the next free scan."
+          }
+          onUpgrade={() => navigation.navigate("Paywall")}
+          resetCountdown={resumeResetCountdown}
+          title="Free resume scan limit reached"
+        />
+      ) : (
+        <View style={styles.card}>
+          <HapticPressable
+            disabled={isPickingPdf}
+            onPress={pickPdf}
+            style={({ pressed }) => [
+              styles.uploadButton,
+              isPickingPdf && styles.disabledButton,
+              pressed && !isPickingPdf && styles.pressed
+            ]}
+          >
+            {isPickingPdf ? (
+              <ActivityIndicator color={COLORS.text} />
+            ) : (
+              <Text style={styles.uploadButtonText}>Upload PDF</Text>
+            )}
+          </HapticPressable>
+
+          {selectedFile ? (
+            <View style={styles.fileBox}>
+              <Text selectable style={styles.fileLabel}>
+                PDF selected
+              </Text>
+              <Text selectable style={styles.fileName}>
+                {selectedFile.name}
+              </Text>
+            </View>
           ) : (
-            <Text style={styles.uploadButtonText}>Upload PDF</Text>
-          )}
-        </HapticPressable>
-
-        {selectedFile ? (
-          <View style={styles.fileBox}>
-            <Text selectable style={styles.fileLabel}>
-              PDF selected
-            </Text>
-            <Text selectable style={styles.fileName}>
-              {selectedFile.name}
-            </Text>
-          </View>
-        ) : (
-          <MessageCard
-            title="No PDF selected"
-            message="Choose a text-based PDF under 5MB, or use the paste fallback."
-          />
-        )}
-
-        <HapticPressable
-          onPress={() => setShowPasteFallback((current) => !current)}
-          style={({ pressed }) => [styles.fallbackButton, pressed && styles.pressed]}
-        >
-          <Text style={styles.fallbackButtonText}>
-            {showPasteFallback ? "Hide Paste Text Fallback" : "Paste Resume Text Instead"}
-          </Text>
-        </HapticPressable>
-
-        {showPasteFallback ? (
-          <View style={styles.field}>
-            <Text selectable style={styles.label}>
-              Paste your resume text here
-            </Text>
-            <Text selectable style={styles.helperText}>
-              Use this if your PDF is scanned, image-only, or fails text extraction.
-            </Text>
-            <TextInput
-              multiline
-              numberOfLines={8}
-              onChangeText={setResumeText}
-              placeholder="Paste your resume content..."
-              placeholderTextColor={COLORS.muted}
-              style={styles.resumeInput}
-              textAlignVertical="top"
-              value={resumeText}
+            <MessageCard
+              title="No PDF selected"
+              message="Choose a text-based PDF under 5MB, or paste resume text if needed."
             />
-          </View>
-        ) : null}
+          )}
 
-        <JobRolePicker selectedValue={jobRole} onSelect={setJobRole} />
+          <HapticPressable
+            onPress={() => setShowPasteFallback((current) => !current)}
+            style={({ pressed }) => [styles.fallbackButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.fallbackButtonText}>
+              {showPasteFallback ? "Hide Pasted Text" : "Paste Resume Text Instead"}
+            </Text>
+          </HapticPressable>
 
-        {errorMessage ? (
-          <MessageCard title="Resume check stopped" message={errorMessage} tone="error" />
-        ) : null}
+          {showPasteFallback ? (
+            <View style={styles.field}>
+              <Text selectable style={styles.label}>
+                Paste your resume text here
+              </Text>
+              <Text selectable style={styles.helperText}>
+                Use this if your PDF is scanned, image-only, or fails text extraction.
+              </Text>
+              <TextInput
+                multiline
+                numberOfLines={8}
+                onChangeText={setResumeText}
+                placeholder="Paste your resume content..."
+                placeholderTextColor={COLORS.muted}
+                style={styles.resumeInput}
+                textAlignVertical="top"
+                value={resumeText}
+              />
+            </View>
+          ) : null}
 
-        {isBlockedByResumeLimit ? (
-          <FreeLimitCard
-            benefits={RESUME_LIMIT_BENEFITS}
-            countdownLabel="Next free scan in"
-            message={
-              analysis
-                ? "Your previous resume check is saved below. Upgrade to Premium for more scans or wait for the next free scan."
-                : "Upgrade to Premium for more scans or wait for the next free scan."
-            }
-            onUpgrade={() => navigation.navigate("Paywall")}
-            resetCountdown={resumeResetCountdown}
-            title="Free resume scan limit reached"
-          />
-        ) : null}
+          <JobRolePicker selectedValue={jobRole} onSelect={setJobRole} />
 
-        {!isBlockedByResumeLimit ? (
+          {errorMessage ? (
+            <MessageCard title="Resume check stopped" message={errorMessage} tone="error" />
+          ) : null}
+
           <HapticPressable
             disabled={!jobRole || isAnalyzing || isLoadingOverview}
             onPress={analyzeSelectedResume}
@@ -600,8 +597,8 @@ export default function ResumeScreen({ navigation }) {
               </Text>
             )}
           </HapticPressable>
-        ) : null}
-      </View>
+        </View>
+      )}
 
       {analysis ? (
         <PreviousResumeCheckCard

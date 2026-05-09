@@ -22,21 +22,20 @@ const COLORS = {
 };
 
 const FREE_FEATURES = [
-  { available: true, label: "5 questions/day" },
-  { available: true, label: "Text mode only" },
+  { available: true, label: "5 interview questions/day" },
+  { available: true, label: "1 resume scan every 3 days" },
   { available: true, label: "Basic feedback" },
-  { available: false, label: "Voice mode" },
-  { available: false, label: "Resume downloads" },
-  { available: false, label: "Unlimited questions" }
+  { available: false, label: "Longer interviews" },
+  { available: false, label: "More resume scans" },
+  { available: false, label: "Unlimited practice" }
 ];
 
 const PREMIUM_FEATURES = [
-  "Unlimited questions",
-  "Voice + Video mode",
-  "Detailed AI feedback",
-  "Unlimited resume scans",
-  "Ad-free experience",
-  "Company specific banks"
+  "Unlimited interview practice",
+  "Longer interviews: 10/15/20 questions",
+  "More resume scans",
+  "Detailed answer feedback",
+  "Premium features as they launch"
 ];
 
 const getAvailablePackages = (offerings) => {
@@ -107,6 +106,7 @@ export default function PaywallScreen({ navigation }) {
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const availablePackages = useMemo(() => getAvailablePackages(offerings), [offerings]);
+  const canPurchase = !isLoadingOfferings && !isPremium && Boolean(selectedPackage);
 
   useEffect(() => {
     let isMounted = true;
@@ -329,29 +329,32 @@ export default function PaywallScreen({ navigation }) {
         </Text>
       ) : null}
 
-      <View style={styles.actionSection}>
-        <HapticPressable
-          disabled={isLoadingOfferings || isPurchasing || !selectedPackage || isPremium}
-          onPress={startPurchase}
-          style={({ pressed }) => [
-            styles.ctaButton,
-            pressed && !isPurchasing && styles.pressed,
-            (isLoadingOfferings || isPurchasing || !selectedPackage || isPremium) &&
-              styles.disabledButton
-          ]}
-        >
-          {isPurchasing ? (
-            <ActivityIndicator color={COLORS.text} />
-          ) : (
-            <Text style={styles.ctaButtonText}>
-              {isPremium ? "Premium Active" : "Start 3-Day Free Trial"}
+      {isPremium || canPurchase ? (
+        <View style={styles.actionSection}>
+          <HapticPressable
+            disabled={!canPurchase || isPurchasing || isPremium}
+            onPress={startPurchase}
+            style={({ pressed }) => [
+              styles.ctaButton,
+              pressed && !isPurchasing && styles.pressed,
+              (!canPurchase || isPurchasing || isPremium) && styles.disabledButton
+            ]}
+          >
+            {isPurchasing ? (
+              <ActivityIndicator color={COLORS.text} />
+            ) : (
+              <Text style={styles.ctaButtonText}>
+                {isPremium ? "Premium Active" : "Start 3-Day Free Trial"}
+              </Text>
+            )}
+          </HapticPressable>
+          {canPurchase ? (
+            <Text selectable style={styles.cancelText}>
+              Cancel anytime from your store subscription settings.
             </Text>
-          )}
-        </HapticPressable>
-        <Text selectable style={styles.cancelText}>
-          Cancel anytime from your store subscription settings.
-        </Text>
-      </View>
+          ) : null}
+        </View>
+      ) : null}
 
       {isPremium ? (
         <HapticPressable

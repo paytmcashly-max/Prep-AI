@@ -187,7 +187,7 @@ export default function ProgressScreen() {
           Your Progress
         </Text>
         <Text selectable style={styles.subtitle}>
-          Weekly practice snapshot
+          Last 7 days practice snapshot
         </Text>
       </View>
 
