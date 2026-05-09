@@ -19,6 +19,7 @@ import Svg, { Circle } from "react-native-svg";
 import FreeLimitCard from "../components/FreeLimitCard";
 import HapticPressable from "../components/HapticPressable";
 import SkeletonBox from "../components/SkeletonBox";
+import AppIcon from "../components/ui/AppIcon";
 import "../services/firebaseConfig";
 import { trackEvent } from "../services/analyticsService";
 import { evaluateAnswer, generateQuestion } from "../services/aiService";
@@ -27,6 +28,7 @@ import { saveMockInterviewSession } from "../services/sessionService";
 import { useProgressStore } from "../store/progressStore";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
+import { DARK_COLORS as COLORS } from "../theme";
 
 const DEFAULT_QUESTION_COUNT = 5;
 const MAX_PREMIUM_QUESTION_COUNT = 20;
@@ -37,17 +39,6 @@ const TIMER_RADIUS = (TIMER_SIZE - TIMER_STROKE_WIDTH) / 2;
 const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-const COLORS = {
-  accent: "#6C63FF",
-  background: "#0A0A0A",
-  card: "#1A1A1A",
-  muted: "#A3A3A3",
-  text: "#FFFFFF",
-  green: "#22C55E",
-  yellow: "#FACC15",
-  red: "#EF4444"
-};
 
 const formatDifficulty = (difficulty) => {
   if (difficulty === "hard") {
@@ -468,7 +459,7 @@ export default function MockInterviewScreen({ navigation, route }) {
   const shareResult = async () => {
     try {
       await Share.share({
-        message: `\uD83C\uDFAF Mock Interview Complete!\n\nCategory: ${categoryName}\nScore: ${averageScore}/10 \u2B50\n\nPreparing for my dream job with PrepAI!\n\n#PrepAI #InterviewPrep #JobSearch`
+        message: `Mock Interview Complete!\n\nCategory: ${categoryName}\nScore: ${averageScore}/10\n\nPreparing for my dream job with PrepAI.\n\n#PrepAI #InterviewPrep #JobSearch`
       });
     } catch (error) {
       Alert.alert("Share failed", error.message || "Could not open sharing options.");
@@ -483,8 +474,11 @@ export default function MockInterviewScreen({ navigation, route }) {
         contentContainerStyle={[styles.content, styles.summaryContent]}
       >
         <View style={styles.summaryCard}>
+          <View style={styles.summaryIconBubble}>
+            <AppIcon color={COLORS.success} name="success" size={40} />
+          </View>
           <Text selectable style={styles.summaryTitle}>
-            Session Complete! 🎉
+            Session Complete
           </Text>
           <Text selectable style={styles.summarySubtitle}>
             You completed {totalQuestions} interview questions for {jobRole || "your role"}.
@@ -505,7 +499,7 @@ export default function MockInterviewScreen({ navigation, route }) {
               PrepAI
             </Text>
             <Text selectable style={styles.shareHeadline}>
-              {"I just completed a Mock Interview! \uD83C\uDFAF"}
+              I just completed a mock interview
             </Text>
             <View style={styles.shareMetricRow}>
               <Text selectable style={styles.shareMetricLabel}>
@@ -520,7 +514,7 @@ export default function MockInterviewScreen({ navigation, route }) {
                 Score
               </Text>
               <Text selectable style={styles.shareScore}>
-                {averageScore}/10 {"\u2B50"}
+                {averageScore}/10
               </Text>
             </View>
             <Text selectable style={styles.shareFooter}>
@@ -531,7 +525,10 @@ export default function MockInterviewScreen({ navigation, route }) {
             onPress={shareResult}
             style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
           >
-            <Text style={styles.shareButtonText}>{"Share Result \uD83D\uDCE4"}</Text>
+            <View style={styles.shareButtonContent}>
+              <AppIcon color={COLORS.text} name="share" size={18} />
+              <Text style={styles.shareButtonText}>Share Result</Text>
+            </View>
           </HapticPressable>
           <HapticPressable
             onPress={backToHome}
@@ -1106,6 +1103,12 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingHorizontal: 18
   },
+  shareButtonContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center"
+  },
   shareButtonText: {
     color: COLORS.text,
     fontSize: 16,
@@ -1178,6 +1181,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 18,
     padding: 22
+  },
+  summaryIconBubble: {
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    borderColor: "rgba(34, 197, 94, 0.35)",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 64,
+    justifyContent: "center",
+    width: 64
   },
   summaryContent: {
     flexGrow: 1,

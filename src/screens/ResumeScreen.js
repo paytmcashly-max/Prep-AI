@@ -15,6 +15,7 @@ import { useFocusEffect } from "@react-navigation/native";
 
 import FreeLimitCard from "../components/FreeLimitCard";
 import HapticPressable from "../components/HapticPressable";
+import AppIcon from "../components/ui/AppIcon";
 import { trackEvent } from "../services/analyticsService";
 import { ApiClientError, getLatestResumeAnalysis, getUsageStatus } from "../services/apiClient";
 import { auth } from "../services/firebaseConfig";
@@ -92,7 +93,7 @@ function JobRolePicker({ selectedValue, onSelect }) {
         <Text style={[styles.selectText, !selectedValue && styles.placeholderText]}>
           {selectedValue || "Select target role"}
         </Text>
-        <Text style={styles.chevron}>{isOpen ? "Up" : "Down"}</Text>
+        <AppIcon color={COLORS.accent} name={isOpen ? "up" : "down"} size={20} />
       </HapticPressable>
 
       {isOpen ? (
@@ -199,7 +200,10 @@ function PreviousResumeCheckCard({ analysis, isOpen, onPress }) {
           {isOpen ? "Hide full details" : "Tap to view full details"}
         </Text>
       </View>
-      <Text style={styles.chevron}>{isOpen ? "Hide" : "Show"}</Text>
+      <View style={styles.previousCheckAction}>
+        <Text style={styles.chevron}>{isOpen ? "Hide" : "Show"}</Text>
+        <AppIcon color={COLORS.accent} name={isOpen ? "up" : "down"} size={18} />
+      </View>
     </HapticPressable>
   );
 }
@@ -466,14 +470,16 @@ export default function ResumeScreen({ navigation }) {
       style={styles.container}
       contentContainerStyle={styles.content}
     >
-      <View style={styles.header}>
-        <Text selectable style={styles.title}>
-          Resume Analyzer
-        </Text>
-        <Text selectable style={styles.subtitle}>
-          Upload a text-based PDF resume, or paste resume text if your PDF cannot be read.
-        </Text>
-      </View>
+      {!isBlockedByResumeLimit ? (
+        <View style={styles.header}>
+          <Text selectable style={styles.title}>
+            Resume Analyzer
+          </Text>
+          <Text selectable style={styles.subtitle}>
+            Upload a text-based PDF resume, or paste resume text if your PDF cannot be read.
+          </Text>
+        </View>
+      ) : null}
 
       {isLoadingOverview ? (
         <MessageCard
@@ -521,7 +527,10 @@ export default function ResumeScreen({ navigation }) {
             {isPickingPdf ? (
               <ActivityIndicator color={COLORS.text} />
             ) : (
-              <Text style={styles.uploadButtonText}>Upload PDF</Text>
+              <View style={styles.uploadButtonContent}>
+                <AppIcon color={COLORS.text} name="upload" size={20} />
+                <Text style={styles.uploadButtonText}>Upload PDF</Text>
+              </View>
             )}
           </HapticPressable>
 
@@ -942,6 +951,11 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 5
   },
+  previousCheckAction: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4
+  },
   previousCheckHint: {
     color: COLORS.muted,
     fontSize: 13,
@@ -1107,6 +1121,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 74,
     paddingHorizontal: 18
+  },
+  uploadButtonContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center"
   },
   uploadButtonText: {
     color: COLORS.text,

@@ -1,24 +1,22 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
+import AppIcon from "../components/ui/AppIcon";
 import HomeScreen from "../screens/HomeScreen";
 import PracticeScreen from "../screens/PracticeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import ProgressScreen from "../screens/ProgressScreen";
 import ResumeScreen from "../screens/ResumeScreen";
-import { DARK_COLORS } from "../theme";
-
-const COLORS = DARK_COLORS;
+import { COLORS, ICON_SIZES } from "../theme";
 
 const Tab = createBottomTabNavigator();
 
 const TAB_ICONS = {
   Home: "home",
-  Practice: "mic",
-  Resume: "document-text",
-  Progress: "bar-chart",
-  Profile: "person"
+  Practice: "practice",
+  Resume: "resume",
+  Progress: "progress",
+  Profile: "profile"
 };
 
 export default function TabNavigator() {
@@ -36,7 +34,11 @@ export default function TabNavigator() {
         tabBarActiveTintColor: COLORS.accent,
         tabBarInactiveTintColor: COLORS.muted,
         tabBarIcon: ({ color, size }) => (
-          <Ionicons color={color} name={TAB_ICONS[route.name] || "ellipse"} size={size} />
+          <AppIcon
+            color={color}
+            name={TAB_ICONS[route.name] || "info"}
+            size={Math.min(size || ICON_SIZES.tab, 24)}
+          />
         ),
         tabBarStyle: {
           borderTopColor: COLORS.border,

@@ -1,7 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { DARK_COLORS } from "../theme";
-import HapticPressable from "./HapticPressable";
+import { DARK_COLORS, ICON_SIZES } from "../theme";
+import AppButton from "./ui/AppButton";
+import AppCard from "./ui/AppCard";
+import AppIcon from "./ui/AppIcon";
 
 const COLORS = DARK_COLORS;
 
@@ -24,13 +26,18 @@ export default function FreeLimitCard({
   title = "Daily free limit reached"
 }) {
   return (
-    <View style={styles.card}>
-      <Text selectable style={styles.title}>
-        {title}
-      </Text>
-      <Text selectable style={styles.message}>
-        {message}
-      </Text>
+    <AppCard style={styles.card}>
+      <View style={styles.iconBubble}>
+        <AppIcon color={COLORS.warning} name="warning" size={ICON_SIZES.card} />
+      </View>
+      <View style={styles.headerCopy}>
+        <Text selectable style={styles.title}>
+          {title}
+        </Text>
+        <Text selectable style={styles.message}>
+          {message}
+        </Text>
+      </View>
       <View style={styles.countdownBox}>
         <Text selectable style={styles.countdownLabel}>
           {countdownLabel}
@@ -42,27 +49,24 @@ export default function FreeLimitCard({
       {benefits.length ? (
         <View style={styles.benefitList}>
           {benefits.map((benefit) => (
-            <Text key={benefit} selectable style={styles.benefitText}>
-              {"\u2022"} {benefit}
-            </Text>
+            <View key={benefit} style={styles.benefitRow}>
+              <AppIcon color={COLORS.accent} name="check" size={16} strokeWidth={2.6} />
+              <Text selectable style={styles.benefitText}>
+                {benefit}
+              </Text>
+            </View>
           ))}
         </View>
       ) : null}
-      <HapticPressable
-        onPress={onUpgrade}
-        style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-      >
-        <Text style={styles.primaryButtonText}>{primaryLabel}</Text>
-      </HapticPressable>
+      <AppButton icon="premium" onPress={onUpgrade}>
+        {primaryLabel}
+      </AppButton>
       {onBack ? (
-        <HapticPressable
-          onPress={onBack}
-          style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
-        >
-          <Text style={styles.secondaryButtonText}>{secondaryLabel}</Text>
-        </HapticPressable>
+        <AppButton onPress={onBack} tone="secondary">
+          {secondaryLabel}
+        </AppButton>
       ) : null}
-    </View>
+    </AppCard>
   );
 }
 
@@ -70,19 +74,35 @@ const styles = StyleSheet.create({
   benefitList: {
     gap: 8
   },
+  benefitRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 8
+  },
   benefitText: {
     color: COLORS.text,
-    fontSize: 14,
+    flex: 1,
+    fontSize: 13,
     fontWeight: "800",
-    lineHeight: 20
+    lineHeight: 19
+  },
+  headerCopy: {
+    gap: 10
+  },
+  iconBubble: {
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "rgba(250, 204, 21, 0.12)",
+    borderColor: "rgba(250, 204, 21, 0.35)",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 52,
+    justifyContent: "center",
+    width: 52
   },
   card: {
-    backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 16,
-    padding: 22
+    gap: 14,
+    padding: 18
   },
   countdownBox: {
     alignItems: "center",
@@ -101,10 +121,11 @@ const styles = StyleSheet.create({
   },
   countdownText: {
     color: COLORS.accent,
-    fontSize: 34,
+    fontSize: 30,
     fontVariant: ["tabular-nums"],
     fontWeight: "900",
-    lineHeight: 40
+    lineHeight: 36,
+    textAlign: "center"
   },
   message: {
     color: COLORS.muted,
@@ -113,43 +134,11 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     textAlign: "center"
   },
-  pressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.99 }]
-  },
-  primaryButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.accent,
-    borderRadius: 8,
-    justifyContent: "center",
-    minHeight: 54,
-    paddingHorizontal: 16
-  },
-  primaryButtonText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
-  },
-  secondaryButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 52,
-    paddingHorizontal: 16
-  },
-  secondaryButtonText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
-  },
   title: {
     color: COLORS.text,
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "900",
-    lineHeight: 33,
+    lineHeight: 31,
     textAlign: "center"
   }
 });

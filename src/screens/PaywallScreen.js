@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import HapticPressable from "../components/HapticPressable";
+import AppIcon from "../components/ui/AppIcon";
 import {
   getOfferings,
   openSubscriptionManagement,
@@ -9,17 +10,7 @@ import {
   restorePurchases
 } from "../services/subscriptionService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
-
-const COLORS = {
-  accent: "#6C63FF",
-  background: "#0A0A0A",
-  card: "#1A1A1A",
-  border: "#2A2A2A",
-  danger: "#EF4444",
-  muted: "#A3A3A3",
-  success: "#22C55E",
-  text: "#FFFFFF"
-};
+import { COLORS } from "../theme";
 
 const FREE_FEATURES = [
   { available: true, label: "5 interview questions/day" },
@@ -79,12 +70,14 @@ const getPackagePrice = (packageToDisplay) =>
 function FeatureRow({ available = true, label }) {
   return (
     <View style={styles.featureRow}>
-      <Text
-        selectable
-        style={[styles.featureIcon, available ? styles.successText : styles.dangerText]}
-      >
-        {available ? "Yes" : "No"}
-      </Text>
+      <View style={styles.featureIcon}>
+        <AppIcon
+          color={available ? COLORS.success : COLORS.danger}
+          name={available ? "check" : "close"}
+          size={18}
+          strokeWidth={2.7}
+        />
+      </View>
       <Text selectable style={styles.featureText}>
         {label}
       </Text>
@@ -264,6 +257,7 @@ export default function PaywallScreen({ navigation }) {
           </View>
         ) : isPremium ? (
           <View style={[styles.messageCard, styles.successMessageCard]}>
+            <AppIcon color={COLORS.success} name="success" size={34} />
             <Text selectable style={styles.statusEyebrow}>
               Premium Status
             </Text>
@@ -310,6 +304,7 @@ export default function PaywallScreen({ navigation }) {
           })
         ) : (
           <View style={[styles.messageCard, styles.warningMessageCard]}>
+            <AppIcon color={COLORS.warning} name="warning" size={34} />
             <Text selectable style={styles.statusEyebrow}>
               Plans unavailable
             </Text>
@@ -436,16 +431,12 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center"
   },
-  dangerText: {
-    color: COLORS.danger
-  },
   disabledButton: {
     opacity: 0.65
   },
   featureIcon: {
-    fontSize: 13,
-    fontWeight: "900",
-    lineHeight: 22,
+    alignItems: "center",
+    justifyContent: "center",
     width: 34
   },
   featureList: {
@@ -623,9 +614,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     lineHeight: 24
-  },
-  successText: {
-    color: COLORS.success
   },
   title: {
     color: COLORS.text,

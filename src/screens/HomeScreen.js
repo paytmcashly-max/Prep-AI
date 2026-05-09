@@ -5,21 +5,13 @@ import { useFocusEffect } from "@react-navigation/native";
 
 import HapticPressable from "../components/HapticPressable";
 import SkeletonBox from "../components/SkeletonBox";
+import AppIcon from "../components/ui/AppIcon";
 import { getCurrentUser } from "../services/authService";
 import { showSessionCompleteNotification } from "../services/notificationService";
 import { generateDailyTip } from "../services/aiService";
 import { calculateCurrentStreak, fetchUserSessions } from "../services/sessionService";
 import { useUserStore } from "../store/userStore";
-
-const COLORS = {
-  accent: "#6C63FF",
-  background: "#0A0A0A",
-  border: "#2A2A2A",
-  card: "#1A1A1A",
-  danger: "#FCA5A5",
-  muted: "#A3A3A3",
-  text: "#FFFFFF"
-};
+import { COLORS } from "../theme";
 
 const getDisplayName = (profileName) => {
   if (profileName?.trim()) {
@@ -191,7 +183,7 @@ export default function HomeScreen({ navigation, route }) {
               <Text selectable style={styles.streakNumber}>
                 {streak}
               </Text>
-              <Text style={styles.fireEmoji}>{"\uD83D\uDD25"}</Text>
+              <AppIcon color={COLORS.warning} name="timer" size={42} />
             </View>
             <Text selectable style={styles.streakLabel}>
               Day Streak
@@ -392,10 +384,6 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6
-  },
-  fireEmoji: {
-    fontSize: 42,
-    lineHeight: 50
   },
   greeting: {
     color: COLORS.text,

@@ -4,34 +4,34 @@ import { useFocusEffect } from "@react-navigation/native";
 
 import FreeLimitCard from "../components/FreeLimitCard";
 import HapticPressable from "../components/HapticPressable";
+import AppIcon from "../components/ui/AppIcon";
+import MessageCard from "../components/ui/MessageCard";
 import { getUsageStatus } from "../services/apiClient";
 import { formatCountdown } from "../services/quotaService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
-import { DARK_COLORS } from "../theme";
-
-const COLORS = DARK_COLORS;
+import { COLORS, ICON_SIZES } from "../theme";
 
 const PRACTICE_CATEGORIES = [
   {
-    icon: "💼",
+    icon: "user",
     routeCategory: "HR",
     subtitle: "Master common HR rounds",
     title: "HR Questions"
   },
   {
-    icon: "💻",
+    icon: "target",
     routeCategory: "Technical",
     subtitle: "Practice role-based technical answers",
     title: "Technical Questions"
   },
   {
-    icon: "⭐",
+    icon: "star",
     routeCategory: "Behavioral",
     subtitle: "Structure answers with the STAR method",
     title: "Behavioral (STAR Method)"
   },
   {
-    icon: "🏢",
+    icon: "settings",
     routeCategory: "Company",
     subtitle: "Prepare for company-specific rounds",
     title: "Company Specific"
@@ -40,19 +40,19 @@ const PRACTICE_CATEGORIES = [
 
 const PRACTICE_MODES = [
   {
-    icon: "✅",
+    icon: "check",
     isLocked: false,
     subtitle: "Free",
     title: "Text Mode"
   },
   {
-    icon: "🔒",
+    icon: "lock",
     isLocked: true,
     subtitle: "Premium",
     title: "Voice Mode"
   },
   {
-    icon: "🔒",
+    icon: "lock",
     isLocked: true,
     subtitle: "Premium",
     title: "Video Mode"
@@ -92,14 +92,8 @@ const getCountdownUntil = (resetAt) => {
 
 function StatusCard({ actionLabel, isLoading, message, onAction, title }) {
   return (
-    <View style={styles.statusCard}>
+    <MessageCard message={message} title={title}>
       {isLoading ? <ActivityIndicator color={COLORS.accent} /> : null}
-      <Text selectable style={styles.statusTitle}>
-        {title}
-      </Text>
-      <Text selectable style={styles.statusMessage}>
-        {message}
-      </Text>
       {actionLabel ? (
         <HapticPressable
           onPress={onAction}
@@ -108,7 +102,7 @@ function StatusCard({ actionLabel, isLoading, message, onAction, title }) {
           <Text style={styles.statusButtonText}>{actionLabel}</Text>
         </HapticPressable>
       ) : null}
-    </View>
+    </MessageCard>
   );
 }
 
@@ -358,7 +352,9 @@ export default function PracticeScreen({ navigation }) {
               {startingCategory === category.routeCategory ? (
                 <ActivityIndicator color={COLORS.accent} size="large" />
               ) : (
-                <Text style={styles.categoryIcon}>{category.icon}</Text>
+                <View style={styles.categoryIcon}>
+                  <AppIcon color={COLORS.accent} name={category.icon} size={ICON_SIZES.card} />
+                </View>
               )}
               <View style={styles.categoryCopy}>
                 <Text selectable style={styles.categoryTitle}>
@@ -405,9 +401,15 @@ export default function PracticeScreen({ navigation }) {
                     {modeSubtitle}
                   </Text>
                 </View>
-                <Text style={styles.modeIcon}>
-                  {mode.isLocked && isPremium ? "Soon" : mode.icon}
-                </Text>
+                {mode.isLocked && isPremium ? (
+                  <Text style={styles.comingSoonText}>Soon</Text>
+                ) : (
+                  <AppIcon
+                    color={isPremiumLocked ? COLORS.muted : COLORS.accent}
+                    name={mode.icon}
+                    size={ICON_SIZES.row}
+                  />
+                )}
               </HapticPressable>
             );
           })}
@@ -438,8 +440,14 @@ const styles = StyleSheet.create({
     gap: 14
   },
   categoryIcon: {
-    fontSize: 34,
-    lineHeight: 42
+    alignItems: "center",
+    backgroundColor: "rgba(108, 99, 255, 0.12)",
+    borderColor: "rgba(108, 99, 255, 0.28)",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: "center",
+    width: 48
   },
   categoryAction: {
     color: COLORS.accent,
@@ -462,6 +470,12 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "900",
     lineHeight: 22
+  },
+  comingSoonText: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase"
   },
   container: {
     backgroundColor: COLORS.background,
@@ -531,10 +545,6 @@ const styles = StyleSheet.create({
     minHeight: 68,
     paddingHorizontal: 16,
     paddingVertical: 14
-  },
-  modeIcon: {
-    fontSize: 24,
-    lineHeight: 30
   },
   modeList: {
     gap: 12
@@ -617,27 +627,6 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 14,
     fontWeight: "900"
-  },
-  statusCard: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 12,
-    padding: 16
-  },
-  statusMessage: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20,
-    textAlign: "center"
-  },
-  statusTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    textAlign: "center"
   },
   subtitle: {
     color: COLORS.muted,

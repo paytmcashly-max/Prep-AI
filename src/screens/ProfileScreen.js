@@ -15,6 +15,7 @@ import Constants from "expo-constants";
 
 import HapticPressable from "../components/HapticPressable";
 import SkeletonBox from "../components/SkeletonBox";
+import AppIcon from "../components/ui/AppIcon";
 import { getCurrentUser, signOut } from "../services/authService";
 import {
   getDailyPracticeReminderEnabled,
@@ -28,6 +29,7 @@ import {
 } from "../services/sessionService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
+import { COLORS } from "../theme";
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.prepai.prepai";
 const APP_CONFIG_EXTRA = Constants.expoConfig?.extra || Constants.manifest?.extra || {};
@@ -35,16 +37,6 @@ const PRIVACY_POLICY_URL =
   APP_CONFIG_EXTRA.privacyPolicyUrl || "https://example.com/prepai/privacy";
 const TERMS_URL = APP_CONFIG_EXTRA.termsUrl || "https://example.com/prepai/terms";
 const SUPPORT_EMAIL = APP_CONFIG_EXTRA.supportEmail || "support@example.com";
-
-const COLORS = {
-  accent: "#6C63FF",
-  background: "#0A0A0A",
-  border: "#2A2A2A",
-  card: "#1A1A1A",
-  danger: "#EF4444",
-  muted: "#A3A3A3",
-  text: "#FFFFFF"
-};
 
 const getInitials = (name, email) => {
   const source = name?.trim() || email?.split("@")[0] || "PrepAI";
@@ -73,13 +65,16 @@ function StatCard({ label, value }) {
   );
 }
 
-function SettingRow({ label, detail, onPress, right, destructive }) {
+function SettingRow({ destructive, detail, icon = "settings", label, onPress, right }) {
   return (
     <HapticPressable
       disabled={!onPress && !right}
       onPress={onPress}
       style={({ pressed }) => [styles.settingRow, pressed && onPress && styles.pressed]}
     >
+      <View style={[styles.settingIcon, destructive && styles.destructiveIcon]}>
+        <AppIcon color={destructive ? COLORS.dangerSoft : COLORS.accent} name={icon} size={20} />
+      </View>
       <View style={styles.settingTextWrap}>
         <Text selectable style={[styles.settingLabel, destructive && styles.destructiveText]}>
           {label}
@@ -90,7 +85,7 @@ function SettingRow({ label, detail, onPress, right, destructive }) {
           </Text>
         ) : null}
       </View>
-      {right || (onPress ? <Text style={styles.chevron}>›</Text> : null)}
+      {right || (onPress ? <AppIcon color={COLORS.muted} name="next" size={18} /> : null)}
     </HapticPressable>
   );
 }
@@ -306,7 +301,7 @@ export default function ProfileScreen({ navigation }) {
           <>
             <StatCard label="Total Sessions" value={String(stats.totalSessions)} />
             <StatCard label="Average Score" value={stats.averageScore.toFixed(1)} />
-            <StatCard label="Current Streak" value={`${stats.currentStreak} \uD83D\uDD25`} />
+            <StatCard label="Current Streak" value={String(stats.currentStreak)} />
           </>
         )}
       </View>
@@ -322,8 +317,9 @@ export default function ProfileScreen({ navigation }) {
           Settings
         </Text>
         <View style={styles.sectionCard}>
-          <SettingRow label="Edit Profile" onPress={editProfile} />
+          <SettingRow icon="edit" label="Edit Profile" onPress={editProfile} />
           <SettingRow
+            icon="notification"
             label="Notification Settings"
             detail="Daily reminder at 9:00 AM"
             right={
@@ -340,12 +336,14 @@ export default function ProfileScreen({ navigation }) {
             }
           />
           <SettingRow
-            label={isPremium ? "Manage Premium" : "Upgrade to Premium \uD83D\uDC51"}
+            icon="premium"
+            label={isPremium ? "Manage Premium" : "Upgrade to Premium"}
             detail={isPremium ? "Premium entitlement is active" : "Unlock unlimited practice"}
             onPress={() => navigation.navigate("Paywall")}
           />
           {isPremium ? (
             <SettingRow
+              icon="settings"
               label="Manage Subscription"
               detail="Cancel or update from your store account"
               onPress={manageSubscription}
@@ -359,10 +357,11 @@ export default function ProfileScreen({ navigation }) {
           Account
         </Text>
         <View style={styles.sectionCard}>
-          <SettingRow label={"Rate the App \u2B50"} onPress={rateApp} />
-          <SettingRow label="Share App" onPress={shareApp} />
+          <SettingRow icon="star" label="Rate the App" onPress={rateApp} />
+          <SettingRow icon="share" label="Share App" onPress={shareApp} />
           <SettingRow
             destructive
+            icon="logout"
             label={isSigningOut ? "Logging out..." : "Logout"}
             onPress={handleLogout}
             right={isSigningOut ? <ActivityIndicator color={COLORS.danger} /> : null}
@@ -376,16 +375,23 @@ export default function ProfileScreen({ navigation }) {
         </Text>
         <View style={styles.sectionCard}>
           <SettingRow
+            icon="document"
             label="Privacy Policy"
             detail={PRIVACY_POLICY_URL}
             onPress={() => openLegalUrl("Privacy Policy", PRIVACY_POLICY_URL)}
           />
           <SettingRow
+            icon="document"
             label="Terms of Service"
             detail={TERMS_URL}
             onPress={() => openLegalUrl("Terms of Service", TERMS_URL)}
           />
-          <SettingRow label="Support Email" detail={SUPPORT_EMAIL} onPress={contactSupport} />
+          <SettingRow
+            icon="mail"
+            label="Support Email"
+            detail={SUPPORT_EMAIL}
+            onPress={contactSupport}
+          />
         </View>
       </View>
 
@@ -413,11 +419,6 @@ const styles = StyleSheet.create({
   cardText: {
     color: COLORS.text
   },
-  chevron: {
-    color: COLORS.muted,
-    fontSize: 28,
-    fontWeight: "600"
-  },
   container: {
     backgroundColor: COLORS.background,
     flex: 1
@@ -429,6 +430,10 @@ const styles = StyleSheet.create({
   },
   destructiveText: {
     color: "#FCA5A5"
+  },
+  destructiveIcon: {
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    borderColor: "rgba(239, 68, 68, 0.35)"
   },
   email: {
     color: COLORS.muted,
@@ -564,6 +569,16 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 16,
     fontWeight: "800"
+  },
+  settingIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(108, 99, 255, 0.12)",
+    borderColor: "rgba(108, 99, 255, 0.28)",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: "center",
+    width: 36
   },
   settingRow: {
     alignItems: "center",

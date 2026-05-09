@@ -34,6 +34,8 @@ const dailyInterviewLimit = 5;
 const dailyEvaluationLimit = 5;
 const threeDayResumeLimit = 1;
 const resumePeriodDays = 3;
+const resumeCooldownMs = resumePeriodDays * dayMs;
+const resumeCooldownPeriod = "cooldown";
 
 const getTimeZoneDateParts = (date: Date, timeZone: string) =>
   Object.fromEntries(
@@ -101,6 +103,20 @@ export const getThreeDayResumeResetAt = (date = new Date()) => {
   const resetAtUtc = nextPeriodStartDayIndex * dayMs - kolkataOffsetMs;
 
   return new Date(resetAtUtc).toISOString();
+};
+
+export const getResumeCooldownResetAt = (lastUsedAt: string | undefined, date = new Date()) => {
+  if (!lastUsedAt) {
+    return date.toISOString();
+  }
+
+  const lastUsedTime = new Date(lastUsedAt).getTime();
+
+  if (Number.isNaN(lastUsedTime)) {
+    return date.toISOString();
+  }
+
+  return new Date(lastUsedTime + resumeCooldownMs).toISOString();
 };
 
 const getUsageDocumentId = (uid: string, type: UsageType, period: string) =>
@@ -195,6 +211,46 @@ const consumeUsage = async (uid: string, config: UsageLimitConfig) => {
   });
 };
 
+const consumeResumeUsage = async (uid: string, date = new Date()) => {
+  const isPremium = await hasActivePremiumSubscription(uid);
+
+  if (isPremium) {
+    return;
+  }
+
+  const firebaseAdmin = getFirebaseAdmin();
+  const firestore = firebaseAdmin.firestore();
+  const usageRef = firestore
+    .collection(usageLimitsCollection)
+    .doc(getUsageDocumentId(uid, "resume", resumeCooldownPeriod));
+
+  await firestore.runTransaction(async (transaction) => {
+    const usageSnapshot = await transaction.get(usageRef);
+    const data = usageSnapshot.exists ? usageSnapshot.data() : undefined;
+    const resetAt = getResumeCooldownResetAt(
+      typeof data?.lastUsedAt === "string" ? data.lastUsedAt : undefined,
+      date
+    );
+
+    if (new Date(resetAt).getTime() > date.getTime()) {
+      throw new UsageLimitError();
+    }
+
+    transaction.set(
+      usageRef,
+      {
+        uid,
+        type: "resume",
+        period: resumeCooldownPeriod,
+        count: 1,
+        lastUsedAt: date.toISOString(),
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+      },
+      { merge: true }
+    );
+  });
+};
+
 const readUsageCount = async (uid: string, type: UsageType, period: string) => {
   const firestore = getFirebaseAdmin().firestore();
   const usageSnapshot = await firestore
@@ -207,6 +263,33 @@ const readUsageCount = async (uid: string, type: UsageType, period: string) => {
   }
 
   return Math.max(0, Number(usageSnapshot.data()?.count || 0));
+};
+
+const readResumeCooldownUsage = async (uid: string, date = new Date()) => {
+  const firestore = getFirebaseAdmin().firestore();
+  const usageSnapshot = await firestore
+    .collection(usageLimitsCollection)
+    .doc(getUsageDocumentId(uid, "resume", resumeCooldownPeriod))
+    .get();
+
+  if (!usageSnapshot.exists) {
+    return {
+      resetAt: date.toISOString(),
+      used: 0
+    };
+  }
+
+  const lastUsedAt =
+    typeof usageSnapshot.data()?.lastUsedAt === "string"
+      ? (usageSnapshot.data()?.lastUsedAt as string)
+      : undefined;
+  const resetAt = getResumeCooldownResetAt(lastUsedAt, date);
+  const isCoolingDown = new Date(resetAt).getTime() > date.getTime();
+
+  return {
+    resetAt,
+    used: isCoolingDown ? 1 : 0
+  };
 };
 
 const createQuotaStatus = ({
@@ -230,11 +313,10 @@ const createQuotaStatus = ({
 export const getUsageStatus = async (uid: string, date = new Date()) => {
   const isPremium = await hasActivePremiumSubscription(uid);
   const dailyPeriod = getDailyPeriodKey(date);
-  const resumePeriod = getThreeDayResumePeriodKey(date);
-  const [interviewUsed, evaluationUsed, resumeUsed] = await Promise.all([
+  const [interviewUsed, evaluationUsed, resumeUsage] = await Promise.all([
     readUsageCount(uid, "interview", dailyPeriod),
     readUsageCount(uid, "evaluation", dailyPeriod),
-    readUsageCount(uid, "resume", resumePeriod)
+    readResumeCooldownUsage(uid, date)
   ]);
 
   return {
@@ -254,8 +336,8 @@ export const getUsageStatus = async (uid: string, date = new Date()) => {
     resume: createQuotaStatus({
       isPremium,
       limit: threeDayResumeLimit,
-      resetAt: getThreeDayResumeResetAt(date),
-      used: resumeUsed
+      resetAt: resumeUsage.resetAt,
+      used: resumeUsage.used
     })
   };
 };
@@ -277,9 +359,5 @@ export const trackAnswerEvaluationUsage = async (uid: string) => {
 };
 
 export const trackResumeAnalysisUsage = async (uid: string) => {
-  await consumeUsage(uid, {
-    limit: threeDayResumeLimit,
-    period: getThreeDayResumePeriodKey(),
-    type: "resume"
-  });
+  await consumeResumeUsage(uid);
 };

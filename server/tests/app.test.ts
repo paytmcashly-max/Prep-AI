@@ -190,15 +190,14 @@ describe("backend app", () => {
     expect(getDailyResetAt(new Date("2026-05-08T18:29:59.000Z"))).toBe("2026-05-08T18:30:00.000Z");
   });
 
-  it("resume usage period resets every 3 India calendar days", async () => {
-    const { getThreeDayResumePeriodKey, getThreeDayResumeResetAt } =
-      await import("../src/services/usageService.js");
+  it("resume usage cooldown lasts 3 days after the last scan", async () => {
+    const { getResumeCooldownResetAt } = await import("../src/services/usageService.js");
 
-    expect(getThreeDayResumePeriodKey(new Date("1970-01-01T00:00:00.000Z"))).toBe("1970-01-01");
-    expect(getThreeDayResumePeriodKey(new Date("1970-01-03T18:29:59.000Z"))).toBe("1970-01-01");
-    expect(getThreeDayResumePeriodKey(new Date("1970-01-03T18:30:00.000Z"))).toBe("1970-01-04");
-    expect(getThreeDayResumeResetAt(new Date("1970-01-01T00:00:00.000Z"))).toBe(
-      "1970-01-03T18:30:00.000Z"
+    expect(
+      getResumeCooldownResetAt("2026-05-09T10:00:00.000Z", new Date("2026-05-09T10:01:00.000Z"))
+    ).toBe("2026-05-12T10:00:00.000Z");
+    expect(getResumeCooldownResetAt(undefined, new Date("2026-05-09T10:00:00.000Z"))).toBe(
+      "2026-05-09T10:00:00.000Z"
     );
   });
 });
