@@ -5,7 +5,7 @@ import {
   refreshSubscriptionStatus as refreshRevenueCatStatus,
   resetPurchasesUser
 } from "../services/subscriptionService";
-import { syncSubscriptionStatusToFirestore } from "../services/subscriptionSyncService";
+import { syncSubscriptionStatusWithBackend } from "../services/subscriptionSyncService";
 
 const defaultSubscriptionState = {
   activeEntitlements: [],
@@ -19,7 +19,7 @@ const defaultSubscriptionState = {
 
 const syncSubscriptionStatusSafely = async (status) => {
   try {
-    await syncSubscriptionStatusToFirestore(status);
+    await syncSubscriptionStatusWithBackend(status);
   } catch (error) {
     if (typeof __DEV__ !== "undefined" && __DEV__) {
       console.warn("Subscription status sync failed", {

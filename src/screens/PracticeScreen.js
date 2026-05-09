@@ -2,16 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
+import FreeLimitCard from "../components/FreeLimitCard";
 import HapticPressable from "../components/HapticPressable";
+import { getUsageStatus } from "../services/apiClient";
+import { formatCountdown } from "../services/quotaService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
+import { DARK_COLORS } from "../theme";
 
-const COLORS = {
-  accent: "#6C63FF",
-  background: "#0A0A0A",
-  card: "#1A1A1A",
-  muted: "#A3A3A3",
-  text: "#FFFFFF"
-};
+const COLORS = DARK_COLORS;
 
 const PRACTICE_CATEGORIES = [
   {
@@ -82,44 +80,97 @@ const DIFFICULTY_OPTIONS = [
 const FREE_QUESTION_COUNT = 5;
 const PREMIUM_QUESTION_COUNT_OPTIONS = [5, 10, 15, 20];
 
-const isValidDifficulty = (difficulty) =>
-  DIFFICULTY_OPTIONS.some((option) => option.value === difficulty);
+const getCountdownUntil = (resetAt) => {
+  const resetTime = new Date(resetAt || 0).getTime();
 
-const isValidQuestionCount = (questionCount) =>
-  PREMIUM_QUESTION_COUNT_OPTIONS.includes(Number(questionCount));
+  if (!Number.isFinite(resetTime)) {
+    return "--:--:--";
+  }
 
-export default function PracticeScreen({ navigation, route }) {
+  return formatCountdown(resetTime - Date.now());
+};
+
+function StatusCard({ actionLabel, isLoading, message, onAction, title }) {
+  return (
+    <View style={styles.statusCard}>
+      {isLoading ? <ActivityIndicator color={COLORS.accent} /> : null}
+      <Text selectable style={styles.statusTitle}>
+        {title}
+      </Text>
+      <Text selectable style={styles.statusMessage}>
+        {message}
+      </Text>
+      {actionLabel ? (
+        <HapticPressable
+          onPress={onAction}
+          style={({ pressed }) => [styles.statusButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.statusButtonText}>{actionLabel}</Text>
+        </HapticPressable>
+      ) : null}
+    </View>
+  );
+}
+
+export default function PracticeScreen({ navigation }) {
   const [startingCategory, setStartingCategory] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState("easy");
   const [selectedQuestionCount, setSelectedQuestionCount] = useState(FREE_QUESTION_COUNT);
+  const [usageStatus, setUsageStatus] = useState(null);
+  const [isLoadingUsage, setIsLoadingUsage] = useState(false);
+  const [usageError, setUsageError] = useState("");
+  const [limitCountdown, setLimitCountdown] = useState("--:--:--");
   const isPremium = useSubscriptionStore((state) => state.isPremium);
+  const interviewQuota = usageStatus?.interview;
+  const isInterviewLimitReached =
+    !isPremium && interviewQuota && Number(interviewQuota.remaining || 0) <= 0;
+
+  const loadUsageStatus = useCallback(async () => {
+    try {
+      setIsLoadingUsage(true);
+      setUsageError("");
+      setUsageStatus(await getUsageStatus());
+    } catch (error) {
+      setUsageError(error.message || "Could not check your free usage status.");
+    } finally {
+      setIsLoadingUsage(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       setStartingCategory("");
-    }, [])
+      loadUsageStatus();
+    }, [loadUsageStatus])
   );
 
   useEffect(() => {
-    const nextDifficulty = route?.params?.difficulty;
-    const nextQuestionCount = route?.params?.questionCount;
-
-    if (isValidDifficulty(nextDifficulty)) {
-      setSelectedDifficulty(nextDifficulty);
+    if (!isInterviewLimitReached) {
+      return undefined;
     }
 
-    if (isValidQuestionCount(nextQuestionCount)) {
-      setSelectedQuestionCount(Number(nextQuestionCount));
-    }
-  }, [route?.params?.difficulty, route?.params?.questionCount]);
+    const updateCountdown = () => {
+      setLimitCountdown(getCountdownUntil(interviewQuota?.resetAt));
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(timer);
+  }, [interviewQuota?.resetAt, isInterviewLimitReached]);
 
   const startCategory = (category) => {
+    if (isInterviewLimitReached) {
+      return;
+    }
+
     setStartingCategory(category);
     navigation.navigate("MockInterview", {
       category,
       difficulty: selectedDifficulty,
       questionCount: isPremium ? selectedQuestionCount : FREE_QUESTION_COUNT
     });
+    setTimeout(() => setStartingCategory(""), 0);
   };
 
   const handleModePress = (mode) => {
@@ -141,6 +192,33 @@ export default function PracticeScreen({ navigation, route }) {
       style={styles.container}
       contentContainerStyle={styles.content}
     >
+      {isLoadingUsage ? (
+        <StatusCard
+          isLoading
+          message="Checking your free interview quota."
+          title="Preparing practice"
+        />
+      ) : null}
+
+      {!isLoadingUsage && usageError ? (
+        <StatusCard
+          actionLabel="Try Again"
+          message={usageError}
+          onAction={loadUsageStatus}
+          title="Could not check quota"
+        />
+      ) : null}
+
+      {!usageError && isInterviewLimitReached ? (
+        <FreeLimitCard
+          countdownLabel="Available again"
+          message="You have used today's free interview questions. Upgrade to Premium for unlimited practice or come back tomorrow."
+          onUpgrade={() => navigation.navigate("Paywall")}
+          resetCountdown={limitCountdown}
+          title="Daily free interview limit reached"
+        />
+      ) : null}
+
       <View style={styles.header}>
         <Text selectable style={styles.title}>
           Set Up Practice
@@ -240,11 +318,12 @@ export default function PracticeScreen({ navigation, route }) {
           {PRACTICE_CATEGORIES.map((category) => (
             <HapticPressable
               key={category.routeCategory}
-              disabled={Boolean(startingCategory)}
+              disabled={Boolean(startingCategory) || Boolean(isInterviewLimitReached)}
               onPress={() => startCategory(category.routeCategory)}
               style={({ pressed }) => [
                 styles.categoryCard,
-                pressed && !startingCategory && styles.pressed,
+                pressed && !startingCategory && !isInterviewLimitReached && styles.pressed,
+                isInterviewLimitReached && styles.disabledCard,
                 startingCategory &&
                   startingCategory !== category.routeCategory &&
                   styles.disabledCard
@@ -499,6 +578,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "900",
     textTransform: "uppercase"
+  },
+  statusButton: {
+    alignItems: "center",
+    backgroundColor: COLORS.accent,
+    borderRadius: 8,
+    justifyContent: "center",
+    minHeight: 48,
+    paddingHorizontal: 16
+  },
+  statusButtonText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  statusCard: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+    padding: 16
+  },
+  statusMessage: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+    textAlign: "center"
+  },
+  statusTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "900",
+    textAlign: "center"
   },
   subtitle: {
     color: COLORS.muted,

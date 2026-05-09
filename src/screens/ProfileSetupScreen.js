@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -96,19 +96,12 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
   const [jobRole, setJobRole] = useState(profile.jobRole || "");
   const [experienceLevel, setExperienceLevel] = useState(profile.experienceLevel || "");
   const [isSaving, setIsSaving] = useState(false);
+  const isEditMode = route?.params?.mode === "edit";
 
   const canSubmit = useMemo(
     () => Boolean(fullName.trim() && jobRole && experienceLevel && !isSaving),
     [experienceLevel, fullName, isSaving, jobRole]
   );
-
-  useEffect(() => {
-    const savedName = currentUser?.displayName || profile.name || "";
-
-    if (!fullName.trim() && savedName) {
-      setFullName(savedName);
-    }
-  }, [currentUser?.displayName, fullName, profile.name]);
 
   const saveProfile = async () => {
     if (!canSubmit) {
@@ -196,6 +189,15 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
         style={styles.container}
         contentContainerStyle={styles.content}
       >
+        {isEditMode ? (
+          <HapticPressable
+            onPress={() => navigation.goBack()}
+            style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.backButtonText}>Back</Text>
+          </HapticPressable>
+        ) : null}
+
         <View style={styles.header}>
           <Text selectable style={styles.eyebrow}>
             Profile setup
@@ -275,6 +277,22 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
 }
 
 const styles = StyleSheet.create({
+  backButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#111111",
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 42,
+    paddingHorizontal: 16
+  },
+  backButtonText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "900"
+  },
   card: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,

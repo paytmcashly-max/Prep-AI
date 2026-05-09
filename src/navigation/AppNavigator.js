@@ -61,6 +61,14 @@ function AppStack({ hasCompletedProfile, onProfileCompleted }) {
   );
 }
 
+const isProfileComplete = (profile) =>
+  Boolean(
+    profile?.onboardingCompleted === true &&
+    (profile.fullName || profile.name) &&
+    profile.jobRole &&
+    profile.experienceLevel
+  );
+
 export default function AppNavigator() {
   const setUser = useUserStore((state) => state.setUser);
   const resetUser = useUserStore((state) => state.resetUser);
@@ -96,18 +104,8 @@ export default function AppNavigator() {
         return;
       }
 
-      const authAction = consumeLastAuthAction();
-
       setAuthLoading(false);
-      setProfileLoading(false);
-
-      if (authAction === "login") {
-        setHasCompletedProfile(true);
-      } else if (authAction === "signup") {
-        setHasCompletedProfile(false);
-      } else {
-        setHasCompletedProfile(true);
-      }
+      setProfileLoading(true);
 
       unsubscribeProfile = onSnapshot(
         doc(firestore, "users", user.uid, "profile", "main"),
@@ -123,12 +121,7 @@ export default function AppNavigator() {
             }
           }
 
-          const completed =
-            authAction === "login"
-              ? true
-              : profile
-                ? Boolean(profile.onboardingCompleted)
-                : authAction !== "signup";
+          const completed = isProfileComplete(profile);
 
           if (profile) {
             updateProfile({
@@ -140,10 +133,12 @@ export default function AppNavigator() {
             });
           }
 
-          setHasCompletedProfile((current) => current || completed);
+          setHasCompletedProfile(completed);
+          setProfileLoading(false);
         },
         () => {
-          setHasCompletedProfile(authAction === "login");
+          setHasCompletedProfile(false);
+          setProfileLoading(false);
         }
       );
     });

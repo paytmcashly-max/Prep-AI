@@ -379,7 +379,7 @@ export const analyzeResume = async (resumeText, jobRole) => {
       {
         rateLimitMessage: "Too many resume analysis requests. Please wait a moment and try again.",
         usageLimitMessage: getPremiumAwareUsageLimitMessage(
-          "You have used your free resume analysis for this month."
+          "You have used your free resume scan for this 3-day period."
         )
       }
     )
@@ -416,7 +416,7 @@ export const analyzeResumePdf = async (asset, jobRole) => {
       },
       rateLimitMessage: "Too many resume analysis requests. Please wait a moment and try again.",
       usageLimitMessage: getPremiumAwareUsageLimitMessage(
-        "You have used your free resume analysis for this month."
+        "You have used your free resume scan for this 3-day period."
       )
     })
   );

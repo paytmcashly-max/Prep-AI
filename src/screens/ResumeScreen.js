@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,13 +9,21 @@ import {
   TextInput,
   View
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
+import { useFocusEffect } from "@react-navigation/native";
 
+import FreeLimitCard from "../components/FreeLimitCard";
 import HapticPressable from "../components/HapticPressable";
 import { trackEvent } from "../services/analyticsService";
-import { analyzeResume, analyzeResumePdf } from "../services/openaiService";
+import { ApiClientError, getLatestResumeAnalysis, getUsageStatus } from "../services/apiClient";
+import { auth } from "../services/firebaseConfig";
+import { analyzeResume, analyzeResumePdf } from "../services/aiService";
+import { formatCountdown, getMsUntilNextResumeReset } from "../services/quotaService";
 import { validateResumePdfAsset } from "../services/resumeService";
+import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
+import { DARK_COLORS } from "../theme";
 
 const JOB_ROLES = [
   "Full Stack Developer",
@@ -26,23 +34,25 @@ const JOB_ROLES = [
   "MBA/Management"
 ];
 
-const COLORS = {
-  accent: "#6C63FF",
-  background: "#0A0A0A",
-  card: "#1A1A1A",
-  border: "#2A2A2A",
-  muted: "#A3A3A3",
-  text: "#FFFFFF",
-  green: "#22C55E",
-  yellow: "#FACC15",
-  red: "#EF4444"
-};
+const COLORS = DARK_COLORS;
 
 const SECTION_LABELS = {
   summary: "Summary",
   experience: "Experience",
   skills: "Skills",
   education: "Education"
+};
+
+const RESUME_LIMIT_BENEFITS = [
+  "Previous resume check stays saved",
+  "Premium unlocks more resume scans",
+  "Suggested lines and ATS feedback remain visible"
+];
+
+const getLastResumeAnalysisStorageKey = () => {
+  const uid = auth.currentUser?.uid || "anonymous";
+
+  return `last_resume_analysis:${uid}`;
 };
 
 const getAtsToneLabel = (score) => {
@@ -55,6 +65,16 @@ const getAtsToneLabel = (score) => {
   }
 
   return "Needs work";
+};
+
+const getCountdownUntil = (resetAt) => {
+  const resetTime = new Date(resetAt || 0).getTime();
+
+  if (!Number.isFinite(resetTime)) {
+    return formatCountdown(getMsUntilNextResumeReset());
+  }
+
+  return formatCountdown(resetTime - Date.now());
 };
 
 function JobRolePicker({ selectedValue, onSelect }) {
@@ -151,17 +171,69 @@ function MessageCard({ message, title, tone = "default" }) {
   );
 }
 
-export default function ResumeScreen() {
+function PreviousResumeCheckCard({ analysis, isOpen, onPress }) {
+  if (!analysis) {
+    return null;
+  }
+
+  return (
+    <HapticPressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.previousCheckCard, pressed && styles.pressed]}
+    >
+      <View style={styles.previousCheckCopy}>
+        <Text selectable style={styles.previousCheckLabel}>
+          Previous resume check
+        </Text>
+        <Text selectable style={styles.previousCheckTitle}>
+          ATS Score {analysis.atsScore}/100
+        </Text>
+        <Text selectable style={styles.previousCheckMeta}>
+          {analysis.jobRole || "Target role"} -{" "}
+          {analysis.createdAt ? new Date(analysis.createdAt).toLocaleDateString() : "Recent check"}
+        </Text>
+        <Text selectable style={styles.previousCheckMeta}>
+          {(analysis.missingKeywords || []).length} missing keywords found
+        </Text>
+        <Text selectable style={styles.previousCheckHint}>
+          {isOpen ? "Hide full details" : "Tap to view full details"}
+        </Text>
+      </View>
+      <Text style={styles.chevron}>{isOpen ? "Hide" : "Show"}</Text>
+    </HapticPressable>
+  );
+}
+
+export default function ResumeScreen({ navigation }) {
   const savedJobRole = useUserStore((state) => state.profile.jobRole);
+  const isPremium = useSubscriptionStore((state) => state.isPremium);
+  const refreshSubscriptionStatus = useSubscriptionStore(
+    (state) => state.refreshSubscriptionStatus
+  );
   const [selectedFile, setSelectedFile] = useState(null);
   const [resumeText, setResumeText] = useState("");
   const [jobRole, setJobRole] = useState(savedJobRole || "Full Stack Developer");
   const [isPickingPdf, setIsPickingPdf] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoadingOverview, setIsLoadingOverview] = useState(false);
+  const [overviewError, setOverviewError] = useState("");
+  const [usageStatus, setUsageStatus] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isResumeLimitReached, setIsResumeLimitReached] = useState(false);
+  const [resumeResetCountdown, setResumeResetCountdown] = useState(() =>
+    formatCountdown(getMsUntilNextResumeReset())
+  );
   const [showPasteFallback, setShowPasteFallback] = useState(false);
+  const [showPreviousAnalysisDetails, setShowPreviousAnalysisDetails] = useState(true);
   const analysisRequestInFlightRef = useRef(false);
+  const resumeQuota = usageStatus?.resume;
+  const isServerResumeLimitReached =
+    !isPremium && resumeQuota && Number(resumeQuota.remaining || 0) <= 0;
+  const isBlockedByResumeLimit = (isResumeLimitReached || isServerResumeLimitReached) && !isPremium;
+  const shouldShowAnalysisDetails = Boolean(
+    analysis && (!isBlockedByResumeLimit || showPreviousAnalysisDetails)
+  );
   const atsColor = useMemo(() => {
     const score = Number(analysis?.atsScore || 0);
 
@@ -180,6 +252,95 @@ export default function ResumeScreen() {
     [analysis?.atsScore]
   );
 
+  const loadLastAnalysis = useCallback(async () => {
+    try {
+      const savedAnalysis = await AsyncStorage.getItem(getLastResumeAnalysisStorageKey());
+
+      if (savedAnalysis) {
+        const parsedAnalysis = JSON.parse(savedAnalysis);
+
+        if (parsedAnalysis && typeof parsedAnalysis === "object") {
+          setAnalysis(parsedAnalysis);
+          setShowPreviousAnalysisDetails(false);
+          return parsedAnalysis;
+        }
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }, []);
+
+  const persistLastAnalysis = useCallback(async (nextAnalysis) => {
+    try {
+      await AsyncStorage.setItem(getLastResumeAnalysisStorageKey(), JSON.stringify(nextAnalysis));
+    } catch {
+      // The resume text itself is never stored here; losing cached analysis is safe.
+    }
+  }, []);
+
+  const loadResumeOverview = useCallback(async () => {
+    try {
+      setIsLoadingOverview(true);
+      setOverviewError("");
+
+      const [nextUsageStatus, latestAnalysis] = await Promise.all([
+        getUsageStatus(),
+        getLatestResumeAnalysis()
+      ]);
+
+      setUsageStatus(nextUsageStatus);
+      setIsResumeLimitReached(
+        !useSubscriptionStore.getState().isPremium &&
+          Number(nextUsageStatus?.resume?.remaining || 0) <= 0
+      );
+
+      if (latestAnalysis) {
+        setAnalysis(latestAnalysis);
+        setShowPreviousAnalysisDetails(false);
+        await persistLastAnalysis(latestAnalysis);
+      } else {
+        await loadLastAnalysis();
+      }
+    } catch (error) {
+      setOverviewError(error.message || "Could not load resume usage status.");
+      await loadLastAnalysis();
+    } finally {
+      setIsLoadingOverview(false);
+    }
+  }, [loadLastAnalysis, persistLastAnalysis]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadResumeOverview();
+      if (!useSubscriptionStore.getState().isPremium) {
+        refreshSubscriptionStatus().catch(() => null);
+      }
+    }, [loadResumeOverview, refreshSubscriptionStatus])
+  );
+
+  useEffect(() => {
+    if (isPremium) {
+      setIsResumeLimitReached(false);
+    }
+  }, [isPremium]);
+
+  useEffect(() => {
+    if (!isBlockedByResumeLimit) {
+      return undefined;
+    }
+
+    const updateCountdown = () => {
+      setResumeResetCountdown(getCountdownUntil(resumeQuota?.resetAt));
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(timer);
+  }, [isBlockedByResumeLimit, resumeQuota?.resetAt]);
+
   const pickPdf = async () => {
     try {
       setIsPickingPdf(true);
@@ -196,8 +357,10 @@ export default function ResumeScreen() {
       const asset = result.assets?.[0];
       validateResumePdfAsset(asset);
       setSelectedFile(asset);
-      setAnalysis(null);
       setErrorMessage("");
+      if (isPremium) {
+        setIsResumeLimitReached(false);
+      }
     } catch (error) {
       setSelectedFile(null);
       setErrorMessage(error.message || "Could not pick this PDF.");
@@ -208,6 +371,10 @@ export default function ResumeScreen() {
 
   const analyzeSelectedResume = async () => {
     if (analysisRequestInFlightRef.current || isAnalyzing) {
+      return;
+    }
+
+    if (isBlockedByResumeLimit) {
       return;
     }
 
@@ -232,7 +399,7 @@ export default function ResumeScreen() {
       analysisRequestInFlightRef.current = true;
       setIsAnalyzing(true);
       setErrorMessage("");
-      setAnalysis(null);
+      setIsResumeLimitReached(false);
       trackEvent("resume_analysis_started", {
         inputType: selectedFile ? "pdf" : "text",
         jobRole
@@ -246,14 +413,33 @@ export default function ResumeScreen() {
         ? await analyzeResumePdf(selectedFile, jobRole)
         : await analyzeResume(trimmedText, jobRole);
 
-      setAnalysis(result);
+      const nextAnalysis = {
+        ...result,
+        createdAt: new Date().toISOString(),
+        jobRole
+      };
+
+      setAnalysis(nextAnalysis);
+      setShowPreviousAnalysisDetails(true);
+      await persistLastAnalysis(nextAnalysis);
+      loadResumeOverview().catch(() => null);
+      setIsResumeLimitReached(false);
       trackEvent("resume_analysis_completed", {
         atsScore: Number(result.atsScore || 0),
         inputType: selectedFile ? "pdf" : "text",
         jobRole
       });
     } catch (error) {
-      setErrorMessage(error.message || "Could not analyze this resume. Please try again.");
+      if (error instanceof ApiClientError && error.status === 429) {
+        setIsResumeLimitReached(true);
+        setShowPreviousAnalysisDetails(false);
+        setErrorMessage("");
+        if (!analysis) {
+          await loadResumeOverview();
+        }
+      } else {
+        setErrorMessage(error.message || "Could not analyze this resume. Please try again.");
+      }
     } finally {
       analysisRequestInFlightRef.current = false;
       setIsAnalyzing(false);
@@ -264,7 +450,9 @@ export default function ResumeScreen() {
     setSelectedFile(null);
     setResumeText("");
     setAnalysis(null);
+    setShowPreviousAnalysisDetails(false);
     setErrorMessage("");
+    setIsResumeLimitReached(false);
     setIsAnalyzing(false);
     setShowPasteFallback(false);
   };
@@ -287,6 +475,25 @@ export default function ResumeScreen() {
           fallback.
         </Text>
       </View>
+
+      {isLoadingOverview ? (
+        <MessageCard
+          title="Checking resume quota"
+          message="Loading your latest resume analysis and free scan status."
+        />
+      ) : null}
+
+      {!isLoadingOverview && overviewError ? (
+        <View style={styles.retryCard}>
+          <MessageCard title="Could not load resume status" message={overviewError} tone="error" />
+          <HapticPressable
+            onPress={loadResumeOverview}
+            style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </HapticPressable>
+        </View>
+      ) : null}
 
       <View style={styles.card}>
         <HapticPressable
@@ -357,29 +564,54 @@ export default function ResumeScreen() {
           <MessageCard title="Resume check stopped" message={errorMessage} tone="error" />
         ) : null}
 
-        <HapticPressable
-          disabled={!jobRole || isAnalyzing}
-          onPress={analyzeSelectedResume}
-          style={({ pressed }) => [
-            styles.analyzeButton,
-            (!jobRole || isAnalyzing) && styles.disabledButton,
-            pressed && !isAnalyzing && styles.pressed
-          ]}
-        >
-          {isAnalyzing ? (
-            <View style={styles.buttonLoadingRow}>
-              <ActivityIndicator color={COLORS.text} />
-              <Text style={styles.analyzeButtonText}>Analyzing...</Text>
-            </View>
-          ) : (
-            <Text style={styles.analyzeButtonText}>
-              {selectedFile ? "Analyze PDF" : "Analyze Resume"}
-            </Text>
-          )}
-        </HapticPressable>
+        {isBlockedByResumeLimit ? (
+          <FreeLimitCard
+            benefits={RESUME_LIMIT_BENEFITS}
+            countdownLabel="Next free scan in"
+            message={
+              analysis
+                ? "Your previous resume check is saved below. Upgrade to Premium for more scans or wait for the next free scan."
+                : "Upgrade to Premium for more scans or wait for the next free scan."
+            }
+            onUpgrade={() => navigation.navigate("Paywall")}
+            resetCountdown={resumeResetCountdown}
+            title="Free resume scan limit reached"
+          />
+        ) : null}
+
+        {!isBlockedByResumeLimit ? (
+          <HapticPressable
+            disabled={!jobRole || isAnalyzing || isLoadingOverview}
+            onPress={analyzeSelectedResume}
+            style={({ pressed }) => [
+              styles.analyzeButton,
+              (!jobRole || isAnalyzing || isLoadingOverview) && styles.disabledButton,
+              pressed && !isAnalyzing && styles.pressed
+            ]}
+          >
+            {isAnalyzing ? (
+              <View style={styles.buttonLoadingRow}>
+                <ActivityIndicator color={COLORS.text} />
+                <Text style={styles.analyzeButtonText}>Analyzing...</Text>
+              </View>
+            ) : (
+              <Text style={styles.analyzeButtonText}>
+                {selectedFile ? "Analyze PDF" : "Analyze Resume"}
+              </Text>
+            )}
+          </HapticPressable>
+        ) : null}
       </View>
 
       {analysis ? (
+        <PreviousResumeCheckCard
+          analysis={analysis}
+          isOpen={showPreviousAnalysisDetails}
+          onPress={() => setShowPreviousAnalysisDetails((current) => !current)}
+        />
+      ) : null}
+
+      {shouldShowAnalysisDetails ? (
         <View style={styles.resultsCard}>
           <View style={styles.scoreBox}>
             <Text selectable style={[styles.atsScore, { color: atsColor }]}>
@@ -461,12 +693,14 @@ export default function ResumeScreen() {
             ))}
           </View>
 
-          <HapticPressable
-            onPress={resetScreen}
-            style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.secondaryButtonText}>Analyze Another</Text>
-          </HapticPressable>
+          {!isBlockedByResumeLimit ? (
+            <HapticPressable
+              onPress={resetScreen}
+              style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.secondaryButtonText}>Analyze Another</Text>
+            </HapticPressable>
+          ) : null}
         </View>
       ) : null}
     </ScrollView>
@@ -696,11 +930,66 @@ const styles = StyleSheet.create({
     opacity: 0.82,
     transform: [{ scale: 0.99 }]
   },
+  previousCheckCard: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: "rgba(108, 99, 255, 0.35)",
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+    padding: 16
+  },
+  previousCheckCopy: {
+    flex: 1,
+    gap: 5
+  },
+  previousCheckHint: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  previousCheckLabel: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase"
+  },
+  previousCheckMeta: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18
+  },
+  previousCheckTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "900"
+  },
   resultSection: {
     gap: 12
   },
   resultSectionHeader: {
     gap: 5
+  },
+  retryButton: {
+    alignItems: "center",
+    backgroundColor: "#111111",
+    borderColor: COLORS.accent,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 48,
+    paddingHorizontal: 16
+  },
+  retryButtonText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  retryCard: {
+    gap: 12
   },
   rewriteCard: {
     alignItems: "flex-start",

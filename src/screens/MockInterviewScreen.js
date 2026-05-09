@@ -1,14 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getAuth } from "firebase/auth";
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  getFirestore,
-  increment,
-  setDoc
-} from "firebase/firestore";
 import {
   ActivityIndicator,
   Alert,
@@ -26,11 +16,14 @@ import {
 } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
+import FreeLimitCard from "../components/FreeLimitCard";
 import HapticPressable from "../components/HapticPressable";
 import SkeletonBox from "../components/SkeletonBox";
 import "../services/firebaseConfig";
 import { trackEvent } from "../services/analyticsService";
-import { evaluateAnswer, generateQuestion } from "../services/openaiService";
+import { evaluateAnswer, generateQuestion } from "../services/aiService";
+import { formatCountdown, getMsUntilIndiaMidnight } from "../services/quotaService";
+import { saveMockInterviewSession } from "../services/sessionService";
 import { useProgressStore } from "../store/progressStore";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
@@ -38,7 +31,6 @@ import { useUserStore } from "../store/userStore";
 const DEFAULT_QUESTION_COUNT = 5;
 const MAX_PREMIUM_QUESTION_COUNT = 20;
 const QUESTION_TIME_SECONDS = 60;
-const FREE_DAILY_QUESTION_LIMIT = 5;
 const TIMER_SIZE = 150;
 const TIMER_STROKE_WIDTH = 8;
 const TIMER_RADIUS = (TIMER_SIZE - TIMER_STROKE_WIDTH) / 2;
@@ -195,94 +187,11 @@ function ErrorState({ message, title = "Something went wrong" }) {
   );
 }
 
-const getTodayDateKey = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
-const getDailyUsageDocRef = () => {
-  const db = getFirestore();
-  const auth = getAuth();
-  const uid = auth.currentUser?.uid;
-
-  if (!uid) {
-    return null;
-  }
-
-  return doc(db, "users", uid, "dailyUsage", getTodayDateKey());
-};
-
-const getQuestionsUsedToday = async () => {
-  const usageRef = getDailyUsageDocRef();
-
-  if (!usageRef) {
-    return 0;
-  }
-
-  const usageSnapshot = await getDoc(usageRef);
-
-  if (!usageSnapshot.exists()) {
-    return 0;
-  }
-
-  return Number(usageSnapshot.data().questionsUsed || 0);
-};
-
-const getQuestionsUsedTodaySafely = async () => {
-  try {
-    return await getQuestionsUsedToday();
-  } catch (_error) {
-    return 0;
-  }
-};
-
-const incrementQuestionsUsedToday = async () => {
-  const usageRef = getDailyUsageDocRef();
-
-  if (!usageRef) {
-    return 0;
-  }
-
-  await setDoc(
-    usageRef,
-    {
-      date: new Date(),
-      questionsUsed: increment(1)
-    },
-    { merge: true }
-  );
-
-  const nextQuestionsUsed = await getQuestionsUsedToday();
-
-  return nextQuestionsUsed;
-};
-
-const incrementQuestionsUsedTodaySafely = async () => {
-  try {
-    return await incrementQuestionsUsedToday();
-  } catch (_error) {
-    return null;
-  }
-};
-
 const saveSession = async (avgScore, category, jobRole, questionsAttempted) => {
-  const db = getFirestore();
-  const auth = getAuth();
-  const uid = auth.currentUser?.uid;
-
-  if (!uid) {
-    return;
-  }
-
-  await addDoc(collection(db, "users", uid, "sessions"), {
+  await saveMockInterviewSession({
     category,
     score: Number(avgScore || 0),
     questionsAttempted,
-    date: new Date(),
     jobRole
   });
 
@@ -309,7 +218,6 @@ export default function MockInterviewScreen({ navigation, route }) {
   const scoresRef = useRef([]);
   const [isQuestionLoading, setIsQuestionLoading] = useState(false);
   const [isCheckingUsage, setIsCheckingUsage] = useState(true);
-  const [questionsUsedToday, setQuestionsUsedToday] = useState(0);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionSaveError, setSessionSaveError] = useState("");
@@ -317,6 +225,9 @@ export default function MockInterviewScreen({ navigation, route }) {
   const [isSavingSession, setIsSavingSession] = useState(false);
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [isLimitReached, setIsLimitReached] = useState(false);
+  const [resetCountdown, setResetCountdown] = useState(() =>
+    formatCountdown(getMsUntilIndiaMidnight())
+  );
   const previousQuestionsRef = useRef([]);
   const questionRequestInFlightRef = useRef(false);
 
@@ -394,14 +305,6 @@ export default function MockInterviewScreen({ navigation, route }) {
       setIsLimitReached(false);
       previousQuestionsRef.current = [];
 
-      const currentQuestionsUsed = await getQuestionsUsedTodaySafely();
-      setQuestionsUsedToday(currentQuestionsUsed);
-
-      if (!isPremium && currentQuestionsUsed >= FREE_DAILY_QUESTION_LIMIT) {
-        blockForDailyLimit();
-        return;
-      }
-
       trackEvent("interview_started", { category, difficulty, questionCount: totalQuestions });
       await loadQuestion(1);
     } catch (error) {
@@ -409,11 +312,26 @@ export default function MockInterviewScreen({ navigation, route }) {
     } finally {
       setIsCheckingUsage(false);
     }
-  }, [blockForDailyLimit, category, difficulty, isPremium, loadQuestion, totalQuestions]);
+  }, [category, difficulty, loadQuestion, totalQuestions]);
 
   useEffect(() => {
     checkUsageAndStart();
   }, [checkUsageAndStart]);
+
+  useEffect(() => {
+    if (!isLimitReached || isPremium) {
+      return undefined;
+    }
+
+    const updateCountdown = () => {
+      setResetCountdown(formatCountdown(getMsUntilIndiaMidnight()));
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(timer);
+  }, [isLimitReached, isPremium]);
 
   useEffect(() => {
     if (
@@ -484,12 +402,6 @@ export default function MockInterviewScreen({ navigation, route }) {
       await saveCompletedSession();
       return;
     }
-
-    if (!isPremium && questionsUsedToday >= FREE_DAILY_QUESTION_LIMIT) {
-      blockForDailyLimit();
-      return;
-    }
-
     const nextQuestionNumber = questionNumber + 1;
     const didLoadQuestion = await loadQuestion(nextQuestionNumber);
 
@@ -508,14 +420,6 @@ export default function MockInterviewScreen({ navigation, route }) {
       setIsEvaluating(true);
       setErrorMessage("");
 
-      const currentQuestionsUsed = await getQuestionsUsedTodaySafely();
-      setQuestionsUsedToday(currentQuestionsUsed);
-
-      if (!isPremium && currentQuestionsUsed >= FREE_DAILY_QUESTION_LIMIT) {
-        blockForDailyLimit();
-        return;
-      }
-
       trackEvent("answer_submitted", { category, questionNumber });
       const result = await evaluateAnswer(question, answer.trim());
       const parsedScore = Number(result.score);
@@ -531,14 +435,6 @@ export default function MockInterviewScreen({ navigation, route }) {
         questionNumber,
         score: parsedScore
       });
-
-      const nextQuestionsUsed = await incrementQuestionsUsedTodaySafely();
-
-      if (nextQuestionsUsed !== null) {
-        setQuestionsUsedToday(nextQuestionsUsed);
-      } else {
-        setQuestionsUsedToday((current) => current + 1);
-      }
     } catch (error) {
       setErrorMessage(error.message || "Could not evaluate your answer. Please try again.");
     } finally {
@@ -655,28 +551,16 @@ export default function MockInterviewScreen({ navigation, route }) {
         style={styles.container}
         contentContainerStyle={[styles.content, styles.summaryContent]}
       >
-        <View style={styles.limitCard}>
-          <Text selectable style={styles.limitTitle}>
-            Daily free limit reached
-          </Text>
-          <Text selectable style={styles.limitText}>
-            {
-              "You have used today's free interview questions. Upgrade to Premium for unlimited practice or come back tomorrow."
-            }
-          </Text>
-          <HapticPressable
-            onPress={() => navigation.navigate("Paywall")}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.primaryButtonText}>Upgrade to Premium</Text>
-          </HapticPressable>
-          <HapticPressable
-            onPress={() => navigation.goBack()}
-            style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.secondaryButtonText}>Back</Text>
-          </HapticPressable>
-        </View>
+        <FreeLimitCard
+          onBack={() =>
+            navigation.navigate("MainTabs", {
+              screen: "Practice",
+              params: { dailyLimitReached: true }
+            })
+          }
+          onUpgrade={() => navigation.navigate("Paywall")}
+          resetCountdown={resetCountdown}
+        />
       </ScrollView>
     );
   }
@@ -695,6 +579,12 @@ export default function MockInterviewScreen({ navigation, route }) {
         contentContainerStyle={styles.content}
       >
         <View style={styles.topBar}>
+          <HapticPressable
+            onPress={() => navigation.goBack()}
+            style={({ pressed }) => [styles.topBackButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.topBackButtonText}>Back</Text>
+          </HapticPressable>
           <View style={styles.categoryPill}>
             <Text selectable style={styles.categoryText}>
               {categoryName}
@@ -1081,28 +971,6 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1
   },
-  limitCard: {
-    backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 16,
-    padding: 22
-  },
-  limitText: {
-    color: COLORS.muted,
-    fontSize: 16,
-    fontWeight: "700",
-    lineHeight: 24,
-    textAlign: "center"
-  },
-  limitTitle: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: "900",
-    lineHeight: 35,
-    textAlign: "center"
-  },
   loadingBox: {
     alignItems: "center",
     gap: 14
@@ -1368,6 +1236,21 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
     fontWeight: "900",
     lineHeight: 42
+  },
+  topBackButton: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: "#2A2A2A",
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 42,
+    paddingHorizontal: 14
+  },
+  topBackButtonText: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "900"
   },
   topBar: {
     alignItems: "center",

@@ -89,6 +89,9 @@ Important rules:
 - Never put Firebase Admin credentials in root/mobile env.
 - Backend secrets belong only in `/server` env or the backend deployment platform.
 - `EXPO_PUBLIC_API_BASE_URL` should point to the backend API.
+- Current pre-Play-Store dev-client/local preview APK testing uses RevenueCat Test Store.
+- Google Play internal/closed testing later should use the Android RevenueCat public API key, not the Test Store key.
+- RevenueCat entitlement id must remain `premium`.
 - OpenAI keys are not used for now and should not be added.
 
 See [docs/MOBILE_DEPLOYMENT.md](docs/MOBILE_DEPLOYMENT.md), [docs/BACKEND_DEPLOYMENT.md](docs/BACKEND_DEPLOYMENT.md), and [docs/PRODUCTION_ENV_CHECKLIST.md](docs/PRODUCTION_ENV_CHECKLIST.md).
@@ -147,6 +150,7 @@ npm test
 - [Backend deployment](docs/BACKEND_DEPLOYMENT.md)
 - [Mobile deployment](docs/MOBILE_DEPLOYMENT.md)
 - [Production environment checklist](docs/PRODUCTION_ENV_CHECKLIST.md)
+- [EAS Update / OTA updates](docs/EAS_UPDATES.md)
 - [EAS preview build setup](docs/EAS_PREVIEW_BUILD_SETUP.md)
 - [APK manual QA checklist](docs/APK_MANUAL_QA_CHECKLIST.md)
 - [Local QA report](docs/LOCAL_QA_REPORT.md)

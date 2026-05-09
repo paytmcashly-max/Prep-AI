@@ -91,6 +91,18 @@ describe("backend app", () => {
     expect(response.body).toEqual({ error: "Authentication required." });
   });
 
+  it("GET /api/usage/status without Authorization returns 401", async () => {
+    const response = await request(app).get("/api/usage/status").expect(401);
+
+    expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
+  it("GET /api/resume/latest without Authorization returns 401", async () => {
+    const response = await request(app).get("/api/resume/latest").expect(401);
+
+    expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
   it("POST /api/subscription/sync without Authorization returns 401", async () => {
     const response = await request(app)
       .post("/api/subscription/sync")
@@ -151,10 +163,42 @@ describe("backend app", () => {
     expect(isSubscriptionActiveFromData({ isPremium: false })).toBe(false);
   });
 
+  it("client subscription sync records are not authoritative for premium access", async () => {
+    const { createUnverifiedSubscriptionRecord } =
+      await import("../src/services/subscriptionService.js");
+
+    const record = createUnverifiedSubscriptionRecord({
+      activeEntitlements: ["premium"],
+      entitlementId: "premium",
+      expirationDate: null,
+      isPremium: true,
+      source: "revenuecat"
+    });
+
+    expect(record).toMatchObject({
+      clientReportedIsPremium: true,
+      isPremium: false,
+      verificationStatus: "client_reported_unverified"
+    });
+  });
+
   it("daily usage period resets at India midnight", async () => {
-    const { getDailyPeriodKey } = await import("../src/services/usageService.js");
+    const { getDailyPeriodKey, getDailyResetAt } = await import("../src/services/usageService.js");
 
     expect(getDailyPeriodKey(new Date("2026-05-08T18:29:59.000Z"))).toBe("2026-05-08");
     expect(getDailyPeriodKey(new Date("2026-05-08T18:30:00.000Z"))).toBe("2026-05-09");
+    expect(getDailyResetAt(new Date("2026-05-08T18:29:59.000Z"))).toBe("2026-05-08T18:30:00.000Z");
+  });
+
+  it("resume usage period resets every 3 India calendar days", async () => {
+    const { getThreeDayResumePeriodKey, getThreeDayResumeResetAt } =
+      await import("../src/services/usageService.js");
+
+    expect(getThreeDayResumePeriodKey(new Date("1970-01-01T00:00:00.000Z"))).toBe("1970-01-01");
+    expect(getThreeDayResumePeriodKey(new Date("1970-01-03T18:29:59.000Z"))).toBe("1970-01-01");
+    expect(getThreeDayResumePeriodKey(new Date("1970-01-03T18:30:00.000Z"))).toBe("1970-01-04");
+    expect(getThreeDayResumeResetAt(new Date("1970-01-01T00:00:00.000Z"))).toBe(
+      "1970-01-03T18:30:00.000Z"
+    );
   });
 });

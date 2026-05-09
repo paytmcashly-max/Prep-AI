@@ -70,8 +70,12 @@ const getPackageLabel = (packageToDisplay) => {
   return packageToDisplay?.product?.title || packageToDisplay?.identifier || "Premium";
 };
 
+// Real Google Play/App Store products return localized store pricing through RevenueCat.
+// Test Store pricing may reflect the configured Test Store product price.
 const getPackagePrice = (packageToDisplay) =>
-  packageToDisplay?.product?.priceString || packageToDisplay?.product?.localizedPriceString || "";
+  packageToDisplay?.product?.priceString ||
+  packageToDisplay?.product?.localizedPriceString ||
+  "Price unavailable";
 
 function FeatureRow({ available = true, label }) {
   return (
@@ -125,10 +129,8 @@ export default function PaywallScreen({ navigation }) {
         setOfferings(loadedOfferings);
         setSelectedPackage(packages[0] || null);
 
-        if (subscriptionStatus.isPremium) {
-          setStatusMessage("Premium is active on this account.");
-        } else if (!packages.length) {
-          setStatusMessage("No premium plans are available for this build yet.");
+        if (!subscriptionStatus.isPremium && packages.length) {
+          setStatusMessage("");
         }
       } catch {
         if (isMounted) {
@@ -150,7 +152,7 @@ export default function PaywallScreen({ navigation }) {
 
   const startPurchase = async () => {
     if (!selectedPackage) {
-      Alert.alert("No plans available", "Premium plans are not available right now.");
+      Alert.alert("No plans available", "Purchases are not available in this beta build yet.");
       return;
     }
 
@@ -205,7 +207,7 @@ export default function PaywallScreen({ navigation }) {
     } catch {
       Alert.alert(
         "Manage subscription",
-        "Open Google Play Store > Payments & subscriptions > Subscriptions to cancel or manage PrepAI Premium."
+        "Subscription management is unavailable for this build. If you purchased through Google Play, open Google Play Store > Payments & subscriptions > Subscriptions. If you are testing with RevenueCat Test Store, manage the test purchase from the RevenueCat dashboard."
       );
     }
   };
@@ -295,13 +297,13 @@ export default function PaywallScreen({ navigation }) {
                   {isYearly ? (
                     <View style={styles.saveBadge}>
                       <Text selectable style={styles.saveBadgeText}>
-                        Save 44%
+                        Best value
                       </Text>
                     </View>
                   ) : null}
                 </View>
                 <Text selectable style={styles.planPrice}>
-                  {getPackagePrice(availablePackage) || "Price unavailable"}
+                  {getPackagePrice(availablePackage)}
                 </Text>
               </HapticPressable>
             );
@@ -312,10 +314,10 @@ export default function PaywallScreen({ navigation }) {
               Plans unavailable
             </Text>
             <Text selectable style={styles.messageTitle}>
-              No plans available
+              Purchases unavailable
             </Text>
             <Text selectable style={styles.messageText}>
-              Premium plans are not configured for this build yet. Free practice still works.
+              Purchases are not available in this beta build yet. Free practice still works.
             </Text>
           </View>
         )}
@@ -356,7 +358,7 @@ export default function PaywallScreen({ navigation }) {
           onPress={manageSubscription}
           style={({ pressed }) => [styles.manageButton, pressed && styles.pressed]}
         >
-          <Text style={styles.manageButtonText}>Manage / Cancel Premium</Text>
+          <Text style={styles.manageButtonText}>Manage Subscription</Text>
         </HapticPressable>
       ) : null}
 

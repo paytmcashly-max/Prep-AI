@@ -39,7 +39,7 @@ Use this checklist before preparing the PrepAI MVP for store submission or publi
 - [ ] Full valid signup/login flow verified in APK
 - [ ] Full 5-question interview session verified in APK
 - [ ] Resume PDF picker edge cases verified in APK
-- [x] Dev-client real-device regression passes for premium quota bypass, interview length, free-user limit, and resume flow
+- [x] Dev-client real-device regression passed for interview length, free-user limit, and resume flow
 - [x] EAS preview APK build completes on merged `main`
 - [x] Latest preview APK real Android phone smoke test passes on local same-WiFi backend
 - [ ] Notification banner/head-up behavior verified in latest preview APK
@@ -52,6 +52,10 @@ Use this checklist before preparing the PrepAI MVP for store submission or publi
 - [x] Restore purchases path exists
 - [ ] RevenueCat Test Store offerings verified in APK
 - [ ] RevenueCat Test Store purchase and restore verified in APK
+- [ ] RevenueCat entitlement id verified as exactly `premium`
+- [ ] RevenueCat Test Store products attached to the `premium` entitlement and included in offerings
+- [ ] Release-style preview APKs and Google Play builds verified without RevenueCat Test Store API key
+- [ ] Server-side RevenueCat verification or webhook updates verified subscription status before backend premium quota bypass
 
 ## Testing
 

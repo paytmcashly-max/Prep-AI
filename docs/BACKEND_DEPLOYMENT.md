@@ -15,6 +15,27 @@ npm start
 
 `npm start` runs the compiled server from `dist/index.js`.
 
+## Recommended Beta Host
+
+For the first public beta, use a single Render Web Service. PrepAI's backend is one Node.js API service with no separate worker or database process, so Render's Git-backed web service flow is the simplest option to operate and verify.
+
+Recommended Render settings:
+
+- Service type: Web Service
+- Root directory: `server`
+- Runtime: Node
+- Build command: `npm ci && npm run build`
+- Start command: `npm start`
+- Health check path: `/health`
+
+Render provides a `PORT` environment variable for web services. The server already reads `process.env.PORT`, so do not hardcode a port in the code or deployment command.
+
+Other options:
+
+- Railway is also simple for Node.js apps, but Render's explicit health check path and dashboard flow are a good fit for this beta API.
+- Fly.io is powerful but usually adds more setup and operations overhead than needed for the first beta.
+- A VPS is not recommended for this stage because it requires manual TLS, process management, firewall, deploy, and monitoring work.
+
 ## Required Environment Variables
 
 Set these variables in the deployment platform's environment settings. Never commit real values to the repository.
@@ -81,6 +102,35 @@ After deploying:
 - Confirm protected endpoints reject requests without Firebase auth.
 - Confirm `CORS_ORIGIN` allows only the intended deployed origin.
 - Confirm logs do not include API keys, Firebase tokens, resume text, or user answers.
+
+## Render Deployment Steps
+
+1. Push the backend code to GitHub from an approved branch.
+2. In Render, create a new Web Service from `https://github.com/paytmcashly-max/Prep-AI`.
+3. Set Root Directory to `server`.
+4. Set Build Command to `npm ci && npm run build`.
+5. Set Start Command to `npm start`.
+6. Set Health Check Path to `/health`.
+7. Add the required environment variables in the Render dashboard. Do not paste real values into source files or commit them.
+8. Deploy the service and wait for it to become live.
+9. Verify:
+
+```sh
+curl https://your-render-service.onrender.com/health
+curl https://your-render-service.onrender.com/ready
+```
+
+`/ready` should return HTTP 200 only after Firebase Admin and Groq environment variables are configured.
+
+## Mobile Preview Env After Deployment
+
+After the backend has a public URL, update the EAS preview environment:
+
+```sh
+EXPO_PUBLIC_API_BASE_URL=https://your-render-service.onrender.com
+```
+
+Then create a fresh preview APK for testers. Local LAN URLs such as `http://172.20.10.7:3000` are only for same-Wi-Fi testing and should not be used for external beta testers.
 
 ## Protected API Routes
 

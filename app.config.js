@@ -24,6 +24,7 @@ module.exports = ({ config }) => ({
     revenueCatTestStoreApiKey: process.env.EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY,
     revenueCatIosApiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
     revenueCatAndroidApiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
+    revenueCatBillingProvider: process.env.EXPO_PUBLIC_REVENUECAT_BILLING_PROVIDER,
     revenueCatEntitlementId: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID,
     privacyPolicyUrl:
       process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL || appJson.expo.extra?.privacyPolicyUrl,

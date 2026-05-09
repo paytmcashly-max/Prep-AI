@@ -1,8 +1,7 @@
-import Groq from "groq-sdk";
 import { z } from "zod";
 
 import { config } from "../config.js";
-import { logger } from "../logger.js";
+import { generateGroqJson } from "./groqJsonService.js";
 
 export type EvaluateInterviewAnswerInput = {
   question: string;
@@ -35,31 +34,53 @@ const evaluationSchema = z.object({
   idealAnswer: z.string()
 });
 
+const truncateWords = (value: string, maxWords: number) => {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+
+  if (words.length <= maxWords) {
+    return value.trim();
+  }
+
+  return `${words.slice(0, maxWords).join(" ")}...`;
+};
+
+const truncateCharacters = (value: string, maxCharacters: number) => {
+  const normalized = value.trim().replace(/\s+/g, " ");
+
+  if (normalized.length <= maxCharacters) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxCharacters - 3).trim()}...`;
+};
+
+const normalizeEvaluation = (evaluation: InterviewEvaluation): InterviewEvaluation => ({
+  score: Math.max(0, Math.min(10, Number(evaluation.score || 0))),
+  strengths: evaluation.strengths.slice(0, 3).map((strength) => truncateCharacters(strength, 160)),
+  improvements: evaluation.improvements
+    .slice(0, 3)
+    .map((improvement) => truncateCharacters(improvement, 180)),
+  idealAnswer: truncateWords(evaluation.idealAnswer, 160)
+});
+
 export const evaluateInterviewAnswer = async (
   input: EvaluateInterviewAnswerInput
 ): Promise<InterviewEvaluation> => {
-  const apiKey = config.GROQ_API_KEY;
-
-  if (!apiKey) {
-    return fallbackEvaluation;
-  }
-
-  const groq = new Groq({ apiKey });
-  const model = config.GROQ_EVALUATION_MODEL;
-
-  try {
-    const completion = await groq.chat.completions.create({
-      model,
-      temperature: 0.2,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a strict but helpful interview coach. Score realistically and give specific coaching. Respond ONLY in valid JSON with no markdown or extra text."
-        },
-        {
-          role: "user",
-          content: `Evaluate this interview answer for a ${input.jobRole} candidate.
+  const evaluation = await generateGroqJson({
+    fallback: fallbackEvaluation,
+    model: config.GROQ_EVALUATION_MODEL,
+    schema: evaluationSchema,
+    serviceName: "evaluationService",
+    temperature: 0.2,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a strict but helpful interview coach. Score realistically and give specific coaching. Respond ONLY in valid JSON with no markdown or extra text."
+      },
+      {
+        role: "user",
+        content: `Evaluate this interview answer for a ${input.jobRole} candidate.
 
 Question:
 ${input.question}
@@ -74,6 +95,10 @@ Scoring rubric:
 - 9-10: concise, highly specific, measurable impact, and strong role fit.
 
 Make every improvement actionable. Include concrete rewrite examples the candidate can copy or adapt. Do not be overly generous.
+Keep feedback concise:
+- strengths: maximum 3 short bullets.
+- improvements: maximum 3 short, actionable bullets.
+- idealAnswer: useful but compact, around 120-160 words maximum.
 
 Return strict JSON in this exact shape:
 {
@@ -82,27 +107,9 @@ Return strict JSON in this exact shape:
   "improvements": string[],
   "idealAnswer": string
 }`
-        }
-      ]
-    });
+      }
+    ]
+  });
 
-    const content = completion.choices[0]?.message?.content;
-
-    if (!content) {
-      logger.warn("Groq evaluation returned empty response", {
-        service: "evaluationService"
-      });
-      return fallbackEvaluation;
-    }
-
-    return evaluationSchema.parse(JSON.parse(content));
-  } catch (error) {
-    logger.error("Groq evaluation failed safely", {
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
-      errorName: error instanceof Error ? error.name : "UnknownError",
-      service: "evaluationService"
-    });
-
-    return fallbackEvaluation;
-  }
+  return normalizeEvaluation(evaluation);
 };

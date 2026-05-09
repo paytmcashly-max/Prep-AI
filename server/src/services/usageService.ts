@@ -16,10 +16,24 @@ type UsageLimitConfig = {
   type: UsageType;
 };
 
+type UsageQuotaStatus = {
+  limit: number;
+  used: number;
+  remaining: number;
+  resetAt: string;
+  isPremium: boolean;
+};
+
 const usageLimitsCollection = "usageLimits";
 const subscriptionCollectionPath = "subscription";
 const subscriptionDocumentId = "main";
 const quotaResetTimeZone = "Asia/Kolkata";
+const kolkataOffsetMs = 5.5 * 60 * 60 * 1000;
+const dayMs = 24 * 60 * 60 * 1000;
+const dailyInterviewLimit = 5;
+const dailyEvaluationLimit = 5;
+const threeDayResumeLimit = 1;
+const resumePeriodDays = 3;
 
 const getTimeZoneDateParts = (date: Date, timeZone: string) =>
   Object.fromEntries(
@@ -44,7 +58,50 @@ export const getDailyPeriodKey = (date = new Date(), timeZone = quotaResetTimeZo
   return `${parts.year}-${parts.month}-${parts.day}`;
 };
 
-const getMonthlyPeriodKey = () => new Date().toISOString().slice(0, 7);
+export const getDailyResetAt = (date = new Date()) => {
+  const kolkataDate = new Date(date.getTime() + kolkataOffsetMs);
+  const resetAtUtc =
+    Date.UTC(
+      kolkataDate.getUTCFullYear(),
+      kolkataDate.getUTCMonth(),
+      kolkataDate.getUTCDate() + 1
+    ) - kolkataOffsetMs;
+
+  return new Date(resetAtUtc).toISOString();
+};
+
+const getKolkataDayIndex = (date: Date) => {
+  const kolkataDate = new Date(date.getTime() + kolkataOffsetMs);
+  return Math.floor(
+    Date.UTC(kolkataDate.getUTCFullYear(), kolkataDate.getUTCMonth(), kolkataDate.getUTCDate()) /
+      dayMs
+  );
+};
+
+const formatUtcDayIndex = (dayIndex: number) => {
+  const date = new Date(dayIndex * dayMs);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+export const getThreeDayResumePeriodKey = (date = new Date()) => {
+  const dayIndex = getKolkataDayIndex(date);
+  const periodStartDayIndex = Math.floor(dayIndex / resumePeriodDays) * resumePeriodDays;
+
+  return formatUtcDayIndex(periodStartDayIndex);
+};
+
+export const getThreeDayResumeResetAt = (date = new Date()) => {
+  const dayIndex = getKolkataDayIndex(date);
+  const nextPeriodStartDayIndex =
+    Math.floor(dayIndex / resumePeriodDays) * resumePeriodDays + resumePeriodDays;
+  const resetAtUtc = nextPeriodStartDayIndex * dayMs - kolkataOffsetMs;
+
+  return new Date(resetAtUtc).toISOString();
+};
 
 const getUsageDocumentId = (uid: string, type: UsageType, period: string) =>
   `${uid}_${type}_${period}`;
@@ -138,9 +195,74 @@ const consumeUsage = async (uid: string, config: UsageLimitConfig) => {
   });
 };
 
+const readUsageCount = async (uid: string, type: UsageType, period: string) => {
+  const firestore = getFirebaseAdmin().firestore();
+  const usageSnapshot = await firestore
+    .collection(usageLimitsCollection)
+    .doc(getUsageDocumentId(uid, type, period))
+    .get();
+
+  if (!usageSnapshot.exists) {
+    return 0;
+  }
+
+  return Math.max(0, Number(usageSnapshot.data()?.count || 0));
+};
+
+const createQuotaStatus = ({
+  isPremium,
+  limit,
+  resetAt,
+  used
+}: {
+  isPremium: boolean;
+  limit: number;
+  resetAt: string;
+  used: number;
+}): UsageQuotaStatus => ({
+  isPremium,
+  limit,
+  remaining: isPremium ? limit : Math.max(0, limit - used),
+  resetAt,
+  used
+});
+
+export const getUsageStatus = async (uid: string, date = new Date()) => {
+  const isPremium = await hasActivePremiumSubscription(uid);
+  const dailyPeriod = getDailyPeriodKey(date);
+  const resumePeriod = getThreeDayResumePeriodKey(date);
+  const [interviewUsed, evaluationUsed, resumeUsed] = await Promise.all([
+    readUsageCount(uid, "interview", dailyPeriod),
+    readUsageCount(uid, "evaluation", dailyPeriod),
+    readUsageCount(uid, "resume", resumePeriod)
+  ]);
+
+  return {
+    isPremium,
+    interview: createQuotaStatus({
+      isPremium,
+      limit: dailyInterviewLimit,
+      resetAt: getDailyResetAt(date),
+      used: interviewUsed
+    }),
+    evaluation: createQuotaStatus({
+      isPremium,
+      limit: dailyEvaluationLimit,
+      resetAt: getDailyResetAt(date),
+      used: evaluationUsed
+    }),
+    resume: createQuotaStatus({
+      isPremium,
+      limit: threeDayResumeLimit,
+      resetAt: getThreeDayResumeResetAt(date),
+      used: resumeUsed
+    })
+  };
+};
+
 export const trackInterviewQuestionUsage = async (uid: string) => {
   await consumeUsage(uid, {
-    limit: 5,
+    limit: dailyInterviewLimit,
     period: getDailyPeriodKey(),
     type: "interview"
   });
@@ -148,7 +270,7 @@ export const trackInterviewQuestionUsage = async (uid: string) => {
 
 export const trackAnswerEvaluationUsage = async (uid: string) => {
   await consumeUsage(uid, {
-    limit: 5,
+    limit: dailyEvaluationLimit,
     period: getDailyPeriodKey(),
     type: "evaluation"
   });
@@ -156,8 +278,8 @@ export const trackAnswerEvaluationUsage = async (uid: string) => {
 
 export const trackResumeAnalysisUsage = async (uid: string) => {
   await consumeUsage(uid, {
-    limit: 1,
-    period: getMonthlyPeriodKey(),
+    limit: threeDayResumeLimit,
+    period: getThreeDayResumePeriodKey(),
     type: "resume"
   });
 };

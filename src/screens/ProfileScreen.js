@@ -105,7 +105,7 @@ export default function ProfileScreen({ navigation }) {
   );
   const user = getCurrentUser();
   const displayName =
-    user?.displayName?.trim() || profile.fullName || profile.name || "PrepAI User";
+    profile.fullName?.trim() || profile.name?.trim() || user?.displayName?.trim() || "PrepAI User";
   const email = user?.email || "Email not available";
   const initials = useMemo(() => getInitials(displayName, email), [displayName, email]);
   const [stats, setStats] = useState({
@@ -206,7 +206,7 @@ export default function ProfileScreen({ navigation }) {
     } catch {
       Alert.alert(
         "Manage subscription",
-        "Open Google Play Store > Payments & subscriptions > Subscriptions to cancel or manage PrepAI Premium."
+        "Subscription management is unavailable for this build. If you purchased through Google Play, open Google Play Store > Payments & subscriptions > Subscriptions. If you are testing with RevenueCat Test Store, manage the test purchase from the RevenueCat dashboard."
       );
     }
   };
@@ -346,8 +346,8 @@ export default function ProfileScreen({ navigation }) {
           />
           {isPremium ? (
             <SettingRow
-              label="Cancel Premium"
-              detail="Manage billing in Google Play"
+              label="Manage Subscription"
+              detail="Cancel or update from your store account"
               onPress={manageSubscription}
             />
           ) : null}

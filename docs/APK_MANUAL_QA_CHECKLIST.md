@@ -12,7 +12,7 @@ Use this checklist for final manual QA on an EAS preview Android APK.
 | Open app                     | App opens without crashing                               | Pass      | Package `com.prepai.prepai` launched; no fatal launch crash found      |
 | Backend URL                  | `EXPO_PUBLIC_API_BASE_URL` points to a reachable backend | Pass      | Local same-WiFi LAN backend reached during real-device smoke           |
 | Firebase config              | Signup/login screens do not show invalid API key errors  | Pass      | Preview APK real-device smoke passed                                   |
-| RevenueCat Test Store config | Test Store offerings load if configured                  | Pending   | Test Store offering/purchase/restore not verified                      |
+| RevenueCat Test Store config | Test Store offerings load if configured                  | Pending   | Use Test Store key for pre-Play-Store dev-client/local preview APK QA  |
 | Real device test             | APK opens on a physical Android phone                    | Pass      | Preview APK real-device smoke passed on local same-WiFi backend        |
 
 ## Core App Flow
@@ -120,13 +120,16 @@ Beta can start only after:
 
 ## Expected Limitations
 
-| Limitation            | Notes                                                                                                                                                                                         |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Local backend IP      | A local IP backend only works when the phone/emulator can reach the developer machine on the same network. For external testers, use a deployed backend URL.                                  |
-| Google Play billing   | Real Google Play billing should be tested later through internal or closed testing tracks.                                                                                                    |
-| RevenueCat Test Store | RevenueCat Test Store is for development only and should not be treated as production billing validation.                                                                                     |
-| EAS env changes       | Changing EAS environment variables requires a new APK build.                                                                                                                                  |
-| Android notifications | Users must enable app notifications and banner/pop-on-screen behavior for the notification channel in system settings. On Redmi/MIUI, floating notifications may need to be enabled manually. |
+| Limitation              | Notes                                                                                                                                                                                         |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local backend IP        | A local IP backend only works when the phone/emulator can reach the developer machine on the same network. For external testers, use a deployed backend URL.                                  |
+| Google Play billing     | Real Google Play billing should be tested later through internal or closed testing tracks.                                                                                                    |
+| RevenueCat Test Store   | RevenueCat Test Store is for development only and should not be treated as production billing validation.                                                                                     |
+| RevenueCat entitlement  | Entitlement identifier must be exactly `premium`; Test Store products must be attached to that entitlement and included in offerings.                                                         |
+| Play billing switch     | Google Play internal/closed testing later should use the Android RevenueCat public API key and must not ship with the Test Store API key.                                                     |
+| Subscription management | Use RevenueCat SDK `managementURL` when available; Test Store purchases may need to be managed from the RevenueCat dashboard.                                                                 |
+| EAS env changes         | Changing EAS environment variables requires a new APK build.                                                                                                                                  |
+| Android notifications   | Users must enable app notifications and banner/pop-on-screen behavior for the notification channel in system settings. On Redmi/MIUI, floating notifications may need to be enabled manually. |
 
 ## Final Result
 

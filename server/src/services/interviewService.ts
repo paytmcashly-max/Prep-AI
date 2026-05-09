@@ -1,8 +1,7 @@
-import Groq from "groq-sdk";
 import { z } from "zod";
 
 import { config } from "../config.js";
-import { logger } from "../logger.js";
+import { generateGroqJson } from "./groqJsonService.js";
 
 export type InterviewQuestionInput = {
   jobRole: string;
@@ -12,8 +11,11 @@ export type InterviewQuestionInput = {
   previousQuestions?: string[];
 };
 
+const MAX_QUESTION_WORDS = 22;
+const MAX_QUESTION_LENGTH = 180;
+
 const questionSchema = z.object({
-  question: z.string().trim().min(1).max(500)
+  question: z.string().trim().min(1).max(MAX_QUESTION_LENGTH)
 });
 
 const fallbackQuestions: Record<string, string[]> = {
@@ -49,6 +51,32 @@ const fallbackQuestions: Record<string, string[]> = {
 
 const normalizeText = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
 
+const countWords = (value: string) => value.trim().split(/\s+/).filter(Boolean).length;
+
+const isHardDifficulty = (difficulty: string) => normalizeText(difficulty).includes("hard");
+
+const isMultiSentenceQuestion = (question: string) => (question.match(/[.!?]+/g) || []).length > 1;
+
+const normalizeQuestion = (question: string) =>
+  question
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\s+/g, " ");
+
+const isQuestionConciseEnough = (question: string, difficulty: string) => {
+  const normalizedQuestion = normalizeQuestion(question);
+
+  if (countWords(normalizedQuestion) > MAX_QUESTION_WORDS) {
+    return false;
+  }
+
+  if (!isHardDifficulty(difficulty) && isMultiSentenceQuestion(normalizedQuestion)) {
+    return false;
+  }
+
+  return normalizedQuestion.length <= MAX_QUESTION_LENGTH;
+};
+
 const getFallbackQuestionBank = (category: string) => {
   const normalizedCategory = normalizeText(category);
 
@@ -78,14 +106,7 @@ const pickFallbackQuestion = (input: InterviewQuestionInput) => {
 };
 
 export const generateInterviewQuestion = async (input: InterviewQuestionInput) => {
-  const apiKey = config.GROQ_API_KEY;
-
-  if (!apiKey) {
-    return pickFallbackQuestion(input);
-  }
-
-  const groq = new Groq({ apiKey });
-  const model = config.GROQ_QUESTION_MODEL;
+  const fallbackQuestion = pickFallbackQuestion(input);
   const previousQuestions = input.previousQuestions?.length
     ? input.previousQuestions.map((question) => `- ${question}`).join("\n")
     : "- None";
@@ -93,19 +114,21 @@ export const generateInterviewQuestion = async (input: InterviewQuestionInput) =
     ? `Target company: ${input.company}`
     : "Target company: general";
 
-  try {
-    const completion = await groq.chat.completions.create({
-      model,
-      temperature: 0.7,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an expert interview coach. Generate one fresh interview question. Respond ONLY in valid JSON with no markdown or extra text."
-        },
-        {
-          role: "user",
-          content: `Create one interview question for this candidate.
+  const parsedQuestion = await generateGroqJson({
+    fallback: fallbackQuestion,
+    model: config.GROQ_QUESTION_MODEL,
+    schema: questionSchema,
+    serviceName: "interviewService",
+    temperature: 0.7,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an expert interview coach. Generate one fresh, concise interview question. Respond ONLY in valid JSON with no markdown or extra text."
+      },
+      {
+        role: "user",
+        content: `Create one interview question for this candidate.
 
 Job role: ${input.jobRole}
 Category: ${input.category}
@@ -115,38 +138,32 @@ ${companyLine}
 Avoid repeating or closely paraphrasing these previous questions:
 ${previousQuestions}
 
+Question rules:
+- One sentence only.
+- Around ${MAX_QUESTION_WORDS} words maximum.
+- Ask one clear thing.
+- Do not ask multi-part questions unless difficulty is hard.
+- Keep the wording mobile-friendly and easy to read.
+
 Return strict JSON:
 {
   "question": "one concise question"
 }`
-        }
-      ]
-    });
+      }
+    ]
+  });
 
-    const content = completion.choices[0]?.message?.content;
+  const normalizedQuestion = normalizeQuestion(parsedQuestion.question);
+  const previous = new Set((input.previousQuestions || []).map(normalizeText));
 
-    if (!content) {
-      logger.warn("Groq question generation returned empty response", {
-        service: "interviewService"
-      });
-      return pickFallbackQuestion(input);
-    }
-
-    const parsedQuestion = questionSchema.parse(JSON.parse(content));
-    const previous = new Set((input.previousQuestions || []).map(normalizeText));
-
-    if (previous.has(normalizeText(parsedQuestion.question))) {
-      return pickFallbackQuestion(input);
-    }
-
-    return parsedQuestion;
-  } catch (error) {
-    logger.error("Groq question generation failed safely", {
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
-      errorName: error instanceof Error ? error.name : "UnknownError",
-      service: "interviewService"
-    });
-
-    return pickFallbackQuestion(input);
+  if (
+    previous.has(normalizeText(normalizedQuestion)) ||
+    !isQuestionConciseEnough(normalizedQuestion, input.difficulty)
+  ) {
+    return fallbackQuestion;
   }
+
+  return {
+    question: normalizedQuestion
+  };
 };

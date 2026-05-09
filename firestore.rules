@@ -20,7 +20,22 @@ service cloud.firestore {
     match /users/{uid} {
       allow read, write: if isOwner(uid);
 
-      match /{document=**} {
+      // Subscription status is written by the backend/Admin after server-side verification.
+      // Clients may read their own status for UI, but must not be able to grant themselves premium.
+      match /subscription/{docId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      match /profile/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /sessions/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /dailyUsage/{docId} {
         allow read, write: if isOwner(uid);
       }
     }

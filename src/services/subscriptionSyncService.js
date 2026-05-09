@@ -1,7 +1,5 @@
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-
 import { postAuthenticatedJson } from "./apiClient";
-import { auth, firestore } from "./firebaseConfig";
+import { auth } from "./firebaseConfig";
 
 const DEFAULT_ENTITLEMENT_ID = "premium";
 
@@ -10,7 +8,7 @@ const getEntitlementId = (status) =>
   process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID ||
   DEFAULT_ENTITLEMENT_ID;
 
-export const syncSubscriptionStatusToFirestore = async (status) => {
+export const syncSubscriptionStatusWithBackend = async (status) => {
   const uid = auth.currentUser?.uid;
 
   if (!uid || !status) {
@@ -26,22 +24,12 @@ export const syncSubscriptionStatusToFirestore = async (status) => {
   };
 
   try {
-    await postAuthenticatedJson("/api/subscription/sync", payload);
-    return;
+    return await postAuthenticatedJson("/api/subscription/sync", payload);
   } catch (error) {
     if (typeof __DEV__ !== "undefined" && __DEV__) {
-      console.warn("Backend subscription sync failed; trying Firestore fallback", {
+      console.warn("Backend subscription sync failed", {
         errorMessage: error instanceof Error ? error.message : "Unknown error"
       });
     }
   }
-
-  await setDoc(
-    doc(firestore, "users", uid, "subscription", "main"),
-    {
-      ...payload,
-      updatedAt: serverTimestamp()
-    },
-    { merge: true }
-  );
 };

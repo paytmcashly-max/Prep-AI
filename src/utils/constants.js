@@ -22,8 +22,6 @@ export const SPACING = {
   xl: 32
 };
 
-export const AI_MODEL = "gpt-4o";
-
 export const PREMIUM_PLANS = {
   monthly: {
     productId: "premium_monthly",

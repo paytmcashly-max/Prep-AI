@@ -7,6 +7,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/b1741c61-796c-457e-ac99-18d4e06fd66e"
+    },
     "backgroundColor": "#0A0A0A",
     "primaryColor": "#6C63FF",
     "icon": "./assets/icon.png",
@@ -31,7 +35,7 @@
         "backgroundColor": "#0A0A0A"
       }
     },
-    "plugins": ["expo-font", "expo-notifications", "expo-image-picker", "expo-document-picker"],
+    "plugins": ["expo-font", "expo-notifications", "expo-document-picker"],
     "extra": {
       "privacyPolicyUrl": "https://example.com/prepai/privacy",
       "termsUrl": "https://example.com/prepai/terms",

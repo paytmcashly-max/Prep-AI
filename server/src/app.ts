@@ -22,8 +22,10 @@ import {
   trackAnswerEvaluationUsage,
   trackInterviewQuestionUsage,
   trackResumeAnalysisUsage,
+  getUsageStatus,
   UsageLimitError
 } from "./services/usageService.js";
+import { createUnverifiedSubscriptionRecord } from "./services/subscriptionService.js";
 
 export const app = express();
 
@@ -145,6 +147,71 @@ const getResumeAnalysisInput = async (request: Request) => {
   return parsedJson.data;
 };
 
+const serializeFirestoreValue = (value: unknown): unknown => {
+  if (value && typeof value === "object" && "toDate" in value) {
+    const timestamp = value as { toDate: () => Date };
+    return timestamp.toDate().toISOString();
+  }
+
+  return value;
+};
+
+const saveResumeAnalysis = async ({
+  analysis,
+  jobRole,
+  uid
+}: {
+  analysis: Awaited<ReturnType<typeof analyzeResume>>;
+  jobRole: string;
+  uid: string;
+}) => {
+  const firebaseAdmin = getFirebaseAdmin();
+
+  await firebaseAdmin
+    .firestore()
+    .collection("users")
+    .doc(uid)
+    .collection("resumeAnalyses")
+    .add({
+      atsScore: analysis.atsScore,
+      createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      grammarIssues: analysis.grammarIssues,
+      jobRole,
+      missingKeywords: analysis.missingKeywords,
+      rewriteSuggestions: analysis.rewriteSuggestions || [],
+      sectionFeedback: analysis.sectionFeedback
+    });
+};
+
+const getLatestResumeAnalysis = async (uid: string) => {
+  const snapshot = await getFirebaseAdmin()
+    .firestore()
+    .collection("users")
+    .doc(uid)
+    .collection("resumeAnalyses")
+    .orderBy("createdAt", "desc")
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  const doc = snapshot.docs[0];
+  const data = doc.data();
+
+  return {
+    id: doc.id,
+    atsScore: data.atsScore,
+    createdAt: serializeFirestoreValue(data.createdAt),
+    grammarIssues: data.grammarIssues || [],
+    jobRole: data.jobRole || "",
+    missingKeywords: data.missingKeywords || [],
+    rewriteSuggestions: data.rewriteSuggestions || [],
+    sectionFeedback: data.sectionFeedback || {}
+  };
+};
+
 const getReadinessChecks = () => {
   const firebase = Boolean(
     config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY
@@ -204,6 +271,22 @@ app.get("/ready", (_request, response) => {
   });
 });
 
+app.get("/api/usage/status", requireFirebaseAuth, async (request, response, next) => {
+  try {
+    response.json(await getUsageStatus(getAuthenticatedUid(request)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/resume/latest", requireFirebaseAuth, async (request, response, next) => {
+  try {
+    response.json(await getLatestResumeAnalysis(getAuthenticatedUid(request)));
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post(
   "/api/interview",
   requireFirebaseAuth,
@@ -246,8 +329,19 @@ app.post(
   async (request, response, next) => {
     try {
       const input = await getResumeAnalysisInput(request);
-      await trackResumeAnalysisUsage(getAuthenticatedUid(request));
+      const uid = getAuthenticatedUid(request);
+      await trackResumeAnalysisUsage(uid);
       const analysis = await analyzeResume(input);
+      await saveResumeAnalysis({
+        analysis,
+        jobRole: input.jobRole,
+        uid
+      }).catch((error) => {
+        logger.warn("Latest resume analysis could not be saved", {
+          errorMessage: error instanceof Error ? error.message : "Unknown error",
+          errorName: error instanceof Error ? error.name : "UnknownError"
+        });
+      });
 
       response.json(analysis);
     } catch (error) {
@@ -262,8 +356,7 @@ app.post("/api/subscription/sync", requireFirebaseAuth, async (request, response
     const uid = getAuthenticatedUid(request);
     const firebaseAdmin = getFirebaseAdmin();
     const firestore = firebaseAdmin.firestore();
-    const entitlementIsActive = input.activeEntitlements.includes(input.entitlementId);
-    const isPremium = input.isPremium && entitlementIsActive;
+    const subscriptionRecord = createUnverifiedSubscriptionRecord(input);
 
     await firestore
       .collection("users")
@@ -272,18 +365,14 @@ app.post("/api/subscription/sync", requireFirebaseAuth, async (request, response
       .doc("main")
       .set(
         {
-          activeEntitlements: input.activeEntitlements,
-          entitlementId: input.entitlementId,
-          expirationDate: input.expirationDate || null,
-          isPremium,
-          source: "revenuecat",
+          ...subscriptionRecord,
           updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()
         },
         { merge: true }
       );
 
     response.json({
-      isPremium,
+      isPremium: subscriptionRecord.isPremium,
       ok: true
     });
   } catch (error) {

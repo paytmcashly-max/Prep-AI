@@ -96,14 +96,15 @@ Preview APK real-device smoke update: May 9, 2026
 - May 8 APK smoke: no app `FATAL EXCEPTION` was found in logcat during launch/smoke testing.
 - May 9 GitHub Actions: CI passed on merged `main` commit `89d01fe2b2086b0a994e6bf7a28b65c7c3414897`.
 - May 9 EAS: preview Android APK build finished successfully for merged `main`.
-- May 9 dev-client real-device QA: premium quota bypass worked after Firestore subscription sync.
+- May 9 dev-client real-device QA: premium quota bypass previously worked after Firestore subscription sync.
+- May 9 security hardening: client-reported subscription sync is now non-authoritative; backend premium quota bypass requires server-side RevenueCat verification or an Admin-written verified subscription status before beta.
 - May 9 dev-client real-device QA: premium interview length selection worked for 5, 10, 15, and 20 question options.
 - May 9 dev-client real-device QA: free users remained limited to 5 daily interview questions.
 - May 9 dev-client real-device QA: Resume Analyzer flow worked.
 - May 9 dev-client real-device QA: Home mock interview CTA routed to Practice instead of directly starting an HR round.
 - May 9 notification cleanup: notification handler and Android channel were updated for SDK 54 banner/list behavior; actual preview APK banner behavior still needs manual verification.
 - May 9 key-safety cleanup: Firebase login now validates that the bundled Firebase API key looks like a Firebase Web API key and shows a safe message without exposing raw key values.
-- May 9 key-safety cleanup: RevenueCat Test Store keys are no longer auto-used for login-time subscription refresh in standalone preview APKs; standalone APK purchase QA should use the Android public RevenueCat key.
+- May 9 RevenueCat beta update: pre-Play-Store dev-client and local preview APK testing should use RevenueCat Test Store. Google Play internal/closed testing later should use the Android public RevenueCat key with an explicit Google Play billing build setting.
 - May 9 UI polish: Home, Practice, Mock Interview, Resume, Progress, Profile, and Paywall screens were visually tightened for spacing, empty states, wording, and status clarity without adding new features.
 - May 9 tab header cleanup: default tab headers for Home, Practice, Resume, Progress, and Profile were hidden so content starts from the app screen itself without the extra top title bar.
 - May 9 preview APK real-device smoke: EAS build `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd` from commit `89d01fe2b2086b0a994e6bf7a28b65c7c3414897` passed as a local same-WiFi beta candidate.
@@ -153,7 +154,8 @@ Preview APK real-device smoke update: May 9, 2026
   - valid PDF under 5MB
   - non-PDF rejection
   - PDF over 5MB rejection where file size is available
-- Verify RevenueCat Test Store offering, purchase, cancellation, and restore flows.
+- Verify RevenueCat Test Store offering, purchase, subscription management, and restore flows.
+- Implement and verify server-side RevenueCat subscription verification before relying on backend premium quota bypass.
 - Verify Android notification banner/head-up behavior in the latest preview APK and enable channel/floating notification settings if needed.
 - Deploy backend to a public URL before inviting external testers.
 - Build a new preview APK with the public `EXPO_PUBLIC_API_BASE_URL`.

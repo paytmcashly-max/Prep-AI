@@ -18,8 +18,10 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 EXPO_PUBLIC_FIREBASE_APP_ID=
 EXPO_PUBLIC_SENTRY_DSN=
 EXPO_PUBLIC_ANALYTICS_ENABLED=false
+EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY=
 EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=
 EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY=
+EXPO_PUBLIC_REVENUECAT_BILLING_PROVIDER=
 EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID=premium
 EXPO_PUBLIC_PRIVACY_POLICY_URL=https://example.com/prepai/privacy
 EXPO_PUBLIC_TERMS_URL=https://example.com/prepai/terms
@@ -73,7 +75,24 @@ The security audit helps catch accidental mobile references to server-only secre
 - Confirm `EXPO_PUBLIC_FIREBASE_API_KEY` is the Firebase Web API key, not a RevenueCat Test Store key.
 - Confirm the backend `/health` and `/ready` endpoints pass before testing the app.
 - Confirm Firebase Auth and Firestore projects match the intended production Firebase project.
-- Confirm RevenueCat public API keys are platform-specific and entitlement id matches RevenueCat dashboard configuration.
-- Use the RevenueCat Android public key for standalone APK purchase QA. Keep the Test Store key for dev-client/Test Store development unless the RevenueCat setup explicitly supports the target build.
+- For development/dev-client purchase testing, use `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY`.
+- For release-style preview APKs, Google Play internal/closed testing, and production later, use `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`.
+- Never use the RevenueCat Test Store API key in release-style preview APKs or production builds.
+- If Android billing products are not configured yet, the paywall should show that purchases are unavailable in the beta build.
+- Confirm the RevenueCat entitlement identifier is exactly `premium`.
+- Confirm Test Store products are attached to the `premium` entitlement and offerings contain the paywall products.
+- Use the RevenueCat SDK `managementURL` when available for subscription management.
 - Confirm Privacy Policy URL, Terms URL, and support email placeholders are replaced with final public values before store submission.
 - Confirm Sentry and analytics settings do not capture resume text, user answers, Firebase tokens, Authorization headers, or API keys.
+
+## OTA Updates
+
+EAS Update can ship JS/UI-compatible bug fixes without asking users to install a new APK. Native dependency, Expo plugin, app config, permission, or runtime changes still require a new APK build.
+
+Preview OTA command:
+
+```sh
+eas update --branch preview --message "Describe the JS/UI fix"
+```
+
+See [EAS Update / OTA updates](EAS_UPDATES.md) before publishing updates.

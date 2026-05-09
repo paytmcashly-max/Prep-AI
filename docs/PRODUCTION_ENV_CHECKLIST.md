@@ -30,6 +30,11 @@ Rules:
 - [ ] `GROQ_API_KEY` is not present in mobile/root env.
 - [ ] Firebase Admin credentials are not present in mobile/root env.
 - [ ] No private backend keys are present in Expo public env.
+- [ ] RevenueCat Test Store API key is not included in release-style preview APKs or production builds.
+- [ ] Release-style preview APKs and production builds use the Android RevenueCat public API key when purchases are enabled.
+- [ ] RevenueCat entitlement identifier is exactly `premium`.
+- [ ] RevenueCat products are attached to the `premium` entitlement and included in offerings.
+- [ ] Backend subscription status is updated only from server-side RevenueCat verification or trusted Admin processes.
 - [ ] Legal/support placeholders are replaced with final public URL/email values before launch.
 
 ## Backend / Server Private Env

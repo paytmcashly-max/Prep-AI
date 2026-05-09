@@ -1,9 +1,8 @@
-import Groq from "groq-sdk";
 import { PDFParse } from "pdf-parse";
 import { z } from "zod";
 
 import { config } from "../config.js";
-import { logger } from "../logger.js";
+import { generateGroqJson } from "./groqJsonService.js";
 
 export type AnalyzeResumeInput = {
   resumeText: string;
@@ -94,29 +93,26 @@ export const extractTextFromPdfBuffer = async (buffer: Buffer) => {
 };
 
 export const analyzeResume = async (input: AnalyzeResumeInput): Promise<ResumeAnalysis> => {
-  const apiKey = config.GROQ_API_KEY;
   const resumeText = normalizeResumeTextForAnalysis(input.resumeText);
 
-  if (!apiKey) {
-    return fallbackResumeAnalysis;
-  }
-
-  const groq = new Groq({ apiKey });
-  const model = config.GROQ_RESUME_MODEL;
-
-  try {
-    const completion = await groq.chat.completions.create({
-      model,
-      temperature: 0.2,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an expert resume reviewer and ATS optimization coach. Give concrete, role-specific resume improvements. Respond ONLY in valid JSON with no markdown or extra text."
-        },
-        {
-          role: "user",
-          content: `Analyze this resume for a ${input.jobRole} position.
+  const analysis = await generateGroqJson({
+    fallback: {
+      ...fallbackResumeAnalysis,
+      rewriteSuggestions: fallbackResumeAnalysis.rewriteSuggestions || []
+    },
+    model: config.GROQ_RESUME_MODEL,
+    schema: resumeAnalysisSchema,
+    serviceName: "resumeService",
+    temperature: 0.2,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an expert resume reviewer and ATS optimization coach. Give concrete, role-specific resume improvements. Respond ONLY in valid JSON with no markdown or extra text."
+      },
+      {
+        role: "user",
+        content: `Analyze this resume for a ${input.jobRole} position.
 
 Resume text:
 ${resumeText}
@@ -137,32 +133,12 @@ Return strict JSON in this exact shape:
     "education": string
   }
 }`
-        }
-      ]
-    });
+      }
+    ]
+  });
 
-    const content = completion.choices[0]?.message?.content;
-
-    if (!content) {
-      logger.warn("Groq resume analysis returned empty response", {
-        service: "resumeService"
-      });
-      return fallbackResumeAnalysis;
-    }
-
-    const parsedAnalysis = resumeAnalysisSchema.parse(JSON.parse(content));
-
-    return {
-      ...parsedAnalysis,
-      atsScore: normalizeAtsScore(parsedAnalysis.atsScore)
-    };
-  } catch (error) {
-    logger.error("Groq resume analysis failed safely", {
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
-      errorName: error instanceof Error ? error.name : "UnknownError",
-      service: "resumeService"
-    });
-
-    return fallbackResumeAnalysis;
-  }
+  return {
+    ...analysis,
+    atsScore: normalizeAtsScore(analysis.atsScore)
+  };
 };

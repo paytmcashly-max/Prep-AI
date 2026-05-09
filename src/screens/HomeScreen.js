@@ -7,7 +7,7 @@ import HapticPressable from "../components/HapticPressable";
 import SkeletonBox from "../components/SkeletonBox";
 import { getCurrentUser } from "../services/authService";
 import { showSessionCompleteNotification } from "../services/notificationService";
-import { generateDailyTip } from "../services/openaiService";
+import { generateDailyTip } from "../services/aiService";
 import { calculateCurrentStreak, fetchUserSessions } from "../services/sessionService";
 import { useUserStore } from "../store/userStore";
 

@@ -35,15 +35,14 @@ const getExtra = (key) => Constants.expoConfig?.extra?.[key] || Constants.manife
 
 const isDevelopment = () => typeof __DEV__ !== "undefined" && __DEV__;
 
-const canUseTestStoreKey = () => {
-  // RevenueCat Test Store keys are safe for dev-client testing. Standalone preview APKs should
-  // use the platform public key, otherwise login-time subscription refresh can show native
-  // "wrong API key" errors before the user even opens the paywall.
-  if (isDevelopment()) {
-    return true;
-  }
+const shouldUsePlatformBillingKey = () => {
+  const billingProvider = String(
+    process.env.EXPO_PUBLIC_REVENUECAT_BILLING_PROVIDER ||
+      getExtra("revenueCatBillingProvider") ||
+      ""
+  ).toLowerCase();
 
-  return Constants.appOwnership !== "standalone";
+  return ["android", "google_play", "play_store", "production"].includes(billingProvider);
 };
 
 const logRevenueCatDebug = (message, metadata = {}) => {
@@ -59,7 +58,9 @@ const getRevenueCatApiKey = () => {
   const testStoreApiKey =
     process.env.EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY || getExtra("revenueCatTestStoreApiKey");
 
-  if (testStoreApiKey && canUseTestStoreKey()) {
+  // RevenueCat Test Store keys are only safe for dev-client/debug JS. Release-style
+  // preview/production APKs must use platform keys or skip purchases gracefully.
+  if (testStoreApiKey && isDevelopment() && !shouldUsePlatformBillingKey()) {
     return {
       apiKey: testStoreApiKey,
       keySource: "test_store"

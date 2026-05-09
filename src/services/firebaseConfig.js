@@ -18,14 +18,20 @@ const envFirebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || extra.firebaseMeasurementId
 };
 
-export const isFirebaseConfigured = Boolean(
-  envFirebaseConfig.apiKey &&
-  envFirebaseConfig.authDomain &&
-  envFirebaseConfig.projectId &&
-  envFirebaseConfig.storageBucket &&
-  envFirebaseConfig.messagingSenderId &&
-  envFirebaseConfig.appId
-);
+const REQUIRED_FIREBASE_KEYS = [
+  ["apiKey", "EXPO_PUBLIC_FIREBASE_API_KEY"],
+  ["authDomain", "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN"],
+  ["projectId", "EXPO_PUBLIC_FIREBASE_PROJECT_ID"],
+  ["storageBucket", "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET"],
+  ["messagingSenderId", "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"],
+  ["appId", "EXPO_PUBLIC_FIREBASE_APP_ID"]
+];
+
+export const missingFirebaseConfigKeys = REQUIRED_FIREBASE_KEYS.filter(
+  ([configKey]) => !envFirebaseConfig[configKey]
+).map(([, envKey]) => envKey);
+
+export const isFirebaseConfigured = Boolean(missingFirebaseConfigKeys.length === 0);
 
 export const isFirebaseApiKeyValid = /^AIza[0-9A-Za-z_-]+$/.test(
   String(envFirebaseConfig.apiKey || "")
@@ -44,6 +50,12 @@ export const getFirebaseConfigProblem = () => {
 };
 
 const firebaseConfig = envFirebaseConfig;
+
+if (!isFirebaseConfigured && typeof __DEV__ !== "undefined" && __DEV__) {
+  console.warn("Firebase config is incomplete. Missing Expo public env keys:", {
+    missingKeys: missingFirebaseConfigKeys
+  });
+}
 
 const app = initializeApp(firebaseConfig);
 
