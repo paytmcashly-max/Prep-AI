@@ -2,9 +2,6 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,8 +10,9 @@ import {
 } from "react-native";
 import { doc, serverTimestamp, writeBatch } from "firebase/firestore";
 
-import AppIcon from "../components/ui/AppIcon";
 import HapticPressable from "../components/HapticPressable";
+import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
+import AppIcon from "../components/ui/AppIcon";
 import { getCurrentUser } from "../services/authService";
 import { firestore } from "../services/firebaseConfig";
 import { useUserStore } from "../store/userStore";
@@ -170,105 +168,93 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.keyboardView}
-    >
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-        onTouchStart={Keyboard.dismiss}
-        style={styles.container}
-        contentContainerStyle={styles.content}
-      >
-        {isEditMode ? (
-          <HapticPressable
-            onPress={() => navigation.goBack()}
-            style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.backButtonText}>Back</Text>
-          </HapticPressable>
-        ) : null}
-
-        <View style={styles.header}>
-          <View style={styles.heroIcon}>
-            <AppIcon color={COLORS.accent} name="target" size={34} />
-          </View>
-          <Text selectable style={styles.eyebrow}>
-            Profile setup
-          </Text>
-          <Text selectable style={styles.title}>
-            Personalize your practice
-          </Text>
-          <Text selectable style={styles.subtitle}>
-            Your role and experience help PrepAI generate better interview questions.
-          </Text>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.field}>
-            <Text selectable style={styles.label}>
-              Full Name
-            </Text>
-            <TextInput
-              autoCapitalize="words"
-              autoComplete="name"
-              onChangeText={setFullName}
-              placeholder="Enter your full name"
-              placeholderTextColor={COLORS.muted}
-              style={styles.input}
-              value={fullName}
-            />
-          </View>
-
-          <JobRolePicker selectedValue={jobRole} onSelect={setJobRole} />
-
-          <View style={styles.field}>
-            <Text selectable style={styles.label}>
-              Experience Level
-            </Text>
-            <View style={styles.segmentRow}>
-              {EXPERIENCE_LEVELS.map((level) => {
-                const selected = experienceLevel === level;
-
-                return (
-                  <HapticPressable
-                    key={level}
-                    onPress={() => setExperienceLevel(level)}
-                    style={({ pressed }) => [
-                      styles.segmentButton,
-                      selected && styles.segmentButtonSelected,
-                      pressed && styles.pressed
-                    ]}
-                  >
-                    <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>
-                      {level}
-                    </Text>
-                  </HapticPressable>
-                );
-              })}
-            </View>
-          </View>
-        </View>
-
+    <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {isEditMode ? (
         <HapticPressable
-          disabled={!canSubmit}
-          onPress={saveProfile}
-          style={({ pressed }) => [
-            styles.saveButton,
-            !canSubmit && styles.saveButtonDisabled,
-            pressed && canSubmit && styles.pressed
-          ]}
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
         >
-          {isSaving ? (
-            <ActivityIndicator color={COLORS.text} />
-          ) : (
-            <Text style={styles.saveButtonText}>Save Profile</Text>
-          )}
+          <Text style={styles.backButtonText}>Back</Text>
         </HapticPressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      ) : null}
+
+      <View style={styles.header}>
+        <View style={styles.heroIcon}>
+          <AppIcon color={COLORS.accent} name="target" size={34} />
+        </View>
+        <Text selectable style={styles.eyebrow}>
+          Profile setup
+        </Text>
+        <Text selectable style={styles.title}>
+          Personalize your practice
+        </Text>
+        <Text selectable style={styles.subtitle}>
+          Your role and experience help PrepAI generate better interview questions.
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.field}>
+          <Text selectable style={styles.label}>
+            Full Name
+          </Text>
+          <TextInput
+            autoCapitalize="words"
+            autoComplete="name"
+            onChangeText={setFullName}
+            placeholder="Enter your full name"
+            placeholderTextColor={COLORS.muted}
+            style={styles.input}
+            value={fullName}
+          />
+        </View>
+
+        <JobRolePicker selectedValue={jobRole} onSelect={setJobRole} />
+
+        <View style={styles.field}>
+          <Text selectable style={styles.label}>
+            Experience Level
+          </Text>
+          <View style={styles.segmentRow}>
+            {EXPERIENCE_LEVELS.map((level) => {
+              const selected = experienceLevel === level;
+
+              return (
+                <HapticPressable
+                  key={level}
+                  onPress={() => setExperienceLevel(level)}
+                  style={({ pressed }) => [
+                    styles.segmentButton,
+                    selected && styles.segmentButtonSelected,
+                    pressed && styles.pressed
+                  ]}
+                >
+                  <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>
+                    {level}
+                  </Text>
+                </HapticPressable>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+
+      <HapticPressable
+        disabled={!canSubmit}
+        onPress={saveProfile}
+        style={({ pressed }) => [
+          styles.saveButton,
+          !canSubmit && styles.saveButtonDisabled,
+          pressed && canSubmit && styles.pressed
+        ]}
+      >
+        {isSaving ? (
+          <ActivityIndicator color={COLORS.text} />
+        ) : (
+          <Text style={styles.saveButtonText}>Save Profile</Text>
+        )}
+      </HapticPressable>
+    </KeyboardAwareScrollView>
   );
 }
 
@@ -339,9 +325,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 56,
     paddingHorizontal: 16
-  },
-  keyboardView: {
-    flex: 1
   },
   label: {
     color: COLORS.text,

@@ -133,15 +133,21 @@ describe("backend app", () => {
     expect(normalizeAtsScore(130)).toBe(100);
   });
 
-  it("subscription status treats active premium without expiration as unlimited", async () => {
+  it("subscription status treats server-verified active premium without expiration as unlimited", async () => {
     const { isSubscriptionActiveFromData } = await import("../src/services/usageService.js");
 
-    expect(isSubscriptionActiveFromData({ isPremium: true })).toBe(true);
+    expect(
+      isSubscriptionActiveFromData({
+        isPremium: true,
+        verificationStatus: "server_verified"
+      })
+    ).toBe(true);
     expect(
       isSubscriptionActiveFromData(
         {
           expirationDate: "2099-01-01T00:00:00.000Z",
-          isPremium: true
+          isPremium: true,
+          verificationStatus: "server_verified"
         },
         new Date("2026-01-01T00:00:00.000Z")
       )
@@ -155,12 +161,25 @@ describe("backend app", () => {
       isSubscriptionActiveFromData(
         {
           expirationDate: "2025-01-01T00:00:00.000Z",
-          isPremium: true
+          isPremium: true,
+          verificationStatus: "server_verified"
         },
         new Date("2026-01-01T00:00:00.000Z")
       )
     ).toBe(false);
-    expect(isSubscriptionActiveFromData({ isPremium: false })).toBe(false);
+    expect(
+      isSubscriptionActiveFromData({
+        isPremium: false,
+        verificationStatus: "server_verified"
+      })
+    ).toBe(false);
+    expect(
+      isSubscriptionActiveFromData({
+        isPremium: true,
+        verificationStatus: "client_reported_unverified"
+      })
+    ).toBe(false);
+    expect(isSubscriptionActiveFromData({ isPremium: true })).toBe(false);
   });
 
   it("client subscription sync records are not authoritative for premium access", async () => {

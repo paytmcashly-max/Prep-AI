@@ -22,16 +22,3 @@ export const SPACING = {
   lg: 24,
   xl: 32
 };
-
-export const PREMIUM_PLANS = {
-  monthly: {
-    productId: "premium_monthly",
-    label: "Monthly",
-    price: "INR 299/month"
-  },
-  yearly: {
-    productId: "premium_yearly",
-    label: "Yearly",
-    price: "INR 1,999/year"
-  }
-};

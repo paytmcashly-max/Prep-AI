@@ -1,20 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Keyboard,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
-} from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import { useFocusEffect } from "@react-navigation/native";
 
 import FreeLimitCard from "../components/FreeLimitCard";
 import HapticPressable from "../components/HapticPressable";
+import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
 import AppIcon from "../components/ui/AppIcon";
 import { trackEvent } from "../services/analyticsService";
 import { ApiClientError, getLatestResumeAnalysis, getUsageStatus } from "../services/apiClient";
@@ -232,9 +224,11 @@ export default function ResumeScreen({ navigation }) {
   const [showPreviousAnalysisDetails, setShowPreviousAnalysisDetails] = useState(true);
   const analysisRequestInFlightRef = useRef(false);
   const resumeQuota = usageStatus?.resume;
+  const hasServerPremiumAccess = usageStatus?.isPremium === true || resumeQuota?.isPremium === true;
   const isServerResumeLimitReached =
-    !isPremium && resumeQuota && Number(resumeQuota.remaining || 0) <= 0;
-  const isBlockedByResumeLimit = (isResumeLimitReached || isServerResumeLimitReached) && !isPremium;
+    !hasServerPremiumAccess && resumeQuota && Number(resumeQuota.remaining || 0) <= 0;
+  const isBlockedByResumeLimit =
+    (isResumeLimitReached || isServerResumeLimitReached) && !hasServerPremiumAccess;
   const shouldShowAnalysisDetails = Boolean(
     analysis && (!isBlockedByResumeLimit || showPreviousAnalysisDetails)
   );
@@ -462,14 +456,7 @@ export default function ResumeScreen({ navigation }) {
   };
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      keyboardDismissMode="on-drag"
-      keyboardShouldPersistTaps="handled"
-      onTouchStart={Keyboard.dismiss}
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
+    <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.content}>
       {!isBlockedByResumeLimit ? (
         <View style={styles.header}>
           <Text selectable style={styles.title}>
@@ -709,7 +696,7 @@ export default function ResumeScreen({ navigation }) {
           ) : null}
         </View>
       ) : null}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 

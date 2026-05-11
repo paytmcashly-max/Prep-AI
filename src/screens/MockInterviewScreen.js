@@ -4,9 +4,6 @@ import {
   Alert,
   Animated,
   Easing,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Share,
   StyleSheet,
@@ -18,6 +15,7 @@ import Svg, { Circle } from "react-native-svg";
 
 import FreeLimitCard from "../components/FreeLimitCard";
 import HapticPressable from "../components/HapticPressable";
+import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
 import SkeletonBox from "../components/SkeletonBox";
 import AppIcon from "../components/ui/AppIcon";
 import "../services/firebaseConfig";
@@ -563,223 +561,211 @@ export default function MockInterviewScreen({ navigation, route }) {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.keyboardView}
-    >
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-        onTouchStart={Keyboard.dismiss}
-        style={styles.container}
-        contentContainerStyle={styles.content}
-      >
-        <View style={styles.topBar}>
+    <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.topBar}>
+        <HapticPressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [styles.topBackButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.topBackButtonText}>Back</Text>
+        </HapticPressable>
+        <View style={styles.categoryPill}>
+          <Text selectable style={styles.categoryText}>
+            {categoryName}
+          </Text>
+        </View>
+        <Text selectable style={styles.counterText}>
+          {difficultyName} - Question {questionNumber}/{totalQuestions}
+        </Text>
+      </View>
+
+      <View style={styles.questionCard}>
+        <Text selectable style={styles.questionLabel}>
+          Interview Question
+        </Text>
+        {isCheckingUsage ? (
+          <View style={styles.loadingBox}>
+            <SkeletonBox style={styles.questionSkeletonTitle} />
+            <SkeletonBox style={styles.questionSkeletonLine} />
+            <SkeletonBox style={[styles.questionSkeletonLine, styles.questionSkeletonShort]} />
+            <Text selectable style={styles.loadingText}>
+              Checking your free questions...
+            </Text>
+            <Text selectable style={styles.loadingSubText}>
+              This only takes a moment.
+            </Text>
+          </View>
+        ) : isQuestionLoading ? (
+          <View style={styles.loadingBox}>
+            <SkeletonBox style={styles.questionSkeletonTitle} />
+            <SkeletonBox style={styles.questionSkeletonLine} />
+            <SkeletonBox style={[styles.questionSkeletonLine, styles.questionSkeletonShort]} />
+            <Text selectable style={styles.loadingText}>
+              Generating your question...
+            </Text>
+            <Text selectable style={styles.loadingSubText}>
+              Matching the question to your selected category.
+            </Text>
+          </View>
+        ) : !question ? (
+          <View style={styles.emptyQuestionState}>
+            <Text selectable style={styles.emptyQuestionTitle}>
+              No question loaded
+            </Text>
+            <Text selectable style={styles.emptyQuestionText}>
+              The interview will continue once a question is available.
+            </Text>
+          </View>
+        ) : (
+          <Text selectable style={styles.questionText}>
+            {question}
+          </Text>
+        )}
+      </View>
+
+      <CircularTimer secondsLeft={secondsLeft} />
+
+      <View style={styles.answerSection}>
+        <Text selectable style={styles.sectionTitle}>
+          Your Answer
+        </Text>
+        <TextInput
+          editable={!isCheckingUsage && !isQuestionLoading && !isEvaluating && !feedback}
+          multiline
+          onChangeText={setAnswer}
+          placeholder="Type your answer here..."
+          placeholderTextColor={COLORS.muted}
+          style={styles.answerInput}
+          textAlignVertical="top"
+          value={answer}
+        />
+      </View>
+
+      {errorMessage ? <ErrorState message={errorMessage} /> : null}
+
+      {!feedback ? (
+        <View style={styles.buttonRow}>
           <HapticPressable
-            onPress={() => navigation.goBack()}
-            style={({ pressed }) => [styles.topBackButton, pressed && styles.pressed]}
+            disabled={isCheckingUsage || isQuestionLoading || isEvaluating || !question}
+            onPress={submitAnswer}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              (pressed || isEvaluating) && styles.pressed,
+              (isCheckingUsage || isQuestionLoading || isEvaluating || !question) &&
+                styles.disabledButton
+            ]}
           >
-            <Text style={styles.topBackButtonText}>Back</Text>
+            {isEvaluating ? (
+              <ActivityIndicator color={COLORS.text} />
+            ) : (
+              <Text style={styles.primaryButtonText}>Submit Answer</Text>
+            )}
           </HapticPressable>
-          <View style={styles.categoryPill}>
-            <Text selectable style={styles.categoryText}>
-              {categoryName}
+
+          <HapticPressable
+            disabled={
+              isCheckingUsage || isQuestionLoading || isEvaluating || isSavingSession || !question
+            }
+            onPress={skipQuestion}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && styles.pressed,
+              (isCheckingUsage ||
+                isQuestionLoading ||
+                isEvaluating ||
+                isSavingSession ||
+                !question) &&
+                styles.disabledButton
+            ]}
+          >
+            <Text style={styles.secondaryButtonText}>Skip Question</Text>
+          </HapticPressable>
+        </View>
+      ) : null}
+
+      {feedback ? (
+        <View style={styles.feedbackCard}>
+          <View style={styles.feedbackHeader}>
+            <View style={styles.feedbackTitleGroup}>
+              <Text selectable style={styles.feedbackTitle}>
+                Answer Feedback
+              </Text>
+              <Text selectable style={styles.feedbackSubtitle}>
+                Review the score, then improve one part at a time.
+              </Text>
+            </View>
+            <View style={styles.scorePill}>
+              <Text selectable style={styles.scoreLabel}>
+                Score
+              </Text>
+              <Text selectable style={styles.scoreText}>
+                {feedback.score}/10
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.feedbackSection}>
+            <Text selectable style={styles.feedbackSectionTitle}>
+              What worked
             </Text>
+            {(feedback.strengths || []).map((strength) => (
+              <Text key={strength} selectable style={styles.strengthText}>
+                {"\u2022"} {strength}
+              </Text>
+            ))}
           </View>
-          <Text selectable style={styles.counterText}>
-            {difficultyName} - Question {questionNumber}/{totalQuestions}
-          </Text>
-        </View>
 
-        <View style={styles.questionCard}>
-          <Text selectable style={styles.questionLabel}>
-            Interview Question
-          </Text>
-          {isCheckingUsage ? (
-            <View style={styles.loadingBox}>
-              <SkeletonBox style={styles.questionSkeletonTitle} />
-              <SkeletonBox style={styles.questionSkeletonLine} />
-              <SkeletonBox style={[styles.questionSkeletonLine, styles.questionSkeletonShort]} />
-              <Text selectable style={styles.loadingText}>
-                Checking your free questions...
-              </Text>
-              <Text selectable style={styles.loadingSubText}>
-                This only takes a moment.
-              </Text>
-            </View>
-          ) : isQuestionLoading ? (
-            <View style={styles.loadingBox}>
-              <SkeletonBox style={styles.questionSkeletonTitle} />
-              <SkeletonBox style={styles.questionSkeletonLine} />
-              <SkeletonBox style={[styles.questionSkeletonLine, styles.questionSkeletonShort]} />
-              <Text selectable style={styles.loadingText}>
-                Generating your question...
-              </Text>
-              <Text selectable style={styles.loadingSubText}>
-                Matching the question to your selected category.
-              </Text>
-            </View>
-          ) : !question ? (
-            <View style={styles.emptyQuestionState}>
-              <Text selectable style={styles.emptyQuestionTitle}>
-                No question loaded
-              </Text>
-              <Text selectable style={styles.emptyQuestionText}>
-                The interview will continue once a question is available.
-              </Text>
-            </View>
-          ) : (
-            <Text selectable style={styles.questionText}>
-              {question}
+          <View style={styles.feedbackSection}>
+            <Text selectable style={styles.feedbackSectionTitle}>
+              What to improve
             </Text>
-          )}
-        </View>
-
-        <CircularTimer secondsLeft={secondsLeft} />
-
-        <View style={styles.answerSection}>
-          <Text selectable style={styles.sectionTitle}>
-            Your Answer
-          </Text>
-          <TextInput
-            editable={!isCheckingUsage && !isQuestionLoading && !isEvaluating && !feedback}
-            multiline
-            onChangeText={setAnswer}
-            placeholder="Type your answer here..."
-            placeholderTextColor={COLORS.muted}
-            style={styles.answerInput}
-            textAlignVertical="top"
-            value={answer}
-          />
-        </View>
-
-        {errorMessage ? <ErrorState message={errorMessage} /> : null}
-
-        {!feedback ? (
-          <View style={styles.buttonRow}>
-            <HapticPressable
-              disabled={isCheckingUsage || isQuestionLoading || isEvaluating || !question}
-              onPress={submitAnswer}
-              style={({ pressed }) => [
-                styles.primaryButton,
-                (pressed || isEvaluating) && styles.pressed,
-                (isCheckingUsage || isQuestionLoading || isEvaluating || !question) &&
-                  styles.disabledButton
-              ]}
-            >
-              {isEvaluating ? (
-                <ActivityIndicator color={COLORS.text} />
-              ) : (
-                <Text style={styles.primaryButtonText}>Submit Answer</Text>
-              )}
-            </HapticPressable>
-
-            <HapticPressable
-              disabled={
-                isCheckingUsage || isQuestionLoading || isEvaluating || isSavingSession || !question
-              }
-              onPress={skipQuestion}
-              style={({ pressed }) => [
-                styles.secondaryButton,
-                pressed && styles.pressed,
-                (isCheckingUsage ||
-                  isQuestionLoading ||
-                  isEvaluating ||
-                  isSavingSession ||
-                  !question) &&
-                  styles.disabledButton
-              ]}
-            >
-              <Text style={styles.secondaryButtonText}>Skip Question</Text>
-            </HapticPressable>
+            {(feedback.improvements || []).map((improvement) => (
+              <Text key={improvement} selectable style={styles.improvementText}>
+                {"\u2022"} {improvement}
+              </Text>
+            ))}
           </View>
-        ) : null}
 
-        {feedback ? (
-          <View style={styles.feedbackCard}>
-            <View style={styles.feedbackHeader}>
-              <View style={styles.feedbackTitleGroup}>
-                <Text selectable style={styles.feedbackTitle}>
-                  Answer Feedback
-                </Text>
-                <Text selectable style={styles.feedbackSubtitle}>
-                  Review the score, then improve one part at a time.
-                </Text>
-              </View>
-              <View style={styles.scorePill}>
-                <Text selectable style={styles.scoreLabel}>
-                  Score
-                </Text>
-                <Text selectable style={styles.scoreText}>
-                  {feedback.score}/10
-                </Text>
-              </View>
-            </View>
+          <HapticPressable
+            onPress={() => setShowIdealAnswer((current) => !current)}
+            style={({ pressed }) => [styles.collapsibleButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.collapsibleButtonText}>
+              {showIdealAnswer ? "Hide Ideal Answer" : "Try saying it like this"}
+            </Text>
+          </HapticPressable>
 
-            <View style={styles.feedbackSection}>
-              <Text selectable style={styles.feedbackSectionTitle}>
-                What worked
+          {showIdealAnswer ? (
+            <View style={styles.idealAnswerBox}>
+              <Text selectable style={styles.idealAnswerLabel}>
+                Ideal answer
               </Text>
-              {(feedback.strengths || []).map((strength) => (
-                <Text key={strength} selectable style={styles.strengthText}>
-                  {"\u2022"} {strength}
-                </Text>
-              ))}
-            </View>
-
-            <View style={styles.feedbackSection}>
-              <Text selectable style={styles.feedbackSectionTitle}>
-                What to improve
+              <Text selectable style={styles.idealAnswerText}>
+                {feedback.idealAnswer}
               </Text>
-              {(feedback.improvements || []).map((improvement) => (
-                <Text key={improvement} selectable style={styles.improvementText}>
-                  {"\u2022"} {improvement}
-                </Text>
-              ))}
             </View>
+          ) : null}
 
-            <HapticPressable
-              onPress={() => setShowIdealAnswer((current) => !current)}
-              style={({ pressed }) => [styles.collapsibleButton, pressed && styles.pressed]}
-            >
-              <Text style={styles.collapsibleButtonText}>
-                {showIdealAnswer ? "Hide Ideal Answer" : "Try saying it like this"}
+          <HapticPressable
+            disabled={isSavingSession}
+            onPress={completeOrLoadNext}
+            style={({ pressed }) => [
+              styles.nextButton,
+              pressed && styles.pressed,
+              isSavingSession && styles.disabledButton
+            ]}
+          >
+            {isSavingSession ? (
+              <ActivityIndicator color={COLORS.text} />
+            ) : (
+              <Text style={styles.nextButtonText}>
+                {questionNumber >= totalQuestions ? "View Summary" : "Next Question"}
               </Text>
-            </HapticPressable>
-
-            {showIdealAnswer ? (
-              <View style={styles.idealAnswerBox}>
-                <Text selectable style={styles.idealAnswerLabel}>
-                  Ideal answer
-                </Text>
-                <Text selectable style={styles.idealAnswerText}>
-                  {feedback.idealAnswer}
-                </Text>
-              </View>
-            ) : null}
-
-            <HapticPressable
-              disabled={isSavingSession}
-              onPress={completeOrLoadNext}
-              style={({ pressed }) => [
-                styles.nextButton,
-                pressed && styles.pressed,
-                isSavingSession && styles.disabledButton
-              ]}
-            >
-              {isSavingSession ? (
-                <ActivityIndicator color={COLORS.text} />
-              ) : (
-                <Text style={styles.nextButtonText}>
-                  {questionNumber >= totalQuestions ? "View Summary" : "Next Question"}
-                </Text>
-              )}
-            </HapticPressable>
-          </View>
-        ) : null}
-      </ScrollView>
-    </KeyboardAvoidingView>
+            )}
+          </HapticPressable>
+        </View>
+      ) : null}
+    </KeyboardAwareScrollView>
   );
 }
 
@@ -964,9 +950,6 @@ const styles = StyleSheet.create({
     color: COLORS.yellow,
     fontSize: 15,
     lineHeight: 22
-  },
-  keyboardView: {
-    flex: 1
   },
   loadingBox: {
     alignItems: "center",

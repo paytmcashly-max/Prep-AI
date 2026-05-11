@@ -339,7 +339,7 @@ export default function PaywallScreen({ navigation }) {
               <ActivityIndicator color={COLORS.text} />
             ) : (
               <Text style={styles.ctaButtonText}>
-                {isPremium ? "Premium Active" : "Start 3-Day Free Trial"}
+                {isPremium ? "Premium Active" : "Upgrade to Premium"}
               </Text>
             )}
           </HapticPressable>

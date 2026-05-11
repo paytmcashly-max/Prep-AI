@@ -22,6 +22,29 @@ export const DARK_COLORS = {
   yellow: COLORS.warning
 };
 
+export const COLOR_SCHEMES = {
+  dark: COLORS,
+  light: {
+    accent: "#5B5EF7",
+    background: "#F7F8FC",
+    border: "#DDE1EA",
+    card: "#FFFFFF",
+    cardAlt: "#EEF1F7",
+    danger: "#DC2626",
+    dangerSoft: "#B91C1C",
+    muted: "#667085",
+    primary: "#5B5EF7",
+    primaryDark: "#4338CA",
+    surface: "#FFFFFF",
+    success: "#16A34A",
+    text: "#101828",
+    warning: "#D97706"
+  }
+};
+
+export const getThemeColors = (colorScheme) =>
+  colorScheme === "light" ? COLOR_SCHEMES.light : COLOR_SCHEMES.dark;
+
 export const SPACING = {
   xxs: 2,
   xs: 4,

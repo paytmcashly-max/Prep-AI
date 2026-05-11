@@ -116,8 +116,10 @@ export default function PracticeScreen({ navigation }) {
   const [limitCountdown, setLimitCountdown] = useState("--:--:--");
   const isPremium = useSubscriptionStore((state) => state.isPremium);
   const interviewQuota = usageStatus?.interview;
+  const hasServerPremiumAccess =
+    usageStatus?.isPremium === true || interviewQuota?.isPremium === true;
   const isInterviewLimitReached =
-    !isPremium && interviewQuota && Number(interviewQuota.remaining || 0) <= 0;
+    !hasServerPremiumAccess && interviewQuota && Number(interviewQuota.remaining || 0) <= 0;
 
   const loadUsageStatus = useCallback(async () => {
     try {
@@ -162,7 +164,7 @@ export default function PracticeScreen({ navigation }) {
     navigation.navigate("MockInterview", {
       category,
       difficulty: selectedDifficulty,
-      questionCount: isPremium ? selectedQuestionCount : FREE_QUESTION_COUNT
+      questionCount: hasServerPremiumAccess ? selectedQuestionCount : FREE_QUESTION_COUNT
     });
     setTimeout(() => setStartingCategory(""), 0);
   };
@@ -290,7 +292,7 @@ export default function PracticeScreen({ navigation }) {
         <View style={styles.questionCountRow}>
           {PREMIUM_QUESTION_COUNT_OPTIONS.map((count) => {
             const isSelected = selectedQuestionCount === count;
-            const isLocked = !isPremium && count !== FREE_QUESTION_COUNT;
+            const isLocked = !hasServerPremiumAccess && count !== FREE_QUESTION_COUNT;
 
             return (
               <HapticPressable
@@ -318,7 +320,7 @@ export default function PracticeScreen({ navigation }) {
           })}
         </View>
         <Text selectable style={styles.difficultyHelper}>
-          {isPremium
+          {hasServerPremiumAccess
             ? "Choose how many questions you want in this session."
             : "Free plan includes 5 questions. Upgrade for longer interviews."}
         </Text>
@@ -330,7 +332,8 @@ export default function PracticeScreen({ navigation }) {
             3. Pick Category to Start
           </Text>
           <Text selectable style={styles.selectionSummary}>
-            {selectedDifficulty} - {isPremium ? selectedQuestionCount : FREE_QUESTION_COUNT} Qs
+            {selectedDifficulty} -{" "}
+            {hasServerPremiumAccess ? selectedQuestionCount : FREE_QUESTION_COUNT} Qs
           </Text>
         </View>
 

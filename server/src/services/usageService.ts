@@ -125,12 +125,17 @@ const getUsageDocumentId = (uid: string, type: UsageType, period: string) =>
 type SubscriptionStatusData = {
   expirationDate?: unknown;
   isPremium?: unknown;
+  verificationStatus?: unknown;
 };
 
 export const isSubscriptionActiveFromData = (
   data: SubscriptionStatusData | undefined,
   now = new Date()
 ) => {
+  if (data?.verificationStatus !== "server_verified") {
+    return false;
+  }
+
   if (data?.isPremium !== true) {
     return false;
   }
