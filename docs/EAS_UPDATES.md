@@ -1,6 +1,6 @@
 # EAS Update / OTA Updates
 
-PrepAI uses EAS Update for over-the-air updates that are compatible with the installed native runtime.
+IntervueAI uses EAS Update for over-the-air updates that are compatible with the installed native runtime.
 
 ## What OTA Can Change
 

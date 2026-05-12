@@ -45,7 +45,7 @@ export const checkForAppUpdate = async () => {
       return;
     }
 
-    Alert.alert("Update available", "A new PrepAI update is ready.", [
+    Alert.alert("Update available", "A new IntervueAI update is ready.", [
       {
         style: "cancel",
         text: "Later"

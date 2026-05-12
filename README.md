@@ -1,6 +1,10 @@
-# PrepAI
+# IntervueAI
 
-PrepAI is an Expo / React Native interview-preparation app for job seekers. It helps users practice mock interviews, receive answer feedback, analyze resumes, and track preparation progress.
+IntervueAI is an Expo / React Native interview-preparation app for job seekers.
+It helps users practice mock interviews, receive answer feedback, analyze resumes,
+and track preparation progress.
+
+Tagline: **Practice smarter. Interview better.**
 
 ## Project Overview
 
@@ -18,7 +22,7 @@ Groq is used for free/dev-stage AI usage from the backend only. The mobile app m
 - Firebase Firestore / Storage
 - Node.js / Express / TypeScript backend
 - Groq through backend-only API routes
-- RevenueCat integration with safe fallback
+- Razorpay integration with safe fallback
 - ESLint, Prettier, Jest, Vitest, Supertest
 
 ## Repository Structure
@@ -89,12 +93,25 @@ Important rules:
 - Never put Firebase Admin credentials in root/mobile env.
 - Backend secrets belong only in `/server` env or the backend deployment platform.
 - `EXPO_PUBLIC_API_BASE_URL` should point to the backend API.
-- Current pre-Play-Store dev-client/local preview APK testing uses RevenueCat Test Store.
-- Google Play internal/closed testing later should use the Android RevenueCat public API key, not the Test Store key.
-- RevenueCat entitlement id must remain `premium`.
+- Razorpay payment verification is backend-only.
+- Mobile never grants premium directly.
+- Backend premium quota bypass requires `verificationStatus === "server_verified"`.
 - OpenAI keys are not used for now and should not be added.
 
 See [docs/MOBILE_DEPLOYMENT.md](docs/MOBILE_DEPLOYMENT.md), [docs/BACKEND_DEPLOYMENT.md](docs/BACKEND_DEPLOYMENT.md), and [docs/PRODUCTION_ENV_CHECKLIST.md](docs/PRODUCTION_ENV_CHECKLIST.md).
+
+## Brand Rename Notes
+
+The user-facing brand is IntervueAI. Technical identifiers are intentionally kept
+stable during this rename:
+
+- Android package: `com.prepai.prepai`
+- iOS bundle identifier: `com.prepai.app`
+- Expo slug and scheme: `prepai`
+- EAS project ID unchanged
+
+Before launch, replace the app icon, splash image, adaptive icon, legal URLs, and
+support email with final IntervueAI assets and destinations.
 
 ## Running Locally
 
@@ -149,6 +166,8 @@ npm test
 
 - [Backend deployment](docs/BACKEND_DEPLOYMENT.md)
 - [Mobile deployment](docs/MOBILE_DEPLOYMENT.md)
+- [Payment strategy](docs/PAYMENT_STRATEGY.md)
+- [Razorpay onboarding](docs/RAZORPAY_ONBOARDING.md)
 - [Production environment checklist](docs/PRODUCTION_ENV_CHECKLIST.md)
 - [EAS Update / OTA updates](docs/EAS_UPDATES.md)
 - [EAS preview build setup](docs/EAS_PREVIEW_BUILD_SETUP.md)

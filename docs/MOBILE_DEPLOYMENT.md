@@ -1,6 +1,6 @@
 # Mobile Deployment
 
-This guide covers mobile app environment setup and deployment preparation for the PrepAI Expo app.
+This guide covers mobile app environment setup and deployment preparation for the IntervueAI Expo app.
 
 ## Mobile Environment Variables
 
@@ -18,11 +18,6 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 EXPO_PUBLIC_FIREBASE_APP_ID=
 EXPO_PUBLIC_SENTRY_DSN=
 EXPO_PUBLIC_ANALYTICS_ENABLED=false
-EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY=
-EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=
-EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY=
-EXPO_PUBLIC_REVENUECAT_BILLING_PROVIDER=
-EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID=premium
 EXPO_PUBLIC_PRIVACY_POLICY_URL=https://example.com/prepai/privacy
 EXPO_PUBLIC_TERMS_URL=https://example.com/prepai/terms
 EXPO_PUBLIC_SUPPORT_EMAIL=support@example.com
@@ -72,16 +67,13 @@ The security audit helps catch accidental mobile references to server-only secre
 ## Production Build Notes
 
 - Confirm `EXPO_PUBLIC_API_BASE_URL` points to the deployed backend.
-- Confirm `EXPO_PUBLIC_FIREBASE_API_KEY` is the Firebase Web API key, not a RevenueCat Test Store key.
+- Confirm `EXPO_PUBLIC_FIREBASE_API_KEY` is the Firebase Web API key.
 - Confirm the backend `/health` and `/ready` endpoints pass before testing the app.
 - Confirm Firebase Auth and Firestore projects match the intended production Firebase project.
-- For development/dev-client purchase testing, use `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY`.
-- For release-style preview APKs, Google Play internal/closed testing, and production later, use `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`.
-- Never use the RevenueCat Test Store API key in release-style preview APKs or production builds.
-- If Android billing products are not configured yet, the paywall should show that purchases are unavailable in the beta build.
-- Confirm the RevenueCat entitlement identifier is exactly `premium`.
-- Confirm Test Store products are attached to the `premium` entitlement and offerings contain the paywall products.
-- Use the RevenueCat SDK `managementURL` when available for subscription management.
+- Razorpay secrets belong only in backend env, never in Expo `EXPO_PUBLIC_*` env.
+- If Razorpay backend env is missing, the paywall should show that premium payments are unavailable in the beta build.
+- Confirm Razorpay webhook verification is configured before relying on automatic premium activation.
+- Confirm backend subscription documents use `verificationStatus: "server_verified"` before premium quota bypass.
 - Confirm Privacy Policy URL, Terms URL, and support email placeholders are replaced with final public values before store submission.
 - Confirm Sentry and analytics settings do not capture resume text, user answers, Firebase tokens, Authorization headers, or API keys.
 
@@ -89,13 +81,13 @@ The security audit helps catch accidental mobile references to server-only secre
 
 External beta APKs can be shared before purchases are enabled. In that mode:
 
-- Do not include `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY` in a release-style preview APK.
-- Leave purchases unavailable until Google Play internal/closed testing and RevenueCat Android products are ready.
-- The paywall should show that premium purchases are not available in this beta build.
+- Do not put Razorpay secrets in Expo public env.
+- Leave payments unavailable until backend Razorpay env and webhook verification are ready.
+- The paywall should show that premium payments are not available in this beta build.
 - Free interview and resume limits should continue to work through the backend.
-- Do not add BharatPe, Razorpay, Cashfree, Stripe, PhonePe, or any external payment provider for in-app premium access.
 
-When purchases are ready, use `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`, attach products to the `premium` entitlement, include them in offerings, and verify purchase/restore through Google Play testing.
+When payments are ready, configure `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`,
+`RAZORPAY_WEBHOOK_SECRET`, plan amounts, and webhook URL on the backend.
 
 ## OTA Updates
 

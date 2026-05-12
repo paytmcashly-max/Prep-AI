@@ -610,7 +610,7 @@ export default function ResumeScreen({ navigation }) {
                     We could not read this PDF
                   </Text>
                   <Text selectable style={styles.helperText}>
-                    Paste your resume text below so PrepAI can still analyze the content.
+                    Paste your resume text below so IntervueAI can still analyze the content.
                   </Text>
                 </View>
               </View>

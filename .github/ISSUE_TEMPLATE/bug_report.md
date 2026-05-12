@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a PrepAI beta bug or broken flow
+about: Report an IntervueAI beta bug or broken flow
 title: "[Bug]: "
 labels: bug, beta
 assignees: ""

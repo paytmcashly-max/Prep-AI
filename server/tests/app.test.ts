@@ -103,19 +103,48 @@ describe("backend app", () => {
     expect(response.body).toEqual({ error: "Authentication required." });
   });
 
-  it("POST /api/subscription/sync without Authorization returns 401", async () => {
+  it("GET /api/subscription/status without Authorization returns 401", async () => {
+    const response = await request(app).get("/api/subscription/status").expect(401);
+
+    expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
+  it("POST /api/payments/razorpay/order without Authorization returns 401", async () => {
     const response = await request(app)
-      .post("/api/subscription/sync")
+      .post("/api/payments/razorpay/order")
       .send({
-        activeEntitlements: ["premium"],
-        entitlementId: "premium",
-        expirationDate: null,
-        isPremium: true,
-        source: "revenuecat"
+        plan: "monthly"
       })
       .expect(401);
 
     expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
+  it("POST /api/payments/razorpay/verify without Authorization returns 401", async () => {
+    const response = await request(app)
+      .post("/api/payments/razorpay/verify")
+      .send({
+        paymentId: "pay_test",
+        paymentLinkId: "plink_test",
+        paymentLinkReferenceId: "ref_test",
+        paymentLinkStatus: "paid",
+        signature: "signature"
+      })
+      .expect(401);
+
+    expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
+  it("POST /api/payments/razorpay/webhook rejects invalid signatures", async () => {
+    const response = await request(app)
+      .post("/api/payments/razorpay/webhook")
+      .set("x-razorpay-signature", "invalid-signature")
+      .send({
+        event: "payment_link.paid"
+      })
+      .expect(400);
+
+    expect(response.body).toEqual({ error: "Invalid webhook signature." });
   });
 
   it("resume text validation rejects too-short content before analysis", async () => {
@@ -182,23 +211,80 @@ describe("backend app", () => {
     expect(isSubscriptionActiveFromData({ isPremium: true })).toBe(false);
   });
 
-  it("client subscription sync records are not authoritative for premium access", async () => {
-    const { createUnverifiedSubscriptionRecord } =
+  it("server verified Razorpay subscription records can grant premium access", async () => {
+    const { createServerVerifiedSubscriptionRecord } =
       await import("../src/services/subscriptionService.js");
 
-    const record = createUnverifiedSubscriptionRecord({
-      activeEntitlements: ["premium"],
-      entitlementId: "premium",
-      expirationDate: null,
-      isPremium: true,
-      source: "revenuecat"
+    const record = createServerVerifiedSubscriptionRecord({
+      expirationDate: "2099-01-01T00:00:00.000Z",
+      orderId: "plink_test",
+      paymentId: "pay_test",
+      plan: "monthly"
     });
 
     expect(record).toMatchObject({
-      clientReportedIsPremium: true,
-      isPremium: false,
-      verificationStatus: "client_reported_unverified"
+      isPremium: true,
+      provider: "razorpay",
+      source: "razorpay",
+      verificationStatus: "server_verified"
     });
+  });
+
+  it("Razorpay reports payments unavailable when backend env is missing", async () => {
+    const { config } = await import("../src/config.js");
+    const { getRazorpayPaymentStatus } = await import("../src/services/razorpayService.js");
+    const originalConfig = {
+      RAZORPAY_KEY_ID: config.RAZORPAY_KEY_ID,
+      RAZORPAY_KEY_SECRET: config.RAZORPAY_KEY_SECRET,
+      RAZORPAY_PREMIUM_MONTHLY_AMOUNT: config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT,
+      RAZORPAY_PREMIUM_YEARLY_AMOUNT: config.RAZORPAY_PREMIUM_YEARLY_AMOUNT
+    };
+
+    config.RAZORPAY_KEY_ID = undefined;
+    config.RAZORPAY_KEY_SECRET = undefined;
+    config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT = undefined;
+    config.RAZORPAY_PREMIUM_YEARLY_AMOUNT = undefined;
+
+    try {
+      expect(getRazorpayPaymentStatus()).toMatchObject({
+        paymentAvailable: false,
+        plans: [],
+        provider: "razorpay"
+      });
+    } finally {
+      config.RAZORPAY_KEY_ID = originalConfig.RAZORPAY_KEY_ID;
+      config.RAZORPAY_KEY_SECRET = originalConfig.RAZORPAY_KEY_SECRET;
+      config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT = originalConfig.RAZORPAY_PREMIUM_MONTHLY_AMOUNT;
+      config.RAZORPAY_PREMIUM_YEARLY_AMOUNT = originalConfig.RAZORPAY_PREMIUM_YEARLY_AMOUNT;
+    }
+  });
+
+  it("Razorpay order creation fails safely when backend env is missing", async () => {
+    const { config } = await import("../src/config.js");
+    const { createRazorpayPaymentLink, RazorpayUnavailableError } =
+      await import("../src/services/razorpayService.js");
+    const originalConfig = {
+      RAZORPAY_KEY_ID: config.RAZORPAY_KEY_ID,
+      RAZORPAY_KEY_SECRET: config.RAZORPAY_KEY_SECRET,
+      RAZORPAY_PREMIUM_MONTHLY_AMOUNT: config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT
+    };
+
+    config.RAZORPAY_KEY_ID = undefined;
+    config.RAZORPAY_KEY_SECRET = undefined;
+    config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT = undefined;
+
+    try {
+      await expect(
+        createRazorpayPaymentLink({
+          plan: "monthly",
+          uid: "test-user"
+        })
+      ).rejects.toBeInstanceOf(RazorpayUnavailableError);
+    } finally {
+      config.RAZORPAY_KEY_ID = originalConfig.RAZORPAY_KEY_ID;
+      config.RAZORPAY_KEY_SECRET = originalConfig.RAZORPAY_KEY_SECRET;
+      config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT = originalConfig.RAZORPAY_PREMIUM_MONTHLY_AMOUNT;
+    }
   });
 
   it("daily usage period resets at India midnight", async () => {

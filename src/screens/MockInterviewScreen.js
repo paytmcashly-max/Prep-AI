@@ -457,7 +457,7 @@ export default function MockInterviewScreen({ navigation, route }) {
   const shareResult = async () => {
     try {
       await Share.share({
-        message: `Mock Interview Complete!\n\nCategory: ${categoryName}\nScore: ${averageScore}/10\n\nPreparing for my dream job with PrepAI.\n\n#PrepAI #InterviewPrep #JobSearch`
+        message: `Mock Interview Complete!\n\nCategory: ${categoryName}\nScore: ${averageScore}/10\n\nPracticing smarter with IntervueAI.\n\n#IntervueAI #InterviewPrep #JobSearch`
       });
     } catch (error) {
       Alert.alert("Share failed", error.message || "Could not open sharing options.");
@@ -494,7 +494,7 @@ export default function MockInterviewScreen({ navigation, route }) {
           ) : null}
           <View style={styles.shareCard}>
             <Text selectable style={styles.shareLogo}>
-              PrepAI
+              IntervueAI
             </Text>
             <Text selectable style={styles.shareHeadline}>
               I just completed a mock interview
@@ -516,7 +516,7 @@ export default function MockInterviewScreen({ navigation, route }) {
               </Text>
             </View>
             <Text selectable style={styles.shareFooter}>
-              Practice with PrepAI - AI Interview Coach
+              Practice with IntervueAI - Practice smarter. Interview better.
             </Text>
           </View>
           <HapticPressable

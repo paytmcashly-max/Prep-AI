@@ -1,4 +1,4 @@
-export const APP_NAME = "PrepAI";
+export const APP_NAME = "IntervueAI";
 
 export const COLORS = {
   accent: "#6C63FF",

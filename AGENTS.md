@@ -2,7 +2,7 @@
 
 ## Project
 
-Prep-AI is an Expo / React Native interview-preparation app for job seekers.
+IntervueAI is an Expo / React Native interview-preparation app for job seekers.
 
 ## Product Goal
 
@@ -12,7 +12,7 @@ Help users practice interviews, analyze resumes, and improve job readiness using
 
 - Expo / React Native
 - Firebase Auth / Firestore / Storage
-- RevenueCat
+- Razorpay
 - Node.js / Express / TypeScript backend in `/server`
 - Groq through backend only
 
@@ -65,7 +65,7 @@ Help users practice interviews, analyze resumes, and improve job readiness using
 Stabilize the codebase before adding more features:
 
 1. Finish manual APK QA
-2. Verify full interview, resume, and RevenueCat flows
+2. Verify full interview, resume, and Razorpay flows
 3. Replace legal/support placeholders before launch
 4. Push and verify GitHub Actions CI after auth has `workflow` scope
 5. Keep backend AI, auth verification, usage limits, and tests stable

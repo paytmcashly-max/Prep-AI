@@ -19,23 +19,20 @@ For preview APK testing, configure these variables in the EAS `preview` environm
 - `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`
 - `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
 - `EXPO_PUBLIC_FIREBASE_APP_ID`
-- `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` if purchase testing is intended in a release-style preview APK
-- `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID`
 
 `EXPO_PUBLIC_API_BASE_URL` should point to a deployed backend URL for testers. A local IP only works when the phone or emulator can reach the developer machine on the same network.
 
-Important: `EXPO_PUBLIC_FIREBASE_API_KEY` must be the Firebase Web API key. It usually starts with `AIza`. Do not paste a RevenueCat Test Store key such as `test_...` into the Firebase key field.
+Important: `EXPO_PUBLIC_FIREBASE_API_KEY` must be the Firebase Web API key. It usually starts with `AIza`.
 
-`EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY` is only for development/dev-client builds. Do not configure it for release-style preview APKs or production builds. RevenueCat Test Store keys can trigger a wrong-key crash in release-style APKs.
+Razorpay secrets are backend-only and must not be configured as `EXPO_PUBLIC_*` variables.
 
-Do not submit Play Store builds with the RevenueCat Test Store API key. For release-style preview APKs, Google Play internal/closed testing, and production later, use `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` and keep the entitlement id exactly `premium`. If the Android public key or Play products are not configured, the paywall should show that purchases are unavailable in the beta build.
+If Razorpay backend env or webhook verification is not configured, the paywall should show that premium payments are unavailable in the beta build.
 
-RevenueCat setup requirements:
+Razorpay setup requirements:
 
-- The entitlement identifier must be exactly `premium`.
-- Test Store products must be attached to the `premium` entitlement.
-- Offerings must contain the products shown in the paywall.
-- The app uses RevenueCat SDK `managementURL` when available for subscription management.
+- Backend env contains `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, and plan amounts.
+- Webhook URL points to `/api/payments/razorpay/webhook`.
+- Backend writes subscription status only after server-side Razorpay verification.
 
 ## Never Add Server Secrets To Mobile/EAS Public Env
 
@@ -59,34 +56,26 @@ Use:
 eas build --platform android --profile preview
 ```
 
-## RevenueCat Env By Build Profile
+## Razorpay Env By Build Profile
 
-Development profile / dev-client:
+No Razorpay secret belongs in EAS public/mobile env. Configure Razorpay on the deployed backend instead.
 
-- `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY`
-- `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID=premium`
-- Do not set `EXPO_PUBLIC_REVENUECAT_BILLING_PROVIDER=google_play` unless intentionally testing platform billing in a dev-client.
+Backend env:
 
-Preview profile / release-style APK:
-
-- `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`
-- `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID=premium`
-- Do not set `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY`.
-
-Production profile:
-
-- `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`
-- `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID=premium`
-- Do not set `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY`.
-- Configure Google Play products/subscriptions and RevenueCat Google Play service credentials before enabling real purchase testing.
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
+- `RAZORPAY_WEBHOOK_SECRET`
+- `RAZORPAY_PREMIUM_MONTHLY_AMOUNT`
+- `RAZORPAY_PREMIUM_YEARLY_AMOUNT`
+- `APP_PUBLIC_URL` when a hosted callback URL is available.
 
 After the build installs, verify:
 
 - The app starts without local `.env`.
 - Firebase login works.
 - The backend URL is not `localhost` unless testing on an emulator that can reach it.
-- RevenueCat offerings load from the Android public key for release-style preview APKs when products are configured.
-- If products are not configured yet, the paywall shows purchases unavailable instead of using the Test Store key.
+- Razorpay payment plans load from the backend when configured.
+- If backend payment env is not configured yet, the paywall shows premium payments unavailable.
 - No Groq or Firebase Admin secrets exist in the mobile build configuration.
 
 ## Current Build Status
@@ -98,5 +87,5 @@ After the build installs, verify:
 ## Remaining Preview QA
 
 - Install the latest preview APK on a real Android phone.
-- Verify signup/login, full interview flow, answer evaluation, Resume Analyzer PDF edge cases, RevenueCat Test Store purchase/restore, and notification banner behavior.
+- Verify signup/login, full interview flow, answer evaluation, Resume Analyzer PDF edge cases, Razorpay payment status refresh, and notification banner behavior.
 - Confirm the configured backend URL is reachable from tester devices.

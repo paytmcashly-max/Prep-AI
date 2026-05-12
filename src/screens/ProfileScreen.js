@@ -21,7 +21,6 @@ import {
   getDailyPracticeReminderEnabled,
   setDailyPracticeReminderEnabled
 } from "../services/notificationService";
-import { openSubscriptionManagement } from "../services/subscriptionService";
 import {
   calculateAverageScore,
   calculateCurrentStreak,
@@ -39,7 +38,7 @@ const TERMS_URL = APP_CONFIG_EXTRA.termsUrl || "https://example.com/prepai/terms
 const SUPPORT_EMAIL = APP_CONFIG_EXTRA.supportEmail || "support@example.com";
 
 const getInitials = (name, email) => {
-  const source = name?.trim() || email?.split("@")[0] || "PrepAI";
+  const source = name?.trim() || email?.split("@")[0] || "IntervueAI";
   const words = source.split(/\s+/).filter(Boolean);
 
   if (words.length === 1) {
@@ -94,13 +93,15 @@ export default function ProfileScreen({ navigation }) {
   const profile = useUserStore((state) => state.profile);
   const isPremium = useSubscriptionStore((state) => state.isPremium);
   const isSubscriptionLoading = useSubscriptionStore((state) => state.isLoading);
-  const managementUrl = useSubscriptionStore((state) => state.managementUrl);
   const refreshSubscriptionStatus = useSubscriptionStore(
     (state) => state.refreshSubscriptionStatus
   );
   const user = getCurrentUser();
   const displayName =
-    profile.fullName?.trim() || profile.name?.trim() || user?.displayName?.trim() || "PrepAI User";
+    profile.fullName?.trim() ||
+    profile.name?.trim() ||
+    user?.displayName?.trim() ||
+    "IntervueAI User";
   const email = user?.email || "Email not available";
   const initials = useMemo(() => getInitials(displayName, email), [displayName, email]);
   const [stats, setStats] = useState({
@@ -188,21 +189,10 @@ export default function ProfileScreen({ navigation }) {
   const shareApp = async () => {
     try {
       await Share.share({
-        message: `Practice interviews with PrepAI: ${PLAY_STORE_URL}`
+        message: `Practice smarter. Interview better. Try IntervueAI: ${PLAY_STORE_URL}`
       });
     } catch (error) {
       Alert.alert("Share failed", error.message || "Could not open sharing options.");
-    }
-  };
-
-  const manageSubscription = async () => {
-    try {
-      await openSubscriptionManagement(managementUrl);
-    } catch {
-      Alert.alert(
-        "Manage subscription",
-        "Subscription management is unavailable for this build. If you purchased through Google Play, open Google Play Store > Payments & subscriptions > Subscriptions. If you are testing with RevenueCat Test Store, manage the test purchase from the RevenueCat dashboard."
-      );
     }
   };
 
@@ -347,15 +337,15 @@ export default function ProfileScreen({ navigation }) {
           <SettingRow
             icon="premium"
             label={isPremium ? "Manage Premium" : "Upgrade to Premium"}
-            detail={isPremium ? "Premium entitlement is active" : "Unlock unlimited practice"}
+            detail={isPremium ? "Server-verified premium is active" : "Unlock unlimited practice"}
             onPress={() => navigation.navigate("Paywall")}
           />
           {isPremium ? (
             <SettingRow
-              icon="settings"
-              label="Manage Subscription"
-              detail="Cancel or update from your store account"
-              onPress={manageSubscription}
+              icon="refresh"
+              label="Refresh Premium Status"
+              detail="Check your latest Razorpay verification status"
+              onPress={() => refreshSubscriptionStatus().catch(() => {})}
             />
           ) : null}
         </View>
@@ -407,7 +397,7 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       <Text selectable style={styles.version}>
-        PrepAI v1.0.0
+        IntervueAI v1.0.0
       </Text>
     </ScrollView>
   );

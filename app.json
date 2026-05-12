@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "PrepAI",
+    "name": "IntervueAI",
     "slug": "prepai",
-    "description": "AI interview preparation coach for mock interviews, resume analysis, and job readiness practice.",
+    "description": "IntervueAI helps you practice smarter and interview better with mock interviews, resume analysis, and progress tracking.",
     "scheme": "prepai",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -24,7 +24,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.prepai.app",
       "infoPlist": {
-        "CFBundleDisplayName": "PrepAI"
+        "CFBundleDisplayName": "IntervueAI"
       }
     },
     "android": {

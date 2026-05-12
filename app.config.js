@@ -21,11 +21,6 @@ module.exports = ({ config }) => ({
     firebaseMeasurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
     analyticsEnabled: process.env.EXPO_PUBLIC_ANALYTICS_ENABLED,
-    revenueCatTestStoreApiKey: process.env.EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY,
-    revenueCatIosApiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
-    revenueCatAndroidApiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
-    revenueCatBillingProvider: process.env.EXPO_PUBLIC_REVENUECAT_BILLING_PROVIDER,
-    revenueCatEntitlementId: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID,
     privacyPolicyUrl:
       process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL || appJson.expo.extra?.privacyPolicyUrl,
     termsUrl: process.env.EXPO_PUBLIC_TERMS_URL || appJson.expo.extra?.termsUrl,

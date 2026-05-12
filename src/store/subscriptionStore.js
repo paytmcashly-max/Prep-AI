@@ -1,32 +1,23 @@
 import { create } from "zustand";
 
 import {
-  identifyPurchasesUser,
-  refreshSubscriptionStatus as refreshRevenueCatStatus,
-  resetPurchasesUser
+  identifySubscriptionUser,
+  refreshSubscriptionStatus as refreshBackendSubscriptionStatus,
+  resetSubscriptionUser
 } from "../services/subscriptionService";
-import { syncSubscriptionStatusWithBackend } from "../services/subscriptionSyncService";
 
 const defaultSubscriptionState = {
   activeEntitlements: [],
+  availablePlans: [],
   expirationDate: null,
   isLoading: false,
   isPremium: false,
   lastUpdatedAt: null,
-  managementUrl: null,
-  source: "unknown"
-};
-
-const syncSubscriptionStatusSafely = async (status) => {
-  try {
-    await syncSubscriptionStatusWithBackend(status);
-  } catch (error) {
-    if (typeof __DEV__ !== "undefined" && __DEV__) {
-      console.warn("Subscription status sync failed", {
-        errorMessage: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  }
+  paymentAvailable: false,
+  plan: null,
+  provider: "razorpay",
+  source: "unknown",
+  verificationStatus: "none"
 };
 
 export const useSubscriptionStore = create((set) => ({
@@ -35,17 +26,20 @@ export const useSubscriptionStore = create((set) => ({
     set({ isLoading: true });
 
     try {
-      const status = await identifyPurchasesUser(userId);
-      await syncSubscriptionStatusSafely(status);
+      const status = await identifySubscriptionUser(userId);
 
       set({
         activeEntitlements: status.activeEntitlements || [],
+        availablePlans: status.availablePlans || [],
         expirationDate: status.expirationDate || null,
         isLoading: false,
         isPremium: Boolean(status.isPremium),
         lastUpdatedAt: new Date().toISOString(),
-        managementUrl: status.managementUrl || null,
-        source: status.source || "revenuecat"
+        paymentAvailable: Boolean(status.paymentAvailable),
+        plan: status.plan || null,
+        provider: status.provider || "razorpay",
+        source: status.source || "razorpay",
+        verificationStatus: status.verificationStatus || "none"
       });
 
       return status;
@@ -62,17 +56,20 @@ export const useSubscriptionStore = create((set) => ({
     set({ isLoading: true });
 
     try {
-      const status = await refreshRevenueCatStatus();
-      await syncSubscriptionStatusSafely(status);
+      const status = await refreshBackendSubscriptionStatus();
 
       set({
         activeEntitlements: status.activeEntitlements || [],
+        availablePlans: status.availablePlans || [],
         expirationDate: status.expirationDate || null,
         isLoading: false,
         isPremium: Boolean(status.isPremium),
         lastUpdatedAt: new Date().toISOString(),
-        managementUrl: status.managementUrl || null,
-        source: status.source || "revenuecat"
+        paymentAvailable: Boolean(status.paymentAvailable),
+        plan: status.plan || null,
+        provider: status.provider || "razorpay",
+        source: status.source || "razorpay",
+        verificationStatus: status.verificationStatus || "none"
       });
 
       return status;
@@ -86,18 +83,21 @@ export const useSubscriptionStore = create((set) => ({
     }
   },
   resetSubscription: () => {
-    resetPurchasesUser();
+    resetSubscriptionUser();
     set({ ...defaultSubscriptionState });
   },
-  setSubscriptionStatus: async (status) => {
-    await syncSubscriptionStatusSafely(status);
+  setSubscriptionStatus: (status) => {
     set({
       activeEntitlements: status.activeEntitlements || [],
+      availablePlans: status.availablePlans || [],
       expirationDate: status.expirationDate || null,
       isPremium: Boolean(status.isPremium),
       lastUpdatedAt: new Date().toISOString(),
-      managementUrl: status.managementUrl || null,
-      source: status.source || "revenuecat"
+      paymentAvailable: Boolean(status.paymentAvailable),
+      plan: status.plan || null,
+      provider: status.provider || "razorpay",
+      source: status.source || "razorpay",
+      verificationStatus: status.verificationStatus || "none"
     });
   }
 }));

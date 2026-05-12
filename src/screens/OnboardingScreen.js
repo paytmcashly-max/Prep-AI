@@ -51,7 +51,7 @@ export default function OnboardingScreen({ navigation }) {
           <View style={styles.brandMark}>
             <AppIcon color={COLORS.primary} name="target" size={18} />
           </View>
-          <AppText variant="cardTitle">PrepAI</AppText>
+          <AppText variant="cardTitle">IntervueAI</AppText>
         </View>
         <HapticPressable
           hitSlop={12}
