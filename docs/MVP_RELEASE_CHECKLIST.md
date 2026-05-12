@@ -1,6 +1,6 @@
 # MVP Release Checklist
 
-Use this checklist before preparing the PrepAI MVP for store submission or public testing.
+Use this checklist before preparing the IntervueAI MVP for store submission or public testing.
 
 ## Security
 
@@ -44,18 +44,17 @@ Use this checklist before preparing the PrepAI MVP for store submission or publi
 - [x] Latest preview APK real Android phone smoke test passes on local same-WiFi backend
 - [ ] Notification banner/head-up behavior verified in latest preview APK
 
-## Subscriptions
+## Payments
 
-- [x] RevenueCat keys are placeholders in `.env.example`
-- [x] App does not crash without RevenueCat keys
+- [x] Previous native purchase SDK removed
 - [x] Premium status defaults to false
-- [x] Restore purchases path exists
-- [ ] RevenueCat Test Store offerings verified in APK
-- [ ] RevenueCat Test Store purchase and restore verified in APK
-- [ ] RevenueCat entitlement id verified as exactly `premium`
-- [ ] RevenueCat Test Store products attached to the `premium` entitlement and included in offerings
-- [ ] Release-style preview APKs and Google Play builds verified without RevenueCat Test Store API key
-- [ ] Server-side RevenueCat verification or webhook updates verified subscription status before backend premium quota bypass
+- [x] Mobile never grants premium directly
+- [x] Backend premium bypass requires `verificationStatus === "server_verified"`
+- [ ] Razorpay backend env configured
+- [ ] Razorpay webhook configured and verified
+- [ ] Monthly and yearly Razorpay payment links tested
+- [ ] Premium status refresh verified after payment
+- [ ] Paywall payments-unavailable state verified when Razorpay env is missing
 
 ## Testing
 

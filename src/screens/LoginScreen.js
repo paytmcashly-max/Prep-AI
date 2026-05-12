@@ -46,7 +46,7 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.brandMark}>
             <AppIcon color={COLORS.primary} name="target" size={20} />
           </View>
-          <AppText variant="cardTitle">PrepAI</AppText>
+          <AppText variant="cardTitle">IntervueAI</AppText>
         </View>
 
         <View style={styles.header}>
@@ -93,7 +93,7 @@ export default function LoginScreen({ navigation }) {
 
         <View style={styles.footer}>
           <AppText tone="muted" variant="bodyMuted">
-            New to PrepAI?
+            New to IntervueAI?
           </AppText>
           <HapticPressable onPress={() => navigation.navigate("Signup")} hitSlop={10}>
             <AppText tone="primary" variant="button">

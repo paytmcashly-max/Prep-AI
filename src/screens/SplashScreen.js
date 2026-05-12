@@ -48,7 +48,7 @@ export default function SplashScreen({ navigation }) {
           {APP_NAME}
         </Text>
         <Text selectable style={styles.tagline}>
-          Practice smarter. Interview sharper.
+          Practice smarter. Interview better.
         </Text>
       </Animated.View>
     </View>

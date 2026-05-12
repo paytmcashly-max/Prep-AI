@@ -52,7 +52,7 @@ export default function SignupScreen({ navigation }) {
           <View style={styles.brandMark}>
             <AppIcon color={COLORS.primary} name="target" size={20} />
           </View>
-          <AppText variant="cardTitle">PrepAI</AppText>
+          <AppText variant="cardTitle">IntervueAI</AppText>
         </View>
 
         <View style={styles.header}>

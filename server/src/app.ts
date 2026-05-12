@@ -25,7 +25,16 @@ import {
   getUsageStatus,
   UsageLimitError
 } from "./services/usageService.js";
-import { createUnverifiedSubscriptionRecord } from "./services/subscriptionService.js";
+import {
+  createRazorpayPaymentLink,
+  getRazorpayPaymentStatus,
+  handleRazorpayWebhook,
+  RazorpayUnavailableError,
+  RazorpayVerificationError,
+  verifyRazorpayPayment,
+  verifyRazorpayWebhookSignature
+} from "./services/razorpayService.js";
+import { getUserSubscriptionStatus } from "./services/subscriptionService.js";
 
 export const app = express();
 
@@ -61,12 +70,16 @@ const resumeUploadFieldsSchema = z.object({
   jobRole: z.string().trim().min(1).max(120)
 });
 
-const subscriptionSyncRequestSchema = z.object({
-  activeEntitlements: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
-  entitlementId: z.string().trim().min(1).max(120),
-  expirationDate: z.string().trim().max(120).nullable().optional(),
-  isPremium: z.boolean(),
-  source: z.literal("revenuecat")
+const razorpayOrderRequestSchema = z.object({
+  plan: z.enum(["monthly", "yearly"])
+});
+
+const razorpayVerifyRequestSchema = z.object({
+  paymentId: z.string().trim().min(1).max(120),
+  paymentLinkId: z.string().trim().min(1).max(120),
+  paymentLinkReferenceId: z.string().trim().min(1).max(120),
+  paymentLinkStatus: z.string().trim().min(1).max(40),
+  signature: z.string().trim().min(1).max(500)
 });
 
 const MAX_RESUME_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
@@ -255,7 +268,14 @@ const corsOptions: CorsOptions = {
 
 app.use(helmet());
 app.use(cors(corsOptions));
-app.use(express.json({ limit: "1mb" }));
+app.use(
+  express.json({
+    limit: "1mb",
+    verify: (request, _response, buffer) => {
+      (request as Request & { rawBody?: string }).rawBody = buffer.toString("utf8");
+    }
+  })
+);
 
 app.get("/health", (_request, response) => {
   response.json({ ok: true });
@@ -282,6 +302,23 @@ app.get("/api/usage/status", requireFirebaseAuth, async (request, response, next
 app.get("/api/resume/latest", requireFirebaseAuth, async (request, response, next) => {
   try {
     response.json(await getLatestResumeAnalysis(getAuthenticatedUid(request)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/subscription/status", requireFirebaseAuth, async (request, response, next) => {
+  try {
+    const uid = getAuthenticatedUid(request);
+    const [subscription, paymentStatus] = await Promise.all([
+      getUserSubscriptionStatus(uid),
+      Promise.resolve(getRazorpayPaymentStatus())
+    ]);
+
+    response.json({
+      ...subscription,
+      ...paymentStatus
+    });
   } catch (error) {
     next(error);
   }
@@ -350,30 +387,53 @@ app.post(
   }
 );
 
-app.post("/api/subscription/sync", requireFirebaseAuth, async (request, response, next) => {
+app.post("/api/payments/razorpay/order", requireFirebaseAuth, async (request, response, next) => {
   try {
-    const input = subscriptionSyncRequestSchema.parse(request.body);
+    const input = razorpayOrderRequestSchema.parse(request.body);
     const uid = getAuthenticatedUid(request);
-    const firebaseAdmin = getFirebaseAdmin();
-    const firestore = firebaseAdmin.firestore();
-    const subscriptionRecord = createUnverifiedSubscriptionRecord(input);
+    const order = await createRazorpayPaymentLink({
+      email: (request as AuthenticatedRequest).user?.email,
+      plan: input.plan,
+      uid
+    });
 
-    await firestore
-      .collection("users")
-      .doc(uid)
-      .collection("subscription")
-      .doc("main")
-      .set(
-        {
-          ...subscriptionRecord,
-          updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()
-        },
-        { merge: true }
-      );
+    response.json(order);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/payments/razorpay/verify", requireFirebaseAuth, async (request, response, next) => {
+  try {
+    const input = razorpayVerifyRequestSchema.parse(request.body);
+    const subscription = await verifyRazorpayPayment(getAuthenticatedUid(request), input);
 
     response.json({
-      isPremium: subscriptionRecord.isPremium,
-      ok: true
+      isPremium: subscription.isPremium,
+      ok: true,
+      provider: "razorpay",
+      verificationStatus: subscription.verificationStatus
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/payments/razorpay/webhook", async (request, response, next) => {
+  try {
+    const rawBody = (request as Request & { rawBody?: string }).rawBody || "";
+    const signature = request.header("x-razorpay-signature");
+
+    if (!verifyRazorpayWebhookSignature(rawBody, signature)) {
+      response.status(400).json({ error: "Invalid webhook signature." });
+      return;
+    }
+
+    const result = await handleRazorpayWebhook(request.body);
+
+    response.json({
+      ok: true,
+      ...result
     });
   } catch (error) {
     next(error);
@@ -401,6 +461,20 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
   if (error instanceof UsageLimitError) {
     response.status(429).json({
       error: "Usage limit reached"
+    });
+    return;
+  }
+
+  if (error instanceof RazorpayUnavailableError) {
+    response.status(503).json({
+      error: "Premium payments are not available in this beta build yet."
+    });
+    return;
+  }
+
+  if (error instanceof RazorpayVerificationError) {
+    response.status(400).json({
+      error: "Payment verification failed."
     });
     return;
   }

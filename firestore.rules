@@ -36,7 +36,8 @@ service cloud.firestore {
       }
 
       match /dailyUsage/{docId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow write: if false;
       }
     }
   }

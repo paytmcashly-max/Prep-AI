@@ -1,6 +1,6 @@
 ---
 name: Beta feedback
-about: Share feedback from testing PrepAI beta
+about: Share feedback from testing IntervueAI beta
 title: "[Beta Feedback]: "
 labels: beta, feedback
 assignees: ""
@@ -45,7 +45,7 @@ What felt confusing, slow, broken, or hard to trust?
 
 ## Missing Features
 
-What feature would make PrepAI more useful for your interview preparation?
+What feature would make IntervueAI more useful for your interview preparation?
 
 ## Willingness To Pay
 

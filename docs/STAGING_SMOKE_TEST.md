@@ -24,7 +24,7 @@ Status note: local LDPlayer APK launch smoke testing passed on May 8, 2026. Dev-
 - [ ] Answer evaluation works
 - [ ] Resume analysis works
 - [ ] Usage limit messages appear correctly
-- [ ] App does not crash if RevenueCat keys are missing
+- [ ] App does not crash if backend Razorpay env is missing
 - [ ] No Groq/OpenAI keys exist in mobile env
 
 ## Privacy And Security Checks

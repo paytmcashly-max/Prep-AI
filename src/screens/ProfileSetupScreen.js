@@ -186,7 +186,7 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
         </AppText>
         <AppText variant="screenTitle">Personalize your practice</AppText>
         <AppText tone="muted" variant="body">
-          Your role and experience help PrepAI generate better interview questions.
+          Your role and experience help IntervueAI generate better interview questions.
         </AppText>
       </View>
 

@@ -17,9 +17,6 @@ Status note: production environment setup has not been verified yet. Keep the it
 - [ ] `EXPO_PUBLIC_FIREBASE_APP_ID`
 - [ ] `EXPO_PUBLIC_SENTRY_DSN`
 - [ ] `EXPO_PUBLIC_ANALYTICS_ENABLED`
-- [ ] `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`
-- [ ] `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`
-- [ ] `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID`
 - [ ] `EXPO_PUBLIC_PRIVACY_POLICY_URL`
 - [ ] `EXPO_PUBLIC_TERMS_URL`
 - [ ] `EXPO_PUBLIC_SUPPORT_EMAIL`
@@ -30,11 +27,9 @@ Rules:
 - [ ] `GROQ_API_KEY` is not present in mobile/root env.
 - [ ] Firebase Admin credentials are not present in mobile/root env.
 - [ ] No private backend keys are present in Expo public env.
-- [ ] RevenueCat Test Store API key is not included in release-style preview APKs or production builds.
-- [ ] Release-style preview APKs and production builds use the Android RevenueCat public API key when purchases are enabled.
-- [ ] RevenueCat entitlement identifier is exactly `premium`.
-- [ ] RevenueCat products are attached to the `premium` entitlement and included in offerings.
-- [ ] Backend subscription status is updated only from server-side RevenueCat verification or trusted Admin processes.
+- [ ] Razorpay keys/secrets are not present in Expo public env.
+- [ ] Mobile payment UI depends on backend `/api/subscription/status`.
+- [ ] Backend subscription status is updated only from server-side Razorpay verification or trusted Admin processes.
 - [ ] Legal/support placeholders are replaced with final public URL/email values before launch.
 
 ## Backend / Server Private Env
@@ -50,6 +45,12 @@ Backend variables are server-only and must be configured in the backend deployme
 - [ ] `FIREBASE_CLIENT_EMAIL`
 - [ ] `FIREBASE_PRIVATE_KEY`
 - [ ] `CORS_ORIGIN`
+- [ ] `RAZORPAY_KEY_ID`
+- [ ] `RAZORPAY_KEY_SECRET`
+- [ ] `RAZORPAY_WEBHOOK_SECRET`
+- [ ] `RAZORPAY_PREMIUM_MONTHLY_AMOUNT`
+- [ ] `RAZORPAY_PREMIUM_YEARLY_AMOUNT`
+- [ ] `APP_PUBLIC_URL`
 
 Rules:
 
@@ -57,6 +58,8 @@ Rules:
 - [ ] `FIREBASE_PRIVATE_KEY` exists only in backend/server env.
 - [ ] `FIREBASE_CLIENT_EMAIL` exists only in backend/server env.
 - [ ] `CORS_ORIGIN` is set to the intended deployed app or web origin.
+- [ ] Razorpay secrets exist only in backend/server env.
+- [ ] Razorpay webhook signature verification is enabled before live payments.
 - [ ] Real backend env values are not committed.
 
 ## Final Verification Commands

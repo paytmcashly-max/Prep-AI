@@ -2,7 +2,7 @@
 
 ## Beta Goal
 
-Validate that PrepAI helps job seekers practice interviews, understand AI feedback, analyze resumes, and build confidence without crashes, confusing flows, or security issues.
+Validate that IntervueAI helps job seekers practice interviews, understand AI feedback, analyze resumes, and build confidence without crashes, confusing flows, or security issues.
 
 ## Target Beta Users
 
@@ -19,7 +19,7 @@ Validate that PrepAI helps job seekers practice interviews, understand AI feedba
 - [ ] Test users can sign up and log in
 - [ ] Usage limits configured for staging
 - [ ] Legal links placeholder behavior confirmed
-- [ ] RevenueCat fallback confirmed if keys are missing
+- [ ] Razorpay fallback confirmed if keys are missing
 - [ ] Crash/error reporting configured if enabled
 - [ ] No real secrets included in the mobile app
 - [ ] `npm run security:audit` passes before sharing the build
@@ -35,7 +35,7 @@ Validate that PrepAI helps job seekers practice interviews, understand AI feedba
 - [ ] Usage limit messages
 - [ ] Legal links
 - [ ] App crash/error behavior
-- [ ] Subscription fallback if RevenueCat keys are missing or purchases are disabled
+- [ ] Subscription fallback if Razorpay backend env is missing or payments are disabled
 
 ## Feedback Questions
 
@@ -94,8 +94,8 @@ Any other notes:
 - Resume analysis quality depends on pasted text quality.
 - Usage limits may interrupt testing if not communicated clearly.
 - Staging backend or Firebase configuration may differ from production.
-- External beta can run without purchases enabled, but the paywall must clearly say premium purchases are not available in that beta build.
-- RevenueCat purchase flows require Google Play internal/closed testing or another intended billing environment before being treated as launch-ready.
+- External beta can run without payments enabled, but the paywall must clearly say premium payments are not available in that beta build.
+- Razorpay payment flows require backend env, webhook verification, and legal/payment policy readiness before being treated as launch-ready.
 - Legal links may still point to placeholders until final URLs are hosted.
 
 ## Post-Beta Action Plan

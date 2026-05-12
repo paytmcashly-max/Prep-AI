@@ -103,15 +103,32 @@ describe("backend app", () => {
     expect(response.body).toEqual({ error: "Authentication required." });
   });
 
-  it("POST /api/subscription/sync without Authorization returns 401", async () => {
+  it("GET /api/subscription/status without Authorization returns 401", async () => {
+    const response = await request(app).get("/api/subscription/status").expect(401);
+
+    expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
+  it("POST /api/payments/razorpay/order without Authorization returns 401", async () => {
     const response = await request(app)
-      .post("/api/subscription/sync")
+      .post("/api/payments/razorpay/order")
       .send({
-        activeEntitlements: ["premium"],
-        entitlementId: "premium",
-        expirationDate: null,
-        isPremium: true,
-        source: "revenuecat"
+        plan: "monthly"
+      })
+      .expect(401);
+
+    expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
+  it("POST /api/payments/razorpay/verify without Authorization returns 401", async () => {
+    const response = await request(app)
+      .post("/api/payments/razorpay/verify")
+      .send({
+        paymentId: "pay_test",
+        paymentLinkId: "plink_test",
+        paymentLinkReferenceId: "ref_test",
+        paymentLinkStatus: "paid",
+        signature: "signature"
       })
       .expect(401);
 
@@ -182,22 +199,22 @@ describe("backend app", () => {
     expect(isSubscriptionActiveFromData({ isPremium: true })).toBe(false);
   });
 
-  it("client subscription sync records are not authoritative for premium access", async () => {
-    const { createUnverifiedSubscriptionRecord } =
+  it("server verified Razorpay subscription records can grant premium access", async () => {
+    const { createServerVerifiedSubscriptionRecord } =
       await import("../src/services/subscriptionService.js");
 
-    const record = createUnverifiedSubscriptionRecord({
-      activeEntitlements: ["premium"],
-      entitlementId: "premium",
-      expirationDate: null,
-      isPremium: true,
-      source: "revenuecat"
+    const record = createServerVerifiedSubscriptionRecord({
+      expirationDate: "2099-01-01T00:00:00.000Z",
+      orderId: "plink_test",
+      paymentId: "pay_test",
+      plan: "monthly"
     });
 
     expect(record).toMatchObject({
-      clientReportedIsPremium: true,
-      isPremium: false,
-      verificationStatus: "client_reported_unverified"
+      isPremium: true,
+      provider: "razorpay",
+      source: "razorpay",
+      verificationStatus: "server_verified"
     });
   });
 

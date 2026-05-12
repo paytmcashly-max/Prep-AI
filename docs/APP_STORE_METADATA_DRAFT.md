@@ -4,26 +4,26 @@ Status note: this is public listing draft copy, not final store-ready metadata. 
 
 ## App Name Ideas
 
-- PrepAI
-- PrepAI Interview Coach
-- PrepAI Mock Interview
-- PrepAI Job Prep
+- IntervueAI
+- IntervueAI Interview Coach
+- IntervueAI Mock Interview
+- IntervueAI Job Prep
 
 ## Short Description
 
-Practice mock interviews, improve answers, analyze resumes, and track your job-prep progress with PrepAI.
+Practice mock interviews, improve answers, analyze resumes, and track your job-prep progress with IntervueAI.
 
 ## Long Description
 
-PrepAI is an AI-powered interview preparation app built for Indian job seekers preparing for fresher roles, IT services companies, startups, management roles, and global tech opportunities.
+IntervueAI is an AI-powered interview preparation app built for Indian job seekers preparing for fresher roles, IT services companies, startups, management roles, and global tech opportunities.
 
 Practice mock interviews across HR, technical, behavioral, and company-specific categories. Type your answers, get structured feedback, review improvement areas, and keep building confidence one session at a time.
 
-PrepAI also helps you analyze resume text for role-specific improvements, track practice progress, and build a daily preparation habit.
+IntervueAI also helps you analyze resume text for role-specific improvements, track practice progress, and build a daily preparation habit.
 
 The app includes free usage with optional premium upgrades for users who want expanded access as more features become available.
 
-PrepAI is a preparation tool. It does not guarantee interviews, job offers, salary increases, or hiring outcomes.
+IntervueAI is a preparation tool. It does not guarantee interviews, job offers, salary increases, or hiring outcomes.
 
 ## Key Features
 
@@ -56,7 +56,7 @@ PrepAI is a preparation tool. It does not guarantee interviews, job offers, sala
 
 ## Screenshot Checklist
 
-- [ ] Splash or onboarding screen with PrepAI branding
+- [ ] Splash or onboarding screen with IntervueAI branding
 - [ ] Home screen with daily streak and quick interview CTA
 - [ ] Practice category screen
 - [ ] Mock interview question and answer screen
@@ -77,9 +77,9 @@ support@example.com
 
 Configured placeholder: `EXPO_PUBLIC_SUPPORT_EMAIL`
 
-TODO: replace with the final monitored PrepAI support email before launch.
+TODO: replace with the final monitored IntervueAI support email before launch.
 
-Replace with the official PrepAI support email before launch.
+Replace with the official IntervueAI support email before launch.
 
 ## Privacy Policy URL Placeholder
 
@@ -91,7 +91,7 @@ Configured placeholder: `EXPO_PUBLIC_PRIVACY_POLICY_URL`
 
 TODO: replace with the final hosted Privacy Policy URL before launch.
 
-Replace with the hosted PrepAI Privacy Policy URL before launch.
+Replace with the hosted IntervueAI Privacy Policy URL before launch.
 
 ## Terms URL Placeholder
 
@@ -103,4 +103,4 @@ Configured placeholder: `EXPO_PUBLIC_TERMS_URL`
 
 TODO: replace with the final hosted Terms of Service URL before launch.
 
-Replace with the hosted PrepAI Terms of Service URL before launch.
+Replace with the hosted IntervueAI Terms of Service URL before launch.

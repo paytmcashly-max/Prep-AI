@@ -1,6 +1,6 @@
 # Launch Assets Checklist
 
-Use this checklist to prepare store-ready screenshots, creative assets, and launch metadata for PrepAI.
+Use this checklist to prepare store-ready screenshots, creative assets, and launch metadata for IntervueAI.
 
 ## App Icon
 
@@ -12,7 +12,7 @@ Use this checklist to prepare store-ready screenshots, creative assets, and laun
 
 ## Splash Screen
 
-- [ ] Splash screen uses final PrepAI branding
+- [ ] Splash screen uses final IntervueAI branding
 - [ ] Splash background matches app theme
 - [ ] Splash asset renders cleanly on common Android screen sizes
 - [ ] Splash asset renders cleanly on common iOS screen sizes

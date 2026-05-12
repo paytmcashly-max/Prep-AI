@@ -22,6 +22,26 @@ export type ServerConfig = {
   FIREBASE_PROJECT_ID?: string;
   FIREBASE_CLIENT_EMAIL?: string;
   FIREBASE_PRIVATE_KEY?: string;
+  RAZORPAY_KEY_ID?: string;
+  RAZORPAY_KEY_SECRET?: string;
+  RAZORPAY_WEBHOOK_SECRET?: string;
+  RAZORPAY_PREMIUM_MONTHLY_AMOUNT?: number;
+  RAZORPAY_PREMIUM_YEARLY_AMOUNT?: number;
+  APP_PUBLIC_URL?: string;
+};
+
+const parseOptionalPositiveInteger = (value?: string) => {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error("Invalid Razorpay amount. Expected a positive integer in paise.");
+  }
+
+  return parsed;
 };
 
 export const config: ServerConfig = {
@@ -34,7 +54,17 @@ export const config: ServerConfig = {
   GROQ_RESUME_MODEL: process.env.GROQ_RESUME_MODEL || "llama-3.3-70b-versatile",
   FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
   FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
-  FIREBASE_PRIVATE_KEY: normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY)
+  FIREBASE_PRIVATE_KEY: normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY),
+  RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
+  RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+  RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET,
+  RAZORPAY_PREMIUM_MONTHLY_AMOUNT: parseOptionalPositiveInteger(
+    process.env.RAZORPAY_PREMIUM_MONTHLY_AMOUNT
+  ),
+  RAZORPAY_PREMIUM_YEARLY_AMOUNT: parseOptionalPositiveInteger(
+    process.env.RAZORPAY_PREMIUM_YEARLY_AMOUNT
+  ),
+  APP_PUBLIC_URL: process.env.APP_PUBLIC_URL
 };
 
 if (config.NODE_ENV === "production") {

@@ -80,7 +80,7 @@ const configureAndroidChannel = async () => {
   }
 
   await Notifications.setNotificationChannelAsync(DEFAULT_NOTIFICATION_CHANNEL_ID, {
-    name: "PrepAI practice alerts",
+    name: "IntervueAI practice alerts",
     description: "High-priority practice reminders and session completion alerts.",
     importance:
       Notifications.AndroidImportance.MAX ||

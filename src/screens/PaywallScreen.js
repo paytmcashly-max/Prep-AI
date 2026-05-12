@@ -10,12 +10,7 @@ import BetaNoticeCard from "../components/ui/BetaNoticeCard";
 import FeatureRow from "../components/ui/FeatureRow";
 import Screen from "../components/ui/Screen";
 import SectionHeader from "../components/ui/SectionHeader";
-import {
-  getOfferings,
-  openSubscriptionManagement,
-  purchasePackage,
-  restorePurchases
-} from "../services/subscriptionService";
+import { createRazorpayOrder, openRazorpayPayment } from "../services/subscriptionService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { COLORS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
 
@@ -35,159 +30,96 @@ const PREMIUM_FEATURES = [
   "Voice and video practice when available"
 ];
 
-const betaPurchasesUnavailableMessage =
-  "Premium purchases are not available in this beta build yet. You can continue using the free practice limits.";
+const betaPaymentsUnavailableMessage =
+  "Premium payments are not available in this beta build yet. You can continue using the free practice limits.";
 
-const getAvailablePackages = (offerings) => {
-  const currentPackages = offerings?.current?.availablePackages || [];
-  return currentPackages.length
-    ? currentPackages
-    : Object.values(offerings?.all || {}).flatMap((offering) => offering.availablePackages || []);
+const FALLBACK_PLAN_LABELS = {
+  monthly: "Monthly",
+  yearly: "Yearly"
 };
-
-const getPackageLabel = (packageToDisplay) => {
-  const identifier = String(packageToDisplay?.identifier || "").toLowerCase();
-  const packageType = String(packageToDisplay?.packageType || "").toLowerCase();
-
-  if (
-    identifier.includes("annual") ||
-    identifier.includes("year") ||
-    packageType.includes("annual")
-  ) {
-    return "Yearly";
-  }
-
-  if (identifier.includes("month") || packageType.includes("monthly")) {
-    return "Monthly";
-  }
-
-  return packageToDisplay?.product?.title || packageToDisplay?.identifier || "Premium";
-};
-
-const getPackagePrice = (packageToDisplay) =>
-  packageToDisplay?.product?.priceString ||
-  packageToDisplay?.product?.localizedPriceString ||
-  "Price unavailable";
 
 export default function PaywallScreen({ navigation }) {
   const isPremium = useSubscriptionStore((state) => state.isPremium);
+  const isSubscriptionLoading = useSubscriptionStore((state) => state.isLoading);
+  const availablePlans = useSubscriptionStore((state) => state.availablePlans);
+  const paymentAvailable = useSubscriptionStore((state) => state.paymentAvailable);
   const refreshSubscriptionStatus = useSubscriptionStore(
     (state) => state.refreshSubscriptionStatus
   );
-  const setSubscriptionStatus = useSubscriptionStore((state) => state.setSubscriptionStatus);
-  const managementUrl = useSubscriptionStore((state) => state.managementUrl);
-  const [isLoadingOfferings, setIsLoadingOfferings] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
-  const [offerings, setOfferings] = useState(null);
-  const [selectedPackage, setSelectedPackage] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("monthly");
   const [statusMessage, setStatusMessage] = useState("");
-  const availablePackages = useMemo(() => getAvailablePackages(offerings), [offerings]);
-  const canPurchase = !isLoadingOfferings && !isPremium && Boolean(selectedPackage);
+  const plans = useMemo(
+    () =>
+      availablePlans.length
+        ? availablePlans
+        : [
+            { label: "Monthly", plan: "monthly" },
+            { label: "Yearly", plan: "yearly" }
+          ],
+    [availablePlans]
+  );
+  const canPurchase = !isSubscriptionLoading && !isPremium && paymentAvailable;
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadOfferings = async () => {
-      try {
-        setIsLoadingOfferings(true);
-        setStatusMessage("");
-
-        const [subscriptionStatus, loadedOfferings] = await Promise.all([
-          refreshSubscriptionStatus(),
-          getOfferings()
-        ]);
-        const packages = getAvailablePackages(loadedOfferings);
-
+    refreshSubscriptionStatus()
+      .then((status) => {
         if (!isMounted) {
           return;
         }
 
-        setOfferings(loadedOfferings);
-        setSelectedPackage(packages[0] || null);
-
-        if (!subscriptionStatus.isPremium && !packages.length) {
-          setStatusMessage(betaPurchasesUnavailableMessage);
+        if (!status.isPremium && !status.paymentAvailable) {
+          setStatusMessage(betaPaymentsUnavailableMessage);
         }
-      } catch {
+      })
+      .catch(() => {
         if (isMounted) {
-          setStatusMessage(betaPurchasesUnavailableMessage);
+          setStatusMessage(betaPaymentsUnavailableMessage);
         }
-      } finally {
-        if (isMounted) {
-          setIsLoadingOfferings(false);
-        }
-      }
-    };
-
-    loadOfferings();
+      });
 
     return () => {
       isMounted = false;
     };
   }, [refreshSubscriptionStatus]);
 
-  const startPurchase = async () => {
-    if (!selectedPackage) {
-      Alert.alert("Purchases unavailable", betaPurchasesUnavailableMessage);
+  const refreshPlan = async () => {
+    try {
+      setIsRefreshing(true);
+      setStatusMessage("");
+      const status = await refreshSubscriptionStatus();
+
+      if (status.isPremium) {
+        Alert.alert("Premium active", "Your premium access is active on this account.");
+      } else if (!status.paymentAvailable) {
+        setStatusMessage(betaPaymentsUnavailableMessage);
+      } else {
+        setStatusMessage("Premium is not active yet. If you just paid, please wait a moment.");
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const startPayment = async () => {
+    if (!canPurchase) {
+      Alert.alert("Payments unavailable", betaPaymentsUnavailableMessage);
       return;
     }
 
     try {
       setIsPurchasing(true);
       setStatusMessage("");
-      const status = await purchasePackage(selectedPackage);
-      await setSubscriptionStatus(status);
-
-      if (status.isPremium) {
-        Alert.alert("Premium active", "Your premium access is now active.");
-      } else {
-        Alert.alert(
-          "Premium not active yet",
-          "Purchase completed, but premium access is not active yet. Please try Restore Purchases later or contact support."
-        );
-      }
-    } catch (error) {
-      if (error.message === "PURCHASE_CANCELLED") {
-        setStatusMessage("Purchase cancelled.");
-        return;
-      }
-
-      setStatusMessage(
-        "Purchase could not be completed in this build. You can keep using free practice limits."
-      );
+      const order = await createRazorpayOrder(selectedPlan);
+      await openRazorpayPayment(order);
+      setStatusMessage("Complete payment in Razorpay, then tap Refresh premium status.");
+    } catch {
+      setStatusMessage(betaPaymentsUnavailableMessage);
     } finally {
       setIsPurchasing(false);
-    }
-  };
-
-  const restore = async () => {
-    try {
-      setIsRestoring(true);
-      setStatusMessage("");
-      const status = await restorePurchases();
-      await setSubscriptionStatus(status);
-
-      if (status.isPremium) {
-        Alert.alert("Restored", "Your premium access has been restored.");
-      } else {
-        setStatusMessage(
-          "No active premium entitlement was found. You can continue using the free practice limits."
-        );
-      }
-    } finally {
-      setIsRestoring(false);
-    }
-  };
-
-  const manageSubscription = async () => {
-    try {
-      await openSubscriptionManagement(managementUrl);
-    } catch {
-      Alert.alert(
-        "Manage subscription",
-        "Subscription management is unavailable for this build. If you purchased through Google Play, manage it from Google Play subscriptions. If you are testing with RevenueCat Test Store, manage it from the RevenueCat dashboard."
-      );
     }
   };
 
@@ -200,15 +132,15 @@ export default function PaywallScreen({ navigation }) {
           </View>
           <View style={styles.heroCopy}>
             <AppText tone="primary" variant="caption">
-              PrepAI Premium
+              IntervueAI Premium
             </AppText>
             <AppText variant="screenTitle">
               {isPremium ? "Premium is active" : "Practice without daily friction"}
             </AppText>
             <AppText tone="muted" variant="body">
               {isPremium
-                ? "Your account has active premium access."
-                : "Premium will unlock longer practice and more resume scans when billing is ready."}
+                ? "Your account has server-verified premium access."
+                : "Premium unlocks longer practice and more resume scans when payments are ready."}
             </AppText>
           </View>
         </View>
@@ -222,18 +154,18 @@ export default function PaywallScreen({ navigation }) {
           ))}
         </AppCard>
         <AppCard style={styles.planCard} tone="accent">
-          <SectionHeader title="Premium" subtitle="For expanded practice" />
+          <SectionHeader title="Premium" subtitle="Powered by Razorpay verification" />
           {PREMIUM_FEATURES.map((feature) => (
             <FeatureRow key={feature} label={feature} />
           ))}
         </AppCard>
       </View>
 
-      {isLoadingOfferings ? (
+      {isSubscriptionLoading ? (
         <AppCard style={styles.loadingCard}>
           <ActivityIndicator color={COLORS.primary} />
           <AppText tone="muted" variant="body">
-            Checking whether premium plans are available...
+            Checking premium status...
           </AppText>
         </AppCard>
       ) : isPremium ? (
@@ -248,17 +180,17 @@ export default function PaywallScreen({ navigation }) {
             </View>
           </View>
         </AppCard>
-      ) : availablePackages.length ? (
+      ) : paymentAvailable ? (
         <View style={styles.packageStack}>
-          {availablePackages.map((availablePackage) => {
-            const isSelected = selectedPackage?.identifier === availablePackage.identifier;
-            const label = getPackageLabel(availablePackage);
-            const isYearly = label.toLowerCase().includes("year");
+          {plans.map((plan) => {
+            const planId = plan.plan || "monthly";
+            const isSelected = selectedPlan === planId;
+            const isYearly = planId === "yearly";
 
             return (
               <HapticPressable
-                key={availablePackage.identifier}
-                onPress={() => setSelectedPackage(availablePackage)}
+                key={planId}
+                onPress={() => setSelectedPlan(planId)}
                 style={({ pressed }) => [
                   styles.packageCard,
                   isSelected && styles.packageCardSelected,
@@ -266,7 +198,9 @@ export default function PaywallScreen({ navigation }) {
                 ]}
               >
                 <View style={styles.packageHeader}>
-                  <AppText variant="cardTitle">{label}</AppText>
+                  <AppText variant="cardTitle">
+                    {plan.label || FALLBACK_PLAN_LABELS[planId]}
+                  </AppText>
                   {isYearly ? (
                     <View style={styles.badge}>
                       <AppText color="#FFFFFF" variant="caption">
@@ -275,13 +209,16 @@ export default function PaywallScreen({ navigation }) {
                     </View>
                   ) : null}
                 </View>
-                <AppText variant="statNumber">{getPackagePrice(availablePackage)}</AppText>
+                <AppText variant="statNumber">{plan.displayPrice || "Price from Razorpay"}</AppText>
               </HapticPressable>
             );
           })}
         </View>
       ) : (
-        <BetaNoticeCard />
+        <BetaNoticeCard
+          message="You can continue using the free practice limits."
+          title="Premium payments are not available in this beta build yet."
+        />
       )}
 
       {statusMessage ? (
@@ -294,18 +231,19 @@ export default function PaywallScreen({ navigation }) {
         <AppButton
           disabled={!canPurchase || isPurchasing}
           loading={isPurchasing}
-          onPress={startPurchase}
+          onPress={startPayment}
         >
-          {canPurchase ? "Upgrade to Premium" : "Purchases unavailable in beta"}
+          {canPurchase ? "Continue to payment" : "Payments unavailable in beta"}
         </AppButton>
-      ) : (
-        <AppButton icon="settings" onPress={manageSubscription} tone="secondary">
-          Manage Subscription
-        </AppButton>
-      )}
+      ) : null}
 
-      <AppButton disabled={isRestoring} loading={isRestoring} onPress={restore} tone="secondary">
-        Restore Purchases
+      <AppButton
+        disabled={isRefreshing}
+        loading={isRefreshing}
+        onPress={refreshPlan}
+        tone="secondary"
+      >
+        Refresh premium status
       </AppButton>
       <AppButton onPress={() => navigation.goBack()} tone="ghost">
         Maybe Later

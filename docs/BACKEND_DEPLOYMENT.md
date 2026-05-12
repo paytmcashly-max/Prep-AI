@@ -1,6 +1,6 @@
 # Backend Deployment
 
-This guide covers deploying the PrepAI `/server` backend. The backend is a Node.js, Express, and TypeScript service that handles authenticated AI requests through Groq.
+This guide covers deploying the IntervueAI `/server` backend. The backend is a Node.js, Express, and TypeScript service that handles authenticated AI requests through Groq.
 
 ## Production Start
 
@@ -17,7 +17,7 @@ npm start
 
 ## Recommended Beta Host
 
-For the first public beta, use a single Render Web Service. PrepAI's backend is one Node.js API service with no separate worker or database process, so Render's Git-backed web service flow is the simplest option to operate and verify.
+For the first public beta, use a single Render Web Service. IntervueAI's backend is one Node.js API service with no separate worker or database process, so Render's Git-backed web service flow is the simplest option to operate and verify.
 
 Recommended Render settings:
 

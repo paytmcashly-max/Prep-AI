@@ -52,7 +52,7 @@ Preview APK real-device smoke update: May 9, 2026
 - Resume Analyzer
 - Profile/settings
 - Legal placeholders
-- Paywall / RevenueCat Test Store
+- Paywall / Razorpay beta-safe state
 - APK launch smoke test
 - Dev-client real-device regression
 
@@ -76,7 +76,7 @@ Preview APK real-device smoke update: May 9, 2026
 - Resume analysis displayed ATS score, missing keywords, grammar issues, and section feedback.
 - Profile screen opened and showed settings/account/legal sections.
 - Privacy Policy and Terms of Service placeholders opened safely.
-- Earlier paywall fallback opened safely without RevenueCat keys; current paywall uses RevenueCat Test Store when configured.
+- Earlier paywall fallback opened safely without payment keys; current paywall uses backend Razorpay status when configured.
 - Backend tests passed.
 - Backend build passed.
 - Security audit passed.
@@ -97,14 +97,14 @@ Preview APK real-device smoke update: May 9, 2026
 - May 9 GitHub Actions: CI passed on merged `main` commit `89d01fe2b2086b0a994e6bf7a28b65c7c3414897`.
 - May 9 EAS: preview Android APK build finished successfully for merged `main`.
 - May 9 dev-client real-device QA: premium quota bypass previously worked after Firestore subscription sync.
-- May 9 security hardening: client-reported subscription sync is now non-authoritative; backend premium quota bypass requires server-side RevenueCat verification or an Admin-written verified subscription status before beta.
+- May 9 security hardening: client-reported subscription sync is now non-authoritative; backend premium quota bypass requires server-side Razorpay verification or an Admin-written verified subscription status before beta.
 - May 9 dev-client real-device QA: premium interview length selection worked for 5, 10, 15, and 20 question options.
 - May 9 dev-client real-device QA: free users remained limited to 5 daily interview questions.
 - May 9 dev-client real-device QA: Resume Analyzer flow worked.
 - May 9 dev-client real-device QA: Home mock interview CTA routed to Practice instead of directly starting an HR round.
 - May 9 notification cleanup: notification handler and Android channel were updated for SDK 54 banner/list behavior; actual preview APK banner behavior still needs manual verification.
 - May 9 key-safety cleanup: Firebase login now validates that the bundled Firebase API key looks like a Firebase Web API key and shows a safe message without exposing raw key values.
-- May 9 RevenueCat beta update: dev-client testing may use RevenueCat Test Store. Release-style preview APKs must not use the Test Store key; they should use Android billing when configured, or show the beta-safe purchases-unavailable state.
+- May 12 Razorpay update: mobile no longer includes a native purchase SDK. Razorpay secrets stay backend-only, and release-style APKs show the beta-safe payments-unavailable state when backend payment env is missing.
 - May 9 UI polish: Home, Practice, Mock Interview, Resume, Progress, Profile, and Paywall screens were visually tightened for spacing, empty states, wording, and status clarity without adding new features.
 - May 9 tab header cleanup: default tab headers for Home, Practice, Resume, Progress, and Profile were hidden so content starts from the app screen itself without the extra top title bar.
 - May 9 preview APK real-device smoke: EAS build `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd` from commit `89d01fe2b2086b0a994e6bf7a28b65c7c3414897` passed as a local same-WiFi beta candidate.
@@ -154,8 +154,8 @@ Preview APK real-device smoke update: May 9, 2026
   - valid PDF under 5MB
   - non-PDF rejection
   - PDF over 5MB rejection where file size is available
-- Verify the beta-safe purchases-unavailable state in release-style APKs, or verify RevenueCat Android billing offering, purchase, subscription management, and restore flows if purchase testing is enabled.
-- Implement and verify server-side RevenueCat subscription verification before relying on backend premium quota bypass.
+- Verify the beta-safe payments-unavailable state in release-style APKs, or verify Razorpay payment link and status refresh if payment testing is enabled.
+- Implement and verify server-side Razorpay subscription verification before relying on backend premium quota bypass.
 - Verify Android notification banner/head-up behavior in the latest preview APK and enable channel/floating notification settings if needed.
 - Deploy backend to a public URL before inviting external testers.
 - Build a new preview APK with the public `EXPO_PUBLIC_API_BASE_URL`.
@@ -171,9 +171,9 @@ Preview APK real-device smoke update: May 9, 2026
 - Non-PDF rejection in the preview APK.
 - PDF over 5MB rejection if file size is available.
 - No file selected friendly prompt.
-- RevenueCat beta-safe purchases-unavailable state, or Android billing offering load if purchase testing is enabled.
-- RevenueCat purchase flow only after Android billing is configured.
-- Restore purchases.
+- Razorpay beta-safe payments-unavailable state, or backend payment plan load if payment testing is enabled.
+- Razorpay payment flow only after backend env and webhook are configured.
+- refresh premium status.
 - Notification banner/head-up display on Android.
 - Small-screen visual QA for the May 9 UI polish pass.
 - Verify tab screens do not show duplicate top titles and content remains visible on small Android screens.
@@ -187,7 +187,7 @@ Beta can start only after:
 
 - CI passes on GitHub.
 - Full APK manual QA passes.
-- RevenueCat Test Store purchase/restore is verified.
+- Razorpay payment/status refresh is verified when backend payment env is configured.
 - Backend is deployed to a public URL for external testers.
 - No secrets are exposed.
 - Backend URL is reachable from tester devices.
@@ -246,4 +246,4 @@ Beta can start only after:
 
 Ready for local same-WiFi beta testing. Not ready for external beta sharing yet.
 
-The preview APK real-device smoke test passed against the local LAN backend. External testers should wait until the backend is deployed to a public URL, a new APK is built with that public API URL, RevenueCat purchase/restore is verified as needed, and final legal/support URLs replace placeholders.
+The preview APK real-device smoke test passed against the local LAN backend. External testers should wait until the backend is deployed to a public URL, a new APK is built with that public API URL, Razorpay payment/status refresh is verified as needed, and final legal/support URLs replace placeholders.

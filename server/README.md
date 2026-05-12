@@ -1,6 +1,6 @@
-# PrepAI Server
+# IntervueAI Server
 
-Node.js, Express, and TypeScript backend for PrepAI. The server verifies Firebase ID tokens, validates API request bodies, enforces rate limits and usage limits, and keeps Groq API calls backend-only.
+Node.js, Express, and TypeScript backend for IntervueAI. The server verifies Firebase ID tokens, validates API request bodies, enforces rate limits and usage limits, verifies Razorpay payments, and keeps Groq API calls backend-only.
 
 ## Setup
 
