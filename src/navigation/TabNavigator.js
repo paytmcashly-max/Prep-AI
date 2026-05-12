@@ -7,16 +7,16 @@ import PracticeScreen from "../screens/PracticeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import ProgressScreen from "../screens/ProgressScreen";
 import ResumeScreen from "../screens/ResumeScreen";
-import { COLORS, ICON_SIZES } from "../theme";
+import { COLORS, ICON_SIZES, RADIUS } from "../theme";
 
 const Tab = createBottomTabNavigator();
 
 const TAB_ICONS = {
   Home: "home",
   Practice: "practice",
-  Resume: "resume",
+  Profile: "profile",
   Progress: "progress",
-  Profile: "profile"
+  Resume: "resume"
 };
 
 export default function TabNavigator() {
@@ -30,19 +30,32 @@ export default function TabNavigator() {
       }}
       screenOptions={({ route }) => ({
         headerShown: false,
-        headerShadowVisible: false,
-        tabBarActiveTintColor: COLORS.accent,
+        tabBarActiveTintColor: COLORS.text,
+        tabBarHideOnKeyboard: true,
         tabBarInactiveTintColor: COLORS.muted,
-        tabBarIcon: ({ color, size }) => (
+        tabBarIcon: ({ color, focused, size }) => (
           <AppIcon
-            color={color}
+            color={focused ? COLORS.primary : color}
             name={TAB_ICONS[route.name] || "info"}
             size={Math.min(size || ICON_SIZES.tab, 24)}
+            strokeWidth={focused ? 2.7 : 2.2}
           />
         ),
+        tabBarItemStyle: {
+          borderRadius: RADIUS.md,
+          marginVertical: 6
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "700"
+        },
         tabBarStyle: {
+          backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
-          backgroundColor: COLORS.background
+          height: 68,
+          paddingBottom: 8,
+          paddingHorizontal: 8,
+          paddingTop: 6
         }
       })}
     >

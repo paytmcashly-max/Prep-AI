@@ -1,62 +1,42 @@
-import { useMemo, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  useWindowDimensions,
-  View
-} from "react-native";
-import { StatusBar } from "expo-status-bar";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 import HapticPressable from "../components/HapticPressable";
+import AppButton from "../components/ui/AppButton";
 import AppIcon from "../components/ui/AppIcon";
-import { getThemeColors } from "../theme";
+import AppText from "../components/ui/AppText";
+import Screen from "../components/ui/Screen";
+import { COLORS, GRADIENTS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
 
-const slides = [
+const SLIDES = [
   {
-    eyebrow: "Mock interviews",
+    body: "Answer realistic interview questions, review your score, and improve one response at a time.",
     icon: "practice",
-    metric: "5 Qs",
-    previewTitle: "HR round",
-    title: "Practice interviews without feeling lost",
-    body: "Choose a round, answer one question at a time, and build confidence with a clear practice flow."
+    metric: "5 Qs/day",
+    title: "Practice with a calmer interview coach"
   },
   {
-    eyebrow: "Clear feedback",
+    body: "See what worked, what to tighten, and how to say the same answer with more confidence.",
     icon: "target",
-    metric: "Score",
-    previewTitle: "Answer review",
-    title: "Know what worked and what to improve",
-    body: "Get a score, strengths, short improvement points, and a better way to frame your answer."
+    metric: "Clear feedback",
+    title: "Turn every answer into a sharper one"
   },
   {
-    eyebrow: "Resume analyzer",
+    body: "Upload or paste your resume to get ATS feedback, missing keywords, and lines you can adapt.",
     icon: "resume",
-    metric: "ATS",
-    previewTitle: "Resume scan",
-    title: "Tune your resume before you apply",
-    body: "Review your ATS score, missing keywords, grammar issues, and practical lines you can adapt."
+    metric: "Resume scan",
+    title: "Prepare your profile before you apply"
   }
 ];
 
 export default function OnboardingScreen({ navigation }) {
-  const colorScheme = useColorScheme();
-  const colors = useMemo(() => getThemeColors(colorScheme), [colorScheme]);
-  const isLightMode = colorScheme === "light";
-  const styles = useMemo(() => createStyles(colors, isLightMode), [colors, isLightMode]);
-  const insets = useSafeAreaInsets();
-  const { height, width } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
-  const isLastSlide = activeIndex === slides.length - 1;
-  const activeSlide = slides[activeIndex];
-  const isCompact = height < 720 || width < 370;
+  const slide = SLIDES[activeIndex];
+  const isLast = activeIndex === SLIDES.length - 1;
 
-  const progressLabel = useMemo(() => `${activeIndex + 1} of ${slides.length}`, [activeIndex]);
-
-  const handleNext = () => {
-    if (isLastSlide) {
+  const next = () => {
+    if (isLast) {
       navigation.navigate("Signup");
       return;
     }
@@ -65,326 +45,213 @@ export default function OnboardingScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.root}>
-      <StatusBar style={colorScheme === "light" ? "dark" : "light"} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}
-        style={styles.container}
-        contentContainerStyle={[
-          styles.content,
-          {
-            minHeight: height,
-            paddingBottom: Math.max(insets.bottom + 18, 30),
-            paddingTop: Math.max(insets.top + 14, 34)
-          }
-        ]}
-      >
-        <View style={styles.topBar}>
-          <View style={styles.progressPill}>
-            <Text selectable style={styles.progressText}>
-              {progressLabel}
-            </Text>
+    <Screen contentContainerStyle={styles.content}>
+      <View style={styles.topBar}>
+        <View style={styles.brand}>
+          <View style={styles.brandMark}>
+            <AppIcon color={COLORS.primary} name="target" size={18} />
           </View>
-          <HapticPressable
-            onPress={() => navigation.navigate("Login")}
-            hitSlop={12}
-            style={({ pressed }) => [styles.skipButton, pressed && styles.pressed]}
-          >
-            <Text selectable style={styles.skipText}>
-              Sign in
-            </Text>
-          </HapticPressable>
+          <AppText variant="cardTitle">PrepAI</AppText>
         </View>
+        <HapticPressable
+          hitSlop={12}
+          onPress={() => navigation.navigate("Login")}
+          style={({ pressed }) => [styles.signIn, pressed && PRESSED_STYLE]}
+        >
+          <AppText tone="primary" variant="button">
+            Sign in
+          </AppText>
+        </HapticPressable>
+      </View>
 
-        <View style={[styles.hero, isCompact && styles.heroCompact]}>
-          <View style={styles.heroIcon}>
-            <AppIcon color={colors.accent} name={activeSlide.icon} size={isCompact ? 34 : 42} />
-          </View>
-
-          <View style={styles.previewPanel}>
-            <View style={styles.previewHeader}>
-              <View>
-                <Text selectable style={styles.previewEyebrow}>
-                  PrepAI
-                </Text>
-                <Text selectable style={styles.previewTitle}>
-                  {activeSlide.previewTitle}
-                </Text>
-              </View>
-              <View style={styles.metricPill}>
-                <Text selectable style={styles.metricText}>
-                  {activeSlide.metric}
-                </Text>
-              </View>
+      <View style={styles.heroWrap}>
+        <LinearGradient colors={GRADIENTS.calm} style={styles.heroCard}>
+          <View style={styles.heroHeader}>
+            <View style={styles.heroIcon}>
+              <AppIcon color={COLORS.text} name={slide.icon} size={34} />
             </View>
-            <View style={styles.previewLineStrong} />
+            <View style={styles.metricPill}>
+              <AppText color="#FFFFFF" variant="caption">
+                {slide.metric}
+              </AppText>
+            </View>
+          </View>
+
+          <View style={styles.previewStack}>
+            <View style={styles.previewLineLong} />
             <View style={styles.previewLine} />
-            <View style={styles.previewLineShort} />
+            <View style={styles.feedbackMini}>
+              <AppIcon color={COLORS.success} name="success" size={18} />
+              <AppText variant="caption">Actionable feedback</AppText>
+            </View>
           </View>
+        </LinearGradient>
+      </View>
+
+      <View style={styles.copy}>
+        <AppText tone="primary" variant="caption">
+          AI interview preparation
+        </AppText>
+        <AppText style={styles.title} variant="heroTitle">
+          {slide.title}
+        </AppText>
+        <AppText style={styles.body} tone="muted" variant="body">
+          {slide.body}
+        </AppText>
+      </View>
+
+      <View style={styles.footer}>
+        <View style={styles.dots}>
+          {SLIDES.map((item, index) => (
+            <View
+              key={item.title}
+              style={[styles.dot, index === activeIndex ? styles.dotActive : styles.dotIdle]}
+            />
+          ))}
         </View>
 
-        <View style={styles.copy}>
-          <Text selectable style={styles.eyebrow}>
-            {activeSlide.eyebrow}
-          </Text>
-          <Text selectable style={[styles.title, isCompact && styles.titleCompact]}>
-            {activeSlide.title}
-          </Text>
-          <Text selectable style={styles.body}>
-            {activeSlide.body}
-          </Text>
-        </View>
-
-        <View style={styles.footer}>
-          <View style={styles.dots}>
-            {slides.map((slide, index) => (
-              <View
-                key={slide.title}
-                style={[styles.dot, index === activeIndex ? styles.dotActive : styles.dotInactive]}
-              />
-            ))}
-          </View>
-
-          <View style={styles.actions}>
-            {activeIndex > 0 ? (
-              <HapticPressable
-                onPress={() => setActiveIndex((current) => current - 1)}
-                style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
-              >
-                <AppIcon color={colors.text} name="back" size={18} />
-                <Text selectable style={styles.secondaryButtonText}>
-                  Back
-                </Text>
-              </HapticPressable>
-            ) : null}
-
-            <HapticPressable
-              onPress={handleNext}
-              style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+        <View style={styles.actions}>
+          {activeIndex > 0 ? (
+            <AppButton
+              icon="back"
+              onPress={() => setActiveIndex((current) => current - 1)}
+              tone="secondary"
             >
-              <Text selectable style={styles.primaryButtonText}>
-                {isLastSlide ? "Get started" : "Continue"}
-              </Text>
-              <AppIcon color="#FFFFFF" name="next" size={18} />
-            </HapticPressable>
-          </View>
+              Back
+            </AppButton>
+          ) : null}
+          <AppButton rightIcon="next" onPress={next} style={styles.primaryAction}>
+            {isLast ? "Create account" : "Continue"}
+          </AppButton>
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </Screen>
   );
 }
 
-const createStyles = (colors, isLightMode) =>
-  StyleSheet.create({
-    actions: {
-      flexDirection: "row",
-      gap: 12
-    },
-    body: {
-      color: colors.muted,
-      fontSize: 16,
-      fontWeight: "700",
-      lineHeight: 24,
-      textAlign: "center"
-    },
-    container: {
-      backgroundColor: colors.background,
-      flex: 1
-    },
-    content: {
-      flexGrow: 1,
-      gap: 28,
-      justifyContent: "space-between",
-      paddingHorizontal: 22
-    },
-    copy: {
-      alignItems: "center",
-      gap: 12
-    },
-    dot: {
-      borderRadius: 999,
-      height: 8
-    },
-    dotActive: {
-      backgroundColor: colors.accent,
-      width: 34
-    },
-    dotInactive: {
-      backgroundColor: colors.border,
-      width: 8
-    },
-    dots: {
-      alignItems: "center",
-      flexDirection: "row",
-      gap: 8,
-      justifyContent: "center"
-    },
-    eyebrow: {
-      color: colors.accent,
-      fontSize: 13,
-      fontWeight: "900",
-      letterSpacing: 0,
-      textTransform: "uppercase"
-    },
-    footer: {
-      gap: 22
-    },
-    hero: {
-      alignItems: "center",
-      gap: 18
-    },
-    heroCompact: {
-      gap: 14
-    },
-    heroIcon: {
-      alignItems: "center",
-      backgroundColor: isLightMode ? "#ECEEFF" : "rgba(108, 99, 255, 0.14)",
-      borderColor: isLightMode ? "#D7DAFF" : "rgba(108, 99, 255, 0.35)",
-      borderRadius: 999,
-      borderWidth: 1,
-      height: 82,
-      justifyContent: "center",
-      width: 82
-    },
-    metricPill: {
-      backgroundColor: colors.accent,
-      borderRadius: 999,
-      paddingHorizontal: 12,
-      paddingVertical: 7
-    },
-    metricText: {
-      color: "#FFFFFF",
-      fontSize: 12,
-      fontWeight: "900"
-    },
-    previewEyebrow: {
-      color: colors.muted,
-      fontSize: 12,
-      fontWeight: "900",
-      textTransform: "uppercase"
-    },
-    previewHeader: {
-      alignItems: "center",
-      flexDirection: "row",
-      gap: 14,
-      justifyContent: "space-between"
-    },
-    previewLine: {
-      backgroundColor: colors.border,
-      borderRadius: 999,
-      height: 12,
-      width: "76%"
-    },
-    previewLineShort: {
-      backgroundColor: colors.border,
-      borderRadius: 999,
-      height: 12,
-      width: "54%"
-    },
-    previewLineStrong: {
-      backgroundColor: isLightMode ? "#DADDFD" : "rgba(108, 99, 255, 0.28)",
-      borderRadius: 999,
-      height: 16,
-      width: "100%"
-    },
-    previewPanel: {
-      backgroundColor: colors.card,
-      borderColor: colors.border,
-      borderRadius: 22,
-      borderWidth: 1,
-      gap: 16,
-      maxWidth: 340,
-      padding: 20,
-      width: "100%"
-    },
-    previewTitle: {
-      color: colors.text,
-      fontSize: 18,
-      fontWeight: "900",
-      lineHeight: 24
-    },
-    pressed: {
-      opacity: 0.82,
-      transform: [{ scale: 0.99 }]
-    },
-    primaryButton: {
-      alignItems: "center",
-      backgroundColor: colors.accent,
-      borderRadius: 16,
-      flex: 1,
-      flexDirection: "row",
-      gap: 8,
-      justifyContent: "center",
-      minHeight: 58,
-      paddingHorizontal: 18
-    },
-    primaryButtonText: {
-      color: "#FFFFFF",
-      fontSize: 16,
-      fontWeight: "900"
-    },
-    progressPill: {
-      backgroundColor: colors.card,
-      borderColor: colors.border,
-      borderRadius: 999,
-      borderWidth: 1,
-      paddingHorizontal: 12,
-      paddingVertical: 8
-    },
-    progressText: {
-      color: colors.muted,
-      fontSize: 13,
-      fontWeight: "900"
-    },
-    root: {
-      backgroundColor: colors.background,
-      flex: 1
-    },
-    secondaryButton: {
-      alignItems: "center",
-      backgroundColor: colors.card,
-      borderColor: colors.border,
-      borderRadius: 16,
-      borderWidth: 1,
-      flexDirection: "row",
-      gap: 7,
-      justifyContent: "center",
-      minHeight: 58,
-      paddingHorizontal: 18
-    },
-    secondaryButtonText: {
-      color: colors.text,
-      fontSize: 16,
-      fontWeight: "900"
-    },
-    skipButton: {
-      alignItems: "center",
-      justifyContent: "center",
-      minHeight: 40,
-      paddingHorizontal: 6
-    },
-    skipText: {
-      color: colors.accent,
-      fontSize: 15,
-      fontWeight: "900"
-    },
-    title: {
-      color: colors.text,
-      fontSize: 31,
-      fontWeight: "900",
-      letterSpacing: 0,
-      lineHeight: 38,
-      maxWidth: 360,
-      textAlign: "center"
-    },
-    titleCompact: {
-      fontSize: 28,
-      lineHeight: 35
-    },
-    topBar: {
-      alignItems: "center",
-      flexDirection: "row",
-      justifyContent: "space-between"
-    }
-  });
+const styles = StyleSheet.create({
+  actions: {
+    flexDirection: "row",
+    gap: SPACING.md
+  },
+  body: {
+    textAlign: "center"
+  },
+  brand: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: SPACING.sm
+  },
+  brandMark: {
+    alignItems: "center",
+    backgroundColor: COLORS.primarySoft,
+    borderColor: "rgba(124, 109, 255, 0.35)",
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: "center",
+    width: 40
+  },
+  content: {
+    justifyContent: "space-between"
+  },
+  copy: {
+    alignItems: "center",
+    gap: SPACING.md
+  },
+  dot: {
+    borderRadius: RADIUS.pill,
+    height: 8
+  },
+  dotActive: {
+    backgroundColor: COLORS.primary,
+    width: 34
+  },
+  dotIdle: {
+    backgroundColor: COLORS.borderStrong,
+    width: 8
+  },
+  dots: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: SPACING.sm,
+    justifyContent: "center"
+  },
+  feedbackMini: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm
+  },
+  footer: {
+    gap: SPACING.xl
+  },
+  heroCard: {
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    gap: SPACING.xxl,
+    padding: SPACING.xl
+  },
+  heroHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  heroIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(124, 109, 255, 0.32)",
+    borderRadius: RADIUS.lg,
+    height: 66,
+    justifyContent: "center",
+    width: 66
+  },
+  heroWrap: {
+    gap: SPACING.lg
+  },
+  metricPill: {
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm
+  },
+  previewLine: {
+    backgroundColor: "rgba(255, 255, 255, 0.16)",
+    borderRadius: RADIUS.pill,
+    height: 14,
+    width: "72%"
+  },
+  previewLineLong: {
+    backgroundColor: "rgba(255, 255, 255, 0.28)",
+    borderRadius: RADIUS.pill,
+    height: 18,
+    width: "100%"
+  },
+  previewStack: {
+    gap: SPACING.md
+  },
+  primaryAction: {
+    flex: 1
+  },
+  signIn: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: SPACING.sm
+  },
+  title: {
+    maxWidth: 360,
+    textAlign: "center"
+  },
+  topBar: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  }
+});

@@ -62,6 +62,7 @@ const ICONS = {
   resume: FileText,
   settings: Settings,
   share: Share2,
+  sparkles: Sparkles,
   star: Star,
   success: CircleCheck,
   target: Target,

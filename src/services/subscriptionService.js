@@ -45,6 +45,8 @@ const shouldUsePlatformBillingKey = () => {
   return ["android", "google_play", "play_store", "production"].includes(billingProvider);
 };
 
+const isPlatformBillingReady = () => shouldUsePlatformBillingKey();
+
 const logRevenueCatDebug = (message, metadata = {}) => {
   if (isDevelopment()) {
     console.log("RevenueCat:", {
@@ -64,6 +66,13 @@ const getRevenueCatApiKey = () => {
     return {
       apiKey: testStoreApiKey,
       keySource: "test_store"
+    };
+  }
+
+  if (!isDevelopment() && !isPlatformBillingReady()) {
+    return {
+      apiKey: null,
+      keySource: "none"
     };
   }
 

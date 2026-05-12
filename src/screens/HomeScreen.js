@@ -1,31 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
 import HapticPressable from "../components/HapticPressable";
-import SkeletonBox from "../components/SkeletonBox";
+import AppButton from "../components/ui/AppButton";
+import AppCard from "../components/ui/AppCard";
 import AppIcon from "../components/ui/AppIcon";
+import AppText from "../components/ui/AppText";
+import EmptyState from "../components/ui/EmptyState";
+import ErrorState from "../components/ui/ErrorState";
+import Screen from "../components/ui/Screen";
+import SectionHeader from "../components/ui/SectionHeader";
+import StatCard from "../components/ui/StatCard";
+import { trackEvent } from "../services/analyticsService";
 import { getCurrentUser } from "../services/authService";
-import { showSessionCompleteNotification } from "../services/notificationService";
 import { generateDailyTip } from "../services/aiService";
+import { showSessionCompleteNotification } from "../services/notificationService";
 import { calculateCurrentStreak, fetchUserSessions } from "../services/sessionService";
 import { useUserStore } from "../store/userStore";
-import { COLORS } from "../theme";
+import { COLORS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
 
 const getDisplayName = (profileName) => {
   if (profileName?.trim()) {
-    return profileName.trim();
+    return profileName.trim().split(" ")[0];
   }
 
-  const currentUser = getCurrentUser();
-  const displayName = currentUser?.displayName?.trim();
-
-  if (displayName) {
-    return displayName;
-  }
-
-  return "there";
+  const displayName = getCurrentUser()?.displayName?.trim();
+  return displayName ? displayName.split(" ")[0] : "there";
 };
 
 const formatSessionDate = (date) =>
@@ -36,11 +38,9 @@ const formatSessionDate = (date) =>
 
 const getTodayDateKey = () => {
   const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
+    today.getDate()
+  ).padStart(2, "0")}`;
 };
 
 export default function HomeScreen({ navigation, route }) {
@@ -56,6 +56,14 @@ export default function HomeScreen({ navigation, route }) {
 
   const streak = useMemo(() => calculateCurrentStreak(sessions), [sessions]);
   const recentSessions = useMemo(() => sessions.slice(0, 3), [sessions]);
+  const averageScore = useMemo(() => {
+    if (!sessions.length) {
+      return "0.0";
+    }
+
+    const score = sessions.reduce((sum, session) => sum + Number(session.score || 0), 0);
+    return (score / sessions.length).toFixed(1);
+  }, [sessions]);
 
   useEffect(() => {
     setUserName(getDisplayName(profileName));
@@ -75,9 +83,7 @@ export default function HomeScreen({ navigation, route }) {
         if (cachedTip) {
           if (isMounted) {
             setDailyTip(cachedTip);
-            setIsTipLoading(false);
           }
-
           return;
         }
 
@@ -90,7 +96,7 @@ export default function HomeScreen({ navigation, route }) {
         await AsyncStorage.setItem(cacheKey, tip);
       } catch (error) {
         if (isMounted) {
-          setTipError(error.message || "Could not load today's prep tip. Try again.");
+          setTipError(error.message || "Could not load today's prep tip.");
         }
       } finally {
         if (isMounted) {
@@ -149,373 +155,189 @@ export default function HomeScreen({ navigation, route }) {
 
       showSessionCompleteNotification();
       navigation.setParams({ sessionCompleted: false });
-
       return undefined;
     }, [navigation, route?.params?.sessionCompleted])
   );
 
+  const startPractice = () => {
+    trackEvent("home_start_practice");
+    setIsStartingInterview(true);
+    navigation.navigate("Practice");
+  };
+
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
-      <View style={styles.topBar}>
-        <Text selectable style={styles.greeting}>
-          Good Morning, {userName}!
-        </Text>
-        <Text selectable style={styles.greetingSubtext}>
-          Keep today simple: choose a round, answer clearly, and review one improvement.
-        </Text>
+    <Screen>
+      <AppCard gradient="calm" style={styles.hero}>
+        <View style={styles.heroTop}>
+          <View style={styles.heroCopy}>
+            <AppText tone="primary" variant="caption">
+              Today’s prep
+            </AppText>
+            <AppText variant="screenTitle">Good morning, {userName}</AppText>
+            <AppText tone="muted" variant="body">
+              Start with one focused round, then review the one improvement that matters most.
+            </AppText>
+          </View>
+          <View style={styles.heroIcon}>
+            <AppIcon color={COLORS.text} name="sparkles" size={28} />
+          </View>
+        </View>
+        <AppButton
+          loading={isStartingInterview}
+          onPress={startPractice}
+          rightIcon="next"
+          style={styles.heroButton}
+        >
+          Start practice
+        </AppButton>
+      </AppCard>
+
+      <View style={styles.statsRow}>
+        <StatCard icon="timer" label="Streak" tone="warning" value={`${streak}d`} />
+        <StatCard icon="chart" label="Average" value={averageScore} />
+        <StatCard icon="practice" label="Sessions" tone="success" value={String(sessions.length)} />
       </View>
 
-      <View style={styles.streakCard}>
-        {isSessionsLoading ? (
-          <View style={styles.loadingInline}>
-            <ActivityIndicator color={COLORS.accent} />
-            <Text selectable style={styles.loadingText}>
-              Loading streak...
-            </Text>
-          </View>
-        ) : (
-          <>
-            <View style={styles.streakNumberRow}>
-              <Text selectable style={styles.streakNumber}>
-                {streak}
-              </Text>
-              <AppIcon color={COLORS.warning} name="timer" size={42} />
-            </View>
-            <Text selectable style={styles.streakLabel}>
-              Day Streak
-            </Text>
-          </>
-        )}
-      </View>
-
-      <HapticPressable
-        disabled={isStartingInterview}
-        onPress={() => {
-          setIsStartingInterview(true);
-          navigation.navigate("Practice");
-        }}
-        style={({ pressed }) => [
-          styles.ctaButton,
-          pressed && !isStartingInterview && styles.pressed,
-          isStartingInterview && styles.disabledButton
-        ]}
-      >
-        {isStartingInterview ? (
-          <ActivityIndicator color={COLORS.text} />
-        ) : (
-          <View style={styles.ctaCopy}>
-            <Text style={styles.ctaText}>Start Mock Interview</Text>
-            <Text style={styles.ctaSubText}>Choose category, difficulty, and length</Text>
-          </View>
-        )}
-      </HapticPressable>
-
-      <View style={styles.card}>
-        <Text selectable style={styles.cardTitle}>
-          {"Today's Prep Tip"}
-        </Text>
+      <AppCard style={styles.tipCard}>
+        <SectionHeader
+          icon="info"
+          title="Prep tip"
+          subtitle="A small nudge for today’s practice."
+        />
         {isTipLoading ? (
-          <View style={styles.tipSkeleton}>
-            <SkeletonBox style={[styles.skeletonLine, styles.skeletonLineLong]} />
-            <SkeletonBox style={[styles.skeletonLine, styles.skeletonLineMedium]} />
-            <Text selectable style={styles.loadingText}>
-              Preparing the daily tip...
-            </Text>
+          <View style={styles.inlineLoading}>
+            <ActivityIndicator color={COLORS.primary} />
+            <AppText tone="muted" variant="bodyMuted">
+              Preparing your tip...
+            </AppText>
           </View>
         ) : tipError ? (
-          <View style={styles.errorState}>
-            <Text selectable style={styles.stateTitle}>
-              Tip unavailable
-            </Text>
-            <Text selectable style={styles.errorText}>
-              {tipError}
-            </Text>
-          </View>
+          <ErrorState message={tipError} title="Tip unavailable" />
         ) : (
-          <Text selectable style={styles.tipText}>
+          <AppText tone="muted" variant="body">
             {dailyTip}
-          </Text>
+          </AppText>
         )}
-      </View>
+      </AppCard>
 
       <View style={styles.section}>
-        <Text selectable style={styles.sectionTitle}>
-          Recent Sessions
-        </Text>
+        <SectionHeader title="Recent sessions" subtitle="Only real saved practice appears here." />
 
         {isSessionsLoading ? (
-          <View style={styles.sessionSkeletonStack}>
-            {[0, 1, 2].map((item) => (
-              <View key={item} style={styles.sessionCard}>
-                <SkeletonBox style={styles.sessionSkeletonLine} />
-                <SkeletonBox style={[styles.sessionSkeletonLine, styles.sessionSkeletonShort]} />
-              </View>
-            ))}
-          </View>
+          <AppCard style={styles.loadingCard}>
+            <ActivityIndicator color={COLORS.primary} />
+            <AppText tone="muted" variant="bodyMuted">
+              Loading recent practice...
+            </AppText>
+          </AppCard>
         ) : null}
 
-        {sessionsError ? (
-          <View style={styles.errorState}>
-            <Text selectable style={styles.stateTitle}>
-              Sessions unavailable
-            </Text>
-            <Text selectable style={styles.errorText}>
-              {sessionsError}
-            </Text>
-          </View>
-        ) : null}
+        {sessionsError ? <ErrorState message={sessionsError} title="Sessions unavailable" /> : null}
 
         {!isSessionsLoading && !sessionsError && !recentSessions.length ? (
-          <View style={styles.emptyState}>
-            <Text selectable style={styles.stateTitle}>
-              No practice yet
-            </Text>
-            <Text selectable style={styles.emptyText}>
-              Start a mock interview and your latest sessions will appear here.
-            </Text>
-          </View>
+          <EmptyState
+            icon="practice"
+            message="Complete a mock interview and your latest sessions will appear here."
+            title="No sessions yet"
+          />
         ) : null}
 
         {!isSessionsLoading && !sessionsError
           ? recentSessions.map((session) => (
-              <View key={session.id} style={styles.sessionCard}>
-                <View style={styles.sessionTopRow}>
-                  <Text selectable style={styles.sessionTitle}>
-                    {session.category || "Mock Interview"}
-                  </Text>
-                  <Text selectable style={styles.sessionScore}>
-                    {Number(session.score || 0).toFixed(1)}/10
-                  </Text>
+              <HapticPressable
+                key={session.id}
+                style={({ pressed }) => [styles.sessionCard, pressed && PRESSED_STYLE]}
+              >
+                <View style={styles.sessionTop}>
+                  <View style={styles.sessionIcon}>
+                    <AppIcon color={COLORS.primary} name="practice" size={19} />
+                  </View>
+                  <View style={styles.sessionCopy}>
+                    <AppText numberOfLines={1} variant="cardTitle">
+                      {session.category || "Mock Interview"}
+                    </AppText>
+                    <AppText numberOfLines={1} tone="muted" variant="bodyMuted">
+                      {session.jobRole || "Role not set"} · {formatSessionDate(session.date)}
+                    </AppText>
+                  </View>
+                  <AppText color={COLORS.primary} variant="monoNumber">
+                    {Number(session.score || 0).toFixed(1)}
+                  </AppText>
                 </View>
-                <Text selectable style={styles.sessionMeta}>
-                  {session.jobRole || "Role not set"} - {formatSessionDate(session.date)}
-                </Text>
-              </View>
+              </HapticPressable>
             ))
           : null}
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 12,
-    padding: 18
+  hero: {
+    gap: SPACING.xl
   },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900"
+  heroButton: {
+    alignSelf: "stretch"
   },
-  container: {
-    backgroundColor: COLORS.background,
-    flex: 1
+  heroCopy: {
+    flex: 1,
+    gap: SPACING.sm
   },
-  content: {
-    gap: 22,
-    padding: 20,
-    paddingBottom: 36
-  },
-  ctaButton: {
+  heroIcon: {
     alignItems: "center",
-    backgroundColor: COLORS.accent,
-    borderRadius: 8,
+    backgroundColor: "rgba(124, 109, 255, 0.24)",
+    borderRadius: RADIUS.lg,
+    height: 56,
     justifyContent: "center",
-    minHeight: 72,
-    paddingHorizontal: 18
+    width: 56
   },
-  ctaCopy: {
+  heroTop: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: SPACING.md
+  },
+  inlineLoading: {
     alignItems: "center",
-    gap: 4
+    flexDirection: "row",
+    gap: SPACING.md
   },
-  ctaSubText: {
-    color: "rgba(255, 255, 255, 0.78)",
-    fontSize: 13,
-    fontWeight: "800",
-    textAlign: "center"
-  },
-  ctaText: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900"
-  },
-  emptyState: {
+  loadingCard: {
     alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
-    borderRadius: 8,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    gap: 10,
-    justifyContent: "center",
-    minHeight: 110,
-    padding: 18
-  },
-  emptyText: {
-    color: COLORS.muted,
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "center"
-  },
-  errorText: {
-    color: COLORS.danger,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20,
-    textAlign: "center"
-  },
-  errorState: {
-    alignItems: "center",
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    borderColor: "rgba(239, 68, 68, 0.35)",
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 6,
-    padding: 14
-  },
-  disabledButton: {
-    opacity: 0.6
-  },
-  greeting: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 36
-  },
-  greetingSubtext: {
-    color: COLORS.muted,
-    fontSize: 15,
-    fontWeight: "700",
-    lineHeight: 22
-  },
-  loadingInline: {
-    alignItems: "center",
-    gap: 10,
-    minHeight: 128,
-    justifyContent: "center"
-  },
-  loadingText: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "800"
-  },
-  pressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.99 }]
+    flexDirection: "row"
   },
   section: {
-    gap: 14
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: "900"
+    gap: SPACING.md
   },
   sessionCard: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    gap: 8,
-    padding: 16
+    padding: SPACING.lg
   },
-  sessionMeta: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "700"
-  },
-  sessionScore: {
-    color: COLORS.accent,
-    fontSize: 16,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "900"
-  },
-  sessionSkeletonLine: {
-    height: 18,
-    width: "86%"
-  },
-  sessionSkeletonShort: {
-    width: "58%"
-  },
-  sessionSkeletonStack: {
-    gap: 10
-  },
-  sessionTitle: {
-    color: COLORS.text,
+  sessionCopy: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: "900"
+    gap: SPACING.xs
   },
-  sessionTopRow: {
+  sessionIcon: {
+    alignItems: "center",
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: RADIUS.pill,
+    height: 40,
+    justifyContent: "center",
+    width: 40
+  },
+  sessionTop: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between"
+    gap: SPACING.md
   },
-  skeletonLine: {
-    backgroundColor: "#2A2A2A",
-    borderRadius: 6,
-    height: 14
-  },
-  skeletonLineLong: {
-    width: "100%"
-  },
-  skeletonLineMedium: {
-    width: "72%"
-  },
-  streakCard: {
-    alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 6,
-    padding: 24
-  },
-  streakLabel: {
-    color: COLORS.muted,
-    fontSize: 16,
-    fontWeight: "800"
-  },
-  streakNumber: {
-    color: COLORS.text,
-    fontSize: 64,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "900",
-    lineHeight: 72
-  },
-  streakNumberRow: {
-    alignItems: "center",
+  statsRow: {
     flexDirection: "row",
-    gap: 12
+    flexWrap: "wrap",
+    gap: SPACING.md
   },
-  tipSkeleton: {
-    gap: 12,
-    paddingVertical: 4
-  },
-  tipText: {
-    color: COLORS.muted,
-    fontSize: 16,
-    lineHeight: 24
-  },
-  topBar: {
-    gap: 8,
-    paddingTop: 8
-  },
-  stateTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-    textAlign: "center"
+  tipCard: {
+    gap: SPACING.md
   }
 });

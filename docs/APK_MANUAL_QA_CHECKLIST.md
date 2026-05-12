@@ -4,16 +4,16 @@ Use this checklist for final manual QA on an EAS preview Android APK.
 
 ## Test Setup
 
-| Item                         | Expected Result                                          | Pass/Fail | Notes                                                                  |
-| ---------------------------- | -------------------------------------------------------- | --------- | ---------------------------------------------------------------------- |
-| Build release APK            | `app-release.apk` builds successfully                    | Pass      | Verified locally on May 8, 2026                                        |
-| EAS preview APK build        | Preview profile produces an Android APK                  | Pass      | Build `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd` finished on merged `main` |
-| Install preview APK          | APK installs without errors                              | Pass      | Installed on LDPlayer and real Android phone                           |
-| Open app                     | App opens without crashing                               | Pass      | Package `com.prepai.prepai` launched; no fatal launch crash found      |
-| Backend URL                  | `EXPO_PUBLIC_API_BASE_URL` points to a reachable backend | Pass      | Local same-WiFi LAN backend reached during real-device smoke           |
-| Firebase config              | Signup/login screens do not show invalid API key errors  | Pass      | Preview APK real-device smoke passed                                   |
-| RevenueCat Test Store config | Test Store offerings load if configured                  | Pending   | Use Test Store key for pre-Play-Store dev-client/local preview APK QA  |
-| Real device test             | APK opens on a physical Android phone                    | Pass      | Preview APK real-device smoke passed on local same-WiFi backend        |
+| Item                    | Expected Result                                          | Pass/Fail | Notes                                                                                |
+| ----------------------- | -------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------ |
+| Build release APK       | `app-release.apk` builds successfully                    | Pass      | Verified locally on May 8, 2026                                                      |
+| EAS preview APK build   | Preview profile produces an Android APK                  | Pass      | Build `580dd40b-ba5a-4f3f-a6c2-1c94dfb1accd` finished on merged `main`               |
+| Install preview APK     | APK installs without errors                              | Pass      | Installed on LDPlayer and real Android phone                                         |
+| Open app                | App opens without crashing                               | Pass      | Package `com.prepai.prepai` launched; no fatal launch crash found                    |
+| Backend URL             | `EXPO_PUBLIC_API_BASE_URL` points to a reachable backend | Pass      | Local same-WiFi LAN backend reached during real-device smoke                         |
+| Firebase config         | Signup/login screens do not show invalid API key errors  | Pass      | Preview APK real-device smoke passed                                                 |
+| RevenueCat beta billing | Paywall stays safe when billing is unavailable           | Pending   | Dev-client may use Test Store; release-style preview APK must not use Test Store key |
+| Real device test        | APK opens on a physical Android phone                    | Pass      | Preview APK real-device smoke passed on local same-WiFi backend                      |
 
 ## Core App Flow
 
@@ -79,15 +79,16 @@ These items were verified in the installed development build after the beta fixe
 | Paste fallback      | Optional pasted text fallback still works    | Pending   |       |
 | Sensitive logging   | Resume text and file contents are not logged | Pending   |       |
 
-## RevenueCat Test Store
+## RevenueCat / Billing
 
-| Item                  | Expected Result                                                | Pass/Fail | Notes |
-| --------------------- | -------------------------------------------------------------- | --------- | ----- |
-| Offerings load        | Paywall shows available Test Store packages if configured      | Pending   |       |
-| Empty offerings       | Paywall shows safe no-offerings message and does not crash     | Pending   |       |
-| Test purchase         | Test purchase completes and premium entitlement becomes active | Pending   |       |
-| Purchase cancellation | Cancellation shows safe message and does not crash             | Pending   |       |
-| Restore purchases     | Restore flow completes or shows no active purchase safely      | Pending   |       |
+| Item                  | Expected Result                                                                               | Pass/Fail | Notes |
+| --------------------- | --------------------------------------------------------------------------------------------- | --------- | ----- |
+| Offerings load        | Paywall shows packages only when a valid Android billing setup is configured                  | Pending   |       |
+| Empty offerings       | Paywall shows safe no-offerings message and does not crash                                    | Pending   |       |
+| Purchase unavailable  | External beta APK clearly says premium purchases are unavailable if billing is not ready      | Pending   |       |
+| Test purchase         | Purchase completes and premium entitlement becomes active in the intended billing environment | Pending   |       |
+| Purchase cancellation | Cancellation shows safe message and does not crash                                            | Pending   |       |
+| Restore purchases     | Restore flow completes or shows no active purchase safely                                     | Pending   |       |
 
 ## Next Manual QA Required
 
@@ -100,8 +101,8 @@ These items must stay pending until they are verified on the latest preview APK:
 - Non-PDF rejection with a friendly message.
 - PDF over 5MB rejection if file size is available.
 - No file selected friendly prompt.
-- RevenueCat Test Store offering load.
-- RevenueCat test purchase.
+- RevenueCat unavailable-offerings state for external beta, or Android billing offering load if purchase testing is enabled.
+- RevenueCat purchase flow only after Android billing is configured.
 - Restore purchases.
 - Notification banner/head-up display on Android, including Redmi/MIUI floating notification settings.
 - Backend deployment to a public URL.
@@ -113,7 +114,7 @@ Beta can start only after:
 
 - CI passes on GitHub.
 - Full APK manual QA passes.
-- RevenueCat Test Store purchase/restore is verified.
+- RevenueCat purchase/restore is verified if billing is enabled, or the beta-safe purchases-unavailable state is verified.
 - Backend is deployed to a public URL for external testers.
 - No secrets are exposed.
 - Backend URL is reachable from tester devices.
@@ -123,17 +124,17 @@ Beta can start only after:
 | Limitation              | Notes                                                                                                                                                                                         |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Local backend IP        | A local IP backend only works when the phone/emulator can reach the developer machine on the same network. For external testers, use a deployed backend URL.                                  |
-| Google Play billing     | Real Google Play billing should be tested later through internal or closed testing tracks.                                                                                                    |
-| RevenueCat Test Store   | RevenueCat Test Store is for development only and should not be treated as production billing validation.                                                                                     |
-| RevenueCat entitlement  | Entitlement identifier must be exactly `premium`; Test Store products must be attached to that entitlement and included in offerings.                                                         |
-| Play billing switch     | Google Play internal/closed testing later should use the Android RevenueCat public API key and must not ship with the Test Store API key.                                                     |
+| Google Play billing     | Real Google Play billing should be tested later through internal or closed testing tracks before enabling purchases for external users.                                                       |
+| RevenueCat Test Store   | RevenueCat Test Store is for development/dev-client only and must not be used in release-style preview APKs or production builds.                                                             |
+| RevenueCat entitlement  | Entitlement identifier must be exactly `premium`; products must be attached to that entitlement and included in offerings before purchase testing.                                            |
+| Play billing switch     | Release-style preview APKs and Google Play builds should use the Android RevenueCat public API key when purchases are enabled; otherwise the paywall should show purchases unavailable.       |
 | Subscription management | Use RevenueCat SDK `managementURL` when available; Test Store purchases may need to be managed from the RevenueCat dashboard.                                                                 |
 | EAS env changes         | Changing EAS environment variables requires a new APK build.                                                                                                                                  |
 | Android notifications   | Users must enable app notifications and banner/pop-on-screen behavior for the notification channel in system settings. On Redmi/MIUI, floating notifications may need to be enabled manually. |
 
 ## Final Result
 
-| Decision                        | Pass/Fail | Notes                                                                                                                                  |
-| ------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Ready for local same-WiFi beta  | Pass      | Preview APK real-device smoke passed with local LAN backend                                                                            |
-| Ready for external beta sharing | Pending   | Requires backend deployment to a public URL, new APK with public API URL, RevenueCat purchase/restore QA, and final legal/support URLs |
+| Decision                        | Pass/Fail | Notes                                                                                                                                      |
+| ------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ready for local same-WiFi beta  | Pass      | Preview APK real-device smoke passed with local LAN backend                                                                                |
+| Ready for external beta sharing | Pending   | Requires backend deployment to a public URL, new APK with public API URL, beta-safe paywall QA or billing QA, and final legal/support URLs |

@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { COLORS, RADIUS, SPACING } from "../../theme";
 import AppIcon from "./AppIcon";
+import AppText from "./AppText";
 
 const TONE_ICON = {
   default: "info",
@@ -11,8 +12,8 @@ const TONE_ICON = {
 };
 
 const TONE_COLOR = {
-  default: COLORS.accent,
-  error: COLORS.dangerSoft,
+  default: COLORS.info,
+  error: COLORS.danger,
   success: COLORS.success,
   warning: COLORS.warning
 };
@@ -21,18 +22,24 @@ export default function MessageCard({ children, message, title, tone = "default"
   const iconColor = TONE_COLOR[tone] || TONE_COLOR.default;
 
   return (
-    <View style={[styles.card, tone === "error" && styles.errorCard, style]}>
-      <AppIcon color={iconColor} name={TONE_ICON[tone] || TONE_ICON.default} />
+    <View
+      style={[
+        styles.card,
+        tone === "error" && styles.errorCard,
+        tone === "success" && styles.successCard,
+        tone === "warning" && styles.warningCard,
+        style
+      ]}
+    >
+      <View style={styles.iconBubble}>
+        <AppIcon color={iconColor} name={TONE_ICON[tone] || TONE_ICON.default} size={20} />
+      </View>
       <View style={styles.copy}>
-        {title ? (
-          <Text selectable style={styles.title}>
-            {title}
-          </Text>
-        ) : null}
+        {title ? <AppText variant="cardTitle">{title}</AppText> : null}
         {message ? (
-          <Text selectable style={[styles.message, tone === "error" && styles.errorText]}>
+          <AppText tone={tone === "error" ? "danger" : "muted"} variant="bodyMuted">
             {message}
-          </Text>
+          </AppText>
         ) : null}
         {children}
       </View>
@@ -45,31 +52,34 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     flexDirection: "row",
-    gap: SPACING.base,
-    padding: 14
+    gap: SPACING.md,
+    padding: SPACING.lg
   },
   copy: {
     flex: 1,
-    gap: 5
+    gap: SPACING.xs
   },
   errorCard: {
-    borderColor: "rgba(239, 68, 68, 0.35)"
+    backgroundColor: COLORS.dangerSoft,
+    borderColor: "rgba(251, 113, 133, 0.35)"
   },
-  errorText: {
-    color: COLORS.dangerSoft
+  iconBubble: {
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.pill,
+    height: 36,
+    justifyContent: "center",
+    width: 36
   },
-  message: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20
+  successCard: {
+    backgroundColor: COLORS.successSoft,
+    borderColor: "rgba(52, 211, 153, 0.32)"
   },
-  title: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "900"
+  warningCard: {
+    backgroundColor: COLORS.warningSoft,
+    borderColor: "rgba(251, 191, 36, 0.34)"
   }
 });

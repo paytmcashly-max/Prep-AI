@@ -1,8 +1,16 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 import HapticPressable from "../HapticPressable";
-import { COLORS, PRESSED_STYLE, RADIUS } from "../../theme";
+import { COLORS, GRADIENTS, PRESSED_STYLE, RADIUS, SPACING } from "../../theme";
 import AppIcon from "./AppIcon";
+import AppText from "./AppText";
+
+const TONE_STYLE = {
+  danger: "dangerButton",
+  ghost: "ghostButton",
+  secondary: "secondaryButton"
+};
 
 export default function AppButton({
   children,
@@ -10,11 +18,30 @@ export default function AppButton({
   icon,
   loading,
   onPress,
+  rightIcon,
   style,
   textStyle,
   tone = "primary"
 }) {
   const isDisabled = disabled || loading;
+  const toneStyle = TONE_STYLE[tone];
+  const content = (
+    <View style={styles.content}>
+      {icon ? (
+        <AppIcon color={tone === "primary" ? "#FFFFFF" : COLORS.text} name={icon} size={18} />
+      ) : null}
+      <AppText
+        selectable={false}
+        style={[styles.text, tone !== "primary" && styles.secondaryText, textStyle]}
+        variant="button"
+      >
+        {children}
+      </AppText>
+      {rightIcon ? (
+        <AppIcon color={tone === "primary" ? "#FFFFFF" : COLORS.text} name={rightIcon} size={18} />
+      ) : null}
+    </View>
+  );
 
   return (
     <HapticPressable
@@ -22,22 +49,20 @@ export default function AppButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        tone === "secondary" && styles.secondaryButton,
-        tone === "ghost" && styles.ghostButton,
+        toneStyle && styles[toneStyle],
         isDisabled && styles.disabled,
         pressed && !isDisabled && PRESSED_STYLE,
         style
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={COLORS.text} />
+        <ActivityIndicator color={tone === "primary" ? "#FFFFFF" : COLORS.text} />
+      ) : tone === "primary" ? (
+        <LinearGradient colors={GRADIENTS.primary} style={styles.gradient}>
+          {content}
+        </LinearGradient>
       ) : (
-        <View style={styles.content}>
-          {icon ? <AppIcon name={icon} size={18} /> : null}
-          <Text style={[styles.text, tone !== "primary" && styles.secondaryText, textStyle]}>
-            {children}
-          </Text>
-        </View>
+        content
       )}
     </HapticPressable>
   );
@@ -46,28 +71,38 @@ export default function AppButton({
 const styles = StyleSheet.create({
   button: {
     alignItems: "center",
-    backgroundColor: COLORS.accent,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     justifyContent: "center",
-    minHeight: 52,
-    paddingHorizontal: 16
+    minHeight: 54,
+    overflow: "hidden"
   },
   content: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 8,
-    justifyContent: "center"
+    gap: SPACING.sm,
+    justifyContent: "center",
+    paddingHorizontal: SPACING.lg
+  },
+  dangerButton: {
+    backgroundColor: COLORS.dangerSoft,
+    borderColor: "rgba(251, 113, 133, 0.35)",
+    borderWidth: 1
   },
   disabled: {
-    opacity: 0.55
+    opacity: 0.62
   },
   ghostButton: {
-    backgroundColor: "transparent",
-    borderColor: "transparent",
-    borderWidth: 0
+    backgroundColor: "transparent"
+  },
+  gradient: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 54
   },
   secondaryButton: {
-    backgroundColor: COLORS.cardAlt,
+    backgroundColor: COLORS.elevated,
     borderColor: COLORS.border,
     borderWidth: 1
   },
@@ -75,9 +110,7 @@ const styles = StyleSheet.create({
     color: COLORS.text
   },
   text: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
+    color: "#FFFFFF",
     textAlign: "center"
   }
 });

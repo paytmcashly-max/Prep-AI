@@ -35,7 +35,7 @@ Validate that PrepAI helps job seekers practice interviews, understand AI feedba
 - [ ] Usage limit messages
 - [ ] Legal links
 - [ ] App crash/error behavior
-- [ ] Subscription fallback if RevenueCat keys are missing
+- [ ] Subscription fallback if RevenueCat keys are missing or purchases are disabled
 
 ## Feedback Questions
 
@@ -94,7 +94,8 @@ Any other notes:
 - Resume analysis quality depends on pasted text quality.
 - Usage limits may interrupt testing if not communicated clearly.
 - Staging backend or Firebase configuration may differ from production.
-- RevenueCat purchase flows are not fully validated when keys are missing.
+- External beta can run without purchases enabled, but the paywall must clearly say premium purchases are not available in that beta build.
+- RevenueCat purchase flows require Google Play internal/closed testing or another intended billing environment before being treated as launch-ready.
 - Legal links may still point to placeholders until final URLs are hosted.
 
 ## Post-Beta Action Plan

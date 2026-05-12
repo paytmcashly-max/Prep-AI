@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 
 import HapticPressable from "../components/HapticPressable";
+import AppButton from "../components/ui/AppButton";
+import AppCard from "../components/ui/AppCard";
 import AppIcon from "../components/ui/AppIcon";
+import AppText from "../components/ui/AppText";
+import BetaNoticeCard from "../components/ui/BetaNoticeCard";
+import FeatureRow from "../components/ui/FeatureRow";
+import Screen from "../components/ui/Screen";
+import SectionHeader from "../components/ui/SectionHeader";
 import {
   getOfferings,
   openSubscriptionManagement,
@@ -10,15 +17,14 @@ import {
   restorePurchases
 } from "../services/subscriptionService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
-import { COLORS } from "../theme";
+import { COLORS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
 
 const FREE_FEATURES = [
-  { available: true, label: "5 interview questions/day" },
+  { available: true, label: "5 interview questions per day" },
   { available: true, label: "1 resume scan every 3 days" },
-  { available: true, label: "Basic feedback" },
-  { available: false, label: "Longer interviews" },
-  { available: false, label: "More resume scans" },
-  { available: false, label: "Unlimited practice" }
+  { available: true, label: "Core answer feedback" },
+  { available: false, label: "Longer interview sessions" },
+  { available: false, label: "More resume scans" }
 ];
 
 const PREMIUM_FEATURES = [
@@ -26,19 +32,17 @@ const PREMIUM_FEATURES = [
   "Longer interviews: 10/15/20 questions",
   "More resume scans",
   "Detailed answer feedback",
-  "Premium features as they launch"
+  "Voice and video practice when available"
 ];
+
+const betaPurchasesUnavailableMessage =
+  "Premium purchases are not available in this beta build yet. You can continue using the free practice limits.";
 
 const getAvailablePackages = (offerings) => {
   const currentPackages = offerings?.current?.availablePackages || [];
-
-  if (currentPackages.length) {
-    return currentPackages;
-  }
-
-  return Object.values(offerings?.all || {}).flatMap(
-    (offering) => offering.availablePackages || []
-  );
+  return currentPackages.length
+    ? currentPackages
+    : Object.values(offerings?.all || {}).flatMap((offering) => offering.availablePackages || []);
 };
 
 const getPackageLabel = (packageToDisplay) => {
@@ -60,30 +64,10 @@ const getPackageLabel = (packageToDisplay) => {
   return packageToDisplay?.product?.title || packageToDisplay?.identifier || "Premium";
 };
 
-// Real Google Play/App Store products return localized store pricing through RevenueCat.
-// Test Store pricing may reflect the configured Test Store product price.
 const getPackagePrice = (packageToDisplay) =>
   packageToDisplay?.product?.priceString ||
   packageToDisplay?.product?.localizedPriceString ||
   "Price unavailable";
-
-function FeatureRow({ available = true, label }) {
-  return (
-    <View style={styles.featureRow}>
-      <View style={styles.featureIcon}>
-        <AppIcon
-          color={available ? COLORS.success : COLORS.danger}
-          name={available ? "check" : "close"}
-          size={18}
-          strokeWidth={2.7}
-        />
-      </View>
-      <Text selectable style={styles.featureText}>
-        {label}
-      </Text>
-    </View>
-  );
-}
 
 export default function PaywallScreen({ navigation }) {
   const isPremium = useSubscriptionStore((state) => state.isPremium);
@@ -122,12 +106,12 @@ export default function PaywallScreen({ navigation }) {
         setOfferings(loadedOfferings);
         setSelectedPackage(packages[0] || null);
 
-        if (!subscriptionStatus.isPremium && packages.length) {
-          setStatusMessage("");
+        if (!subscriptionStatus.isPremium && !packages.length) {
+          setStatusMessage(betaPurchasesUnavailableMessage);
         }
       } catch {
         if (isMounted) {
-          setStatusMessage("Could not load premium plans. Please try again later.");
+          setStatusMessage(betaPurchasesUnavailableMessage);
         }
       } finally {
         if (isMounted) {
@@ -145,14 +129,13 @@ export default function PaywallScreen({ navigation }) {
 
   const startPurchase = async () => {
     if (!selectedPackage) {
-      Alert.alert("No plans available", "Purchases are not available in this beta build yet.");
+      Alert.alert("Purchases unavailable", betaPurchasesUnavailableMessage);
       return;
     }
 
     try {
       setIsPurchasing(true);
       setStatusMessage("");
-
       const status = await purchasePackage(selectedPackage);
       await setSubscriptionStatus(status);
 
@@ -160,8 +143,8 @@ export default function PaywallScreen({ navigation }) {
         Alert.alert("Premium active", "Your premium access is now active.");
       } else {
         Alert.alert(
-          "Purchase completed",
-          "Purchase completed, but the premium entitlement was not activated. Check RevenueCat entitlement/product mapping."
+          "Premium not active yet",
+          "Purchase completed, but premium access is not active yet. Please try Restore Purchases later or contact support."
         );
       }
     } catch (error) {
@@ -170,7 +153,9 @@ export default function PaywallScreen({ navigation }) {
         return;
       }
 
-      setStatusMessage("Purchase failed. Please try again.");
+      setStatusMessage(
+        "Purchase could not be completed in this build. You can keep using free practice limits."
+      );
     } finally {
       setIsPurchasing(false);
     }
@@ -180,14 +165,15 @@ export default function PaywallScreen({ navigation }) {
     try {
       setIsRestoring(true);
       setStatusMessage("");
-
       const status = await restorePurchases();
       await setSubscriptionStatus(status);
 
       if (status.isPremium) {
         Alert.alert("Restored", "Your premium access has been restored.");
       } else {
-        setStatusMessage("No active premium entitlement found for this account.");
+        setStatusMessage(
+          "No active premium entitlement was found. You can continue using the free practice limits."
+        );
       }
     } finally {
       setIsRestoring(false);
@@ -200,76 +186,71 @@ export default function PaywallScreen({ navigation }) {
     } catch {
       Alert.alert(
         "Manage subscription",
-        "Subscription management is unavailable for this build. If you purchased through Google Play, open Google Play Store > Payments & subscriptions > Subscriptions. If you are testing with RevenueCat Test Store, manage the test purchase from the RevenueCat dashboard."
+        "Subscription management is unavailable for this build. If you purchased through Google Play, manage it from Google Play subscriptions. If you are testing with RevenueCat Test Store, manage it from the RevenueCat dashboard."
       );
     }
   };
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
-      <View style={styles.header}>
-        <Text selectable style={styles.title}>
-          Upgrade to Premium
-        </Text>
-        <Text selectable style={styles.subtitle}>
-          Unlock your full potential
-        </Text>
-      </View>
-
-      <View style={styles.comparisonGrid}>
-        <View style={styles.comparisonCard}>
-          <Text selectable style={styles.sectionEyebrow}>
-            FREE
-          </Text>
-          <View style={styles.featureList}>
-            {FREE_FEATURES.map((feature) => (
-              <FeatureRow key={feature.label} available={feature.available} label={feature.label} />
-            ))}
+    <Screen>
+      <AppCard gradient="premium" style={styles.hero}>
+        <View style={styles.heroTop}>
+          <View style={styles.premiumIcon}>
+            <AppIcon color={COLORS.warning} name="premium" size={30} />
+          </View>
+          <View style={styles.heroCopy}>
+            <AppText tone="primary" variant="caption">
+              PrepAI Premium
+            </AppText>
+            <AppText variant="screenTitle">
+              {isPremium ? "Premium is active" : "Practice without daily friction"}
+            </AppText>
+            <AppText tone="muted" variant="body">
+              {isPremium
+                ? "Your account has active premium access."
+                : "Premium will unlock longer practice and more resume scans when billing is ready."}
+            </AppText>
           </View>
         </View>
+      </AppCard>
 
-        <View style={[styles.comparisonCard, styles.premiumCard]}>
-          <Text selectable style={[styles.sectionEyebrow, styles.premiumEyebrow]}>
-            PREMIUM
-          </Text>
-          <View style={styles.featureList}>
-            {PREMIUM_FEATURES.map((feature) => (
-              <FeatureRow key={feature} label={feature} />
-            ))}
-          </View>
-        </View>
+      <View style={styles.grid}>
+        <AppCard style={styles.planCard}>
+          <SectionHeader title="Free" subtitle="Available during beta" />
+          {FREE_FEATURES.map((feature) => (
+            <FeatureRow key={feature.label} available={feature.available} label={feature.label} />
+          ))}
+        </AppCard>
+        <AppCard style={styles.planCard} tone="accent">
+          <SectionHeader title="Premium" subtitle="For expanded practice" />
+          {PREMIUM_FEATURES.map((feature) => (
+            <FeatureRow key={feature} label={feature} />
+          ))}
+        </AppCard>
       </View>
 
-      <View style={styles.planSection}>
-        {isLoadingOfferings ? (
-          <View style={styles.messageCard}>
-            <ActivityIndicator color={COLORS.text} />
-            <Text selectable style={styles.messageTitle}>
-              Loading plans
-            </Text>
-            <Text selectable style={styles.messageText}>
-              Checking available Test Store or billing packages.
-            </Text>
+      {isLoadingOfferings ? (
+        <AppCard style={styles.loadingCard}>
+          <ActivityIndicator color={COLORS.primary} />
+          <AppText tone="muted" variant="body">
+            Checking whether premium plans are available...
+          </AppText>
+        </AppCard>
+      ) : isPremium ? (
+        <AppCard tone="accent">
+          <View style={styles.activeRow}>
+            <AppIcon color={COLORS.success} name="success" size={26} />
+            <View style={styles.activeCopy}>
+              <AppText variant="cardTitle">Premium is active on this account</AppText>
+              <AppText tone="muted" variant="bodyMuted">
+                You can return to Practice whenever you are ready.
+              </AppText>
+            </View>
           </View>
-        ) : isPremium ? (
-          <View style={[styles.messageCard, styles.successMessageCard]}>
-            <AppIcon color={COLORS.success} name="success" size={34} />
-            <Text selectable style={styles.statusEyebrow}>
-              Premium Status
-            </Text>
-            <Text selectable style={styles.messageTitle}>
-              Premium is active on this account
-            </Text>
-            <Text selectable style={styles.messageText}>
-              Unlimited practice is unlocked. You can return to Practice whenever you are ready.
-            </Text>
-          </View>
-        ) : availablePackages.length ? (
-          availablePackages.map((availablePackage) => {
+        </AppCard>
+      ) : availablePackages.length ? (
+        <View style={styles.packageStack}>
+          {availablePackages.map((availablePackage) => {
             const isSelected = selectedPackage?.identifier === availablePackage.identifier;
             const label = getPackageLabel(availablePackage);
             const isYearly = label.toLowerCase().includes("year");
@@ -279,351 +260,130 @@ export default function PaywallScreen({ navigation }) {
                 key={availablePackage.identifier}
                 onPress={() => setSelectedPackage(availablePackage)}
                 style={({ pressed }) => [
-                  styles.planCard,
-                  (isSelected || isYearly) && styles.highlightedPlanCard,
-                  pressed && styles.pressed
+                  styles.packageCard,
+                  isSelected && styles.packageCardSelected,
+                  pressed && PRESSED_STYLE
                 ]}
               >
-                <View style={styles.planHeaderRow}>
-                  <Text selectable style={styles.planLabel}>
-                    {label}
-                  </Text>
+                <View style={styles.packageHeader}>
+                  <AppText variant="cardTitle">{label}</AppText>
                   {isYearly ? (
-                    <View style={styles.saveBadge}>
-                      <Text selectable style={styles.saveBadgeText}>
+                    <View style={styles.badge}>
+                      <AppText color="#FFFFFF" variant="caption">
                         Best value
-                      </Text>
+                      </AppText>
                     </View>
                   ) : null}
                 </View>
-                <Text selectable style={styles.planPrice}>
-                  {getPackagePrice(availablePackage)}
-                </Text>
+                <AppText variant="statNumber">{getPackagePrice(availablePackage)}</AppText>
               </HapticPressable>
             );
-          })
-        ) : (
-          <View style={[styles.messageCard, styles.warningMessageCard]}>
-            <AppIcon color={COLORS.warning} name="warning" size={34} />
-            <Text selectable style={styles.statusEyebrow}>
-              Plans unavailable
-            </Text>
-            <Text selectable style={styles.messageTitle}>
-              Purchases unavailable
-            </Text>
-            <Text selectable style={styles.messageText}>
-              Purchases are not available in this beta build yet. Free practice still works.
-            </Text>
-          </View>
-        )}
-      </View>
+          })}
+        </View>
+      ) : (
+        <BetaNoticeCard />
+      )}
 
       {statusMessage ? (
-        <Text selectable style={styles.statusText}>
+        <AppText style={styles.statusText} tone="muted" variant="bodyMuted">
           {statusMessage}
-        </Text>
+        </AppText>
       ) : null}
 
-      {isPremium || canPurchase ? (
-        <View style={styles.actionSection}>
-          <HapticPressable
-            disabled={!canPurchase || isPurchasing || isPremium}
-            onPress={startPurchase}
-            style={({ pressed }) => [
-              styles.ctaButton,
-              pressed && !isPurchasing && styles.pressed,
-              (!canPurchase || isPurchasing || isPremium) && styles.disabledButton
-            ]}
-          >
-            {isPurchasing ? (
-              <ActivityIndicator color={COLORS.text} />
-            ) : (
-              <Text style={styles.ctaButtonText}>
-                {isPremium ? "Premium Active" : "Upgrade to Premium"}
-              </Text>
-            )}
-          </HapticPressable>
-          {canPurchase ? (
-            <Text selectable style={styles.cancelText}>
-              Cancel anytime from your store subscription settings.
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-
-      {isPremium ? (
-        <HapticPressable
-          onPress={manageSubscription}
-          style={({ pressed }) => [styles.manageButton, pressed && styles.pressed]}
+      {!isPremium ? (
+        <AppButton
+          disabled={!canPurchase || isPurchasing}
+          loading={isPurchasing}
+          onPress={startPurchase}
         >
-          <Text style={styles.manageButtonText}>Manage Subscription</Text>
-        </HapticPressable>
-      ) : null}
+          {canPurchase ? "Upgrade to Premium" : "Purchases unavailable in beta"}
+        </AppButton>
+      ) : (
+        <AppButton icon="settings" onPress={manageSubscription} tone="secondary">
+          Manage Subscription
+        </AppButton>
+      )}
 
-      <HapticPressable
-        disabled={isRestoring}
-        onPress={restore}
-        style={({ pressed }) => [
-          styles.restoreButton,
-          pressed && !isRestoring && styles.pressed,
-          isRestoring && styles.disabledButton
-        ]}
-      >
-        {isRestoring ? (
-          <ActivityIndicator color={COLORS.text} />
-        ) : (
-          <Text style={styles.restoreButtonText}>Restore Purchases</Text>
-        )}
-      </HapticPressable>
-
-      <HapticPressable
-        onPress={() => navigation.goBack()}
-        style={({ pressed }) => [styles.laterButton, pressed && styles.pressed]}
-      >
-        <Text style={styles.laterButtonText}>Maybe Later</Text>
-      </HapticPressable>
-    </ScrollView>
+      <AppButton disabled={isRestoring} loading={isRestoring} onPress={restore} tone="secondary">
+        Restore Purchases
+      </AppButton>
+      <AppButton onPress={() => navigation.goBack()} tone="ghost">
+        Maybe Later
+      </AppButton>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  actionSection: {
-    alignItems: "center",
-    gap: 10
-  },
-  cancelText: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "700"
-  },
-  comparisonCard: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 16,
-    padding: 18
-  },
-  comparisonGrid: {
-    gap: 16
-  },
-  container: {
-    backgroundColor: COLORS.background,
-    flex: 1
-  },
-  content: {
-    gap: 24,
-    padding: 20,
-    paddingBottom: 44
-  },
-  ctaButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.accent,
-    borderRadius: 8,
-    justifyContent: "center",
-    minHeight: 60,
-    paddingHorizontal: 18,
-    width: "100%"
-  },
-  ctaButtonText: {
-    color: COLORS.text,
-    fontSize: 17,
-    fontWeight: "900",
-    textAlign: "center"
-  },
-  disabledButton: {
-    opacity: 0.65
-  },
-  featureIcon: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: 34
-  },
-  featureList: {
-    gap: 12
-  },
-  featureRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10
-  },
-  featureText: {
-    color: COLORS.text,
+  activeCopy: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: "800",
-    lineHeight: 22
+    gap: SPACING.xs
   },
-  header: {
-    gap: 8,
-    paddingTop: 8
+  activeRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: SPACING.md
   },
-  highlightedPlanCard: {
-    borderColor: COLORS.accent,
-    borderWidth: 2
+  badge: {
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs
   },
-  laterButton: {
+  grid: {
+    gap: SPACING.md
+  },
+  hero: {
+    gap: SPACING.xl
+  },
+  heroCopy: {
+    flex: 1,
+    gap: SPACING.sm
+  },
+  heroTop: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: SPACING.md
+  },
+  loadingCard: {
     alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: 16
+    flexDirection: "row"
   },
-  laterButtonText: {
-    color: COLORS.muted,
-    fontSize: 15,
-    fontWeight: "800"
-  },
-  messageCard: {
-    alignItems: "center",
+  packageCard: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    gap: 10,
-    justifyContent: "center",
-    minHeight: 96,
-    padding: 18
+    gap: SPACING.sm,
+    padding: SPACING.card
   },
-  messageText: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "800",
-    lineHeight: 20,
-    textAlign: "center"
+  packageCardSelected: {
+    backgroundColor: COLORS.primarySoft,
+    borderColor: COLORS.primary
   },
-  messageTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-    textAlign: "center"
-  },
-  manageButton: {
-    alignItems: "center",
-    backgroundColor: "rgba(108, 99, 255, 0.12)",
-    borderColor: "rgba(108, 99, 255, 0.45)",
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 52,
-    paddingHorizontal: 16
-  },
-  manageButtonText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-    textAlign: "center"
-  },
-  planCard: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 8,
-    padding: 18
-  },
-  planHeaderRow: {
+  packageHeader: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 12,
+    gap: SPACING.md,
     justifyContent: "space-between"
   },
-  planLabel: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "900",
-    textTransform: "uppercase"
+  packageStack: {
+    gap: SPACING.md
   },
-  planPrice: {
-    color: COLORS.text,
-    fontSize: 24,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "900",
-    lineHeight: 31
+  planCard: {
+    gap: SPACING.md
   },
-  planSection: {
-    gap: 14
-  },
-  premiumCard: {
-    borderColor: "rgba(108, 99, 255, 0.45)"
-  },
-  premiumEyebrow: {
-    color: COLORS.accent
-  },
-  pressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.99 }]
-  },
-  restoreButton: {
+  premiumIcon: {
     alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 8,
+    backgroundColor: "rgba(251, 191, 36, 0.14)",
+    borderColor: "rgba(251, 191, 36, 0.34)",
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
+    height: 58,
     justifyContent: "center",
-    minHeight: 52,
-    paddingHorizontal: 16
-  },
-  restoreButtonText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
-  },
-  statusEyebrow: {
-    color: COLORS.accent,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
-  },
-  successMessageCard: {
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
-    borderColor: "rgba(34, 197, 94, 0.45)"
-  },
-  saveBadge: {
-    backgroundColor: "rgba(34, 197, 94, 0.14)",
-    borderColor: "rgba(34, 197, 94, 0.45)",
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5
-  },
-  saveBadgeText: {
-    color: "#86EFAC",
-    fontSize: 12,
-    fontWeight: "900"
-  },
-  sectionEyebrow: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "900",
-    letterSpacing: 0,
-    textTransform: "uppercase"
+    width: 58
   },
   statusText: {
-    backgroundColor: "rgba(108, 99, 255, 0.12)",
-    borderColor: "rgba(108, 99, 255, 0.35)",
-    borderRadius: 8,
-    borderWidth: 1,
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20,
-    padding: 12
-  },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 17,
-    fontWeight: "700",
-    lineHeight: 24
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 32,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 40
-  },
-  warningMessageCard: {
-    backgroundColor: "#141414",
-    borderColor: "rgba(250, 204, 21, 0.35)"
+    textAlign: "center"
   }
 });
