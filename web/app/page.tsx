@@ -1,29 +1,32 @@
 import {
   BarChart3,
-  Bot,
   BrainCircuit,
   Check,
   ClipboardCheck,
+  CreditCard,
   FileText,
+  Mail,
   MessageSquareText,
+  RefreshCcw,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Target,
   TimerReset,
-  TrendingUp
+  Truck
 } from "lucide-react";
 
 const features = [
   {
     title: "AI mock interview practice",
     description:
-      "Practice realistic interviews with prompts built for HR, technical, behavioral, and company-specific rounds.",
+      "Practice realistic interviews for HR, technical, behavioral, and company-specific rounds.",
     icon: MessageSquareText
   },
   {
     title: "AI answer feedback",
     description:
-      "Review scores, strengths, improvements, and suggested answer framing after each response.",
+      "Review scores, strengths, improvement areas, and suggested answer framing after each response.",
     icon: BrainCircuit
   },
   {
@@ -34,8 +37,7 @@ const features = [
   },
   {
     title: "Progress tracking",
-    description:
-      "Track sessions, average score, streaks, and improvement trends as your preparation grows.",
+    description: "Track sessions, average score, streaks, and improvement trends over time.",
     icon: BarChart3
   },
   {
@@ -44,9 +46,9 @@ const features = [
     icon: Target
   },
   {
-    title: "Secure premium access",
+    title: "Verified premium access",
     description:
-      "Premium access is activated only after backend payment verification, never from the mobile client.",
+      "Premium access is activated only after backend payment verification, never directly by the mobile client.",
     icon: ShieldCheck
   }
 ];
@@ -54,24 +56,24 @@ const features = [
 const plans = [
   {
     name: "Monthly Premium",
-    price: "₹99",
+    price: "INR 99",
     cadence: "/month",
-    description: "A focused option for short interview preparation cycles.",
+    description: "A focused option for short interview preparation cycles. Billed monthly.",
     features: [
-      "Unlimited practice",
-      "More resume scans",
-      "Longer interviews",
+      "Unlimited mock interview practice",
+      "More resume ATS scans",
+      "Longer interview sessions",
       "Priority AI feedback"
     ]
   },
   {
     name: "Yearly Premium",
-    price: "₹799",
+    price: "INR 799",
     cadence: "/year",
-    description: "Best value for long-term interview readiness.",
+    description: "Best value for long-term interview readiness. Billed yearly.",
     features: [
-      "Everything in Monthly",
-      "Lower yearly cost",
+      "Everything in Monthly Premium",
+      "Lower annual cost",
       "Consistent progress tracking",
       "Premium practice flow"
     ],
@@ -83,17 +85,26 @@ const policies = [
   {
     id: "refund",
     title: "Refund/Cancellation Policy",
-    body: "Refunds are available for duplicate payments, failed transactions where premium access was not granted, or accidental payments reported within 7 days. Once premium access is activated and used, payments are generally non-refundable. Approved refunds are processed to the original payment method as per Razorpay/bank timelines."
+    icon: RefreshCcw,
+    body: "Refunds are available for duplicate payments, failed transactions where premium access was not granted, or accidental payments reported within 7 days. Once premium access is activated and used, payments are generally non-refundable. Approved refunds are processed to the original payment method as per Razorpay and bank timelines, typically within 5-7 business days after approval."
   },
   {
     id: "terms",
     title: "Terms",
-    body: "Users can use IntervueAI for interview practice, resume analysis, and progress tracking. Premium access is granted only after successful payment verification. Users must not misuse the service or upload illegal or harmful content."
+    icon: ClipboardCheck,
+    body: "Users can use IntervueAI for interview practice, resume analysis, and progress tracking. Premium access is granted only after successful payment verification. Users must not misuse the service, upload illegal or harmful content, attempt to bypass usage limits, or interfere with the app or backend systems."
   },
   {
     id: "privacy",
     title: "Privacy",
-    body: "IntervueAI uses account, interview, resume analysis, and payment-related information only to provide app features and improve the service. Payment processing is handled by Razorpay."
+    icon: ShieldCheck,
+    body: "IntervueAI uses account, interview, resume analysis, and payment-related information only to provide app features, secure access, improve reliability, and support payment verification. Payment processing is handled by Razorpay. Sensitive payment credentials are not stored in the mobile app."
+  },
+  {
+    id: "delivery",
+    title: "Digital Delivery / No Shipping",
+    icon: Truck,
+    body: "IntervueAI is a digital mobile app subscription. No physical product is shipped. Premium access is delivered inside the app after successful payment verification by the backend. If access is delayed, users can refresh premium status in the app."
   }
 ];
 
@@ -108,6 +119,7 @@ export default function Home() {
           </a>
 
           <div className="nav-links" aria-label="Page sections">
+            <a href="#about">About</a>
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
             <a href="#policies">Policies</a>
@@ -135,9 +147,9 @@ export default function Home() {
             </h1>
 
             <p className="hero-copy">
-              IntervueAI is an AI-powered interview preparation app that helps users practice mock
-              interviews, improve answers with AI feedback, analyze resumes for ATS readiness, and
-              track interview progress.
+              IntervueAI is an AI-powered interview preparation app that helps job seekers practice
+              mock interviews, improve answers with AI feedback, analyze resumes for ATS readiness,
+              and track interview progress.
             </p>
 
             <div className="hero-actions">
@@ -168,7 +180,7 @@ export default function Home() {
           <div className="panel" aria-label="Interview feedback preview">
             <div className="interview-card">
               <div className="interview-top">
-                <span>HR round · Question 2 of 5</span>
+                <span>HR round - Question 2 of 5</span>
                 <span className="timer-pill">
                   <TimerReset size={14} /> 01:42
                 </span>
@@ -197,6 +209,39 @@ export default function Home() {
                     sentence for a stronger finish.
                   </p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section compact" id="about">
+        <div className="container">
+          <div className="about-card">
+            <div>
+              <span className="eyebrow">
+                <Smartphone size={16} />
+                Mobile app for interview readiness
+              </span>
+              <h2>About IntervueAI</h2>
+              <p>
+                IntervueAI helps job seekers prepare for interviews with guided mock practice,
+                AI-powered answer feedback, resume ATS analysis, and progress tracking. The product
+                is delivered through the IntervueAI mobile app.
+              </p>
+            </div>
+            <div className="reviewer-list" aria-label="Review details">
+              <div>
+                <strong>Product type</strong>
+                <span>Digital interview-preparation subscription</span>
+              </div>
+              <div>
+                <strong>Payment processor</strong>
+                <span>Razorpay, verified through backend payment callbacks</span>
+              </div>
+              <div>
+                <strong>Premium access</strong>
+                <span>Activated only after successful server-side payment verification</span>
               </div>
             </div>
           </div>
@@ -237,6 +282,7 @@ export default function Home() {
             <h2>Simple pricing for serious preparation.</h2>
             <p>
               Premium plans unlock more practice while free limits remain available for beta users.
+              Prices are listed in Indian Rupees.
             </p>
           </div>
 
@@ -262,8 +308,52 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
+                <p className="billing-note">
+                  Premium access is enabled in the mobile app after successful Razorpay payment
+                  verification by the backend.
+                </p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section compact" id="payment-flow">
+        <div className="container">
+          <div className="section-heading center">
+            <h2>How payments and access work.</h2>
+            <p>
+              The website explains the product and pricing. The mobile app starts the payment flow,
+              and the backend verifies payment before enabling premium.
+            </p>
+          </div>
+
+          <div className="grid process-grid">
+            <article className="card">
+              <div className="icon-bubble">
+                <CreditCard size={22} />
+              </div>
+              <h3>1. Choose a plan</h3>
+              <p>Users select Monthly Premium or Yearly Premium in the IntervueAI mobile app.</p>
+            </article>
+            <article className="card">
+              <div className="icon-bubble">
+                <ShieldCheck size={22} />
+              </div>
+              <h3>2. Pay securely</h3>
+              <p>
+                Payment is processed by Razorpay. Razorpay secrets are never exposed in the app.
+              </p>
+            </article>
+            <article className="card">
+              <div className="icon-bubble">
+                <Check size={22} />
+              </div>
+              <h3>3. Access is activated</h3>
+              <p>
+                The backend verifies payment and then enables premium access for the user account.
+              </p>
+            </article>
           </div>
         </div>
       </section>
@@ -271,20 +361,27 @@ export default function Home() {
       <section className="section" id="policies">
         <div className="container">
           <div className="section-heading center">
-            <h2>Clear policies for Razorpay onboarding.</h2>
+            <h2>Clear policies for payment review.</h2>
             <p>
-              These sections are included so users and payment reviewers can understand pricing,
-              refunds, terms, and privacy.
+              These sections explain pricing, refunds, terms, privacy, and digital delivery for
+              users and payment reviewers.
             </p>
           </div>
 
           <div className="grid policy-grid">
-            {policies.map((policy) => (
-              <article className="policy-card" id={policy.id} key={policy.id}>
-                <h3>{policy.title}</h3>
-                <p>{policy.body}</p>
-              </article>
-            ))}
+            {policies.map((policy) => {
+              const Icon = policy.icon;
+
+              return (
+                <article className="policy-card" id={policy.id} key={policy.id}>
+                  <div className="icon-bubble compact-icon">
+                    <Icon size={20} />
+                  </div>
+                  <h3>{policy.title}</h3>
+                  <p>{policy.body}</p>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -294,16 +391,19 @@ export default function Home() {
           <div className="contact-card">
             <div>
               <span className="eyebrow">
-                <ClipboardCheck size={16} />
+                <Mail size={16} />
                 Contact
               </span>
               <h2>Need help with IntervueAI?</h2>
               <p>
-                We are preparing the final support inbox before public launch. Until then, the app
-                and website avoid showing a dummy email address.
+                For Razorpay live activation, a real monitored support email must be added here
+                before accepting live payments. We are not showing a dummy email address.
               </p>
             </div>
-            <div className="support-status">Support email coming soon.</div>
+            <div className="support-status">
+              <Mail size={20} />
+              Support email pending before live payments.
+            </div>
           </div>
         </div>
       </section>
@@ -322,10 +422,12 @@ export default function Home() {
           </div>
 
           <div className="footer-links">
+            <a href="#about">About</a>
             <a href="#pricing">Pricing</a>
             <a href="#privacy">Privacy</a>
             <a href="#terms">Terms</a>
             <a href="#refund">Refund Policy</a>
+            <a href="#delivery">Digital Delivery</a>
             <a href="#contact">Contact</a>
           </div>
         </div>
