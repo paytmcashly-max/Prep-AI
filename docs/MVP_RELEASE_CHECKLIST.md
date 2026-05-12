@@ -79,8 +79,8 @@ CI note: GitHub Actions passed on merged `main` commit `89d01fe2b2086b0a994e6bf7
 - [ ] App screenshots prepared
 - [x] Play Store listing draft prepared
 - [x] Support email ready: `kishan@kishan.codes`
-- [ ] Final Privacy Policy URL ready
-- [ ] Final Terms URL ready
+- [x] Final Privacy Policy URL ready: `https://intervueai.vercel.app/privacy`
+- [x] Final Terms URL ready: `https://intervueai.vercel.app/terms`
 - [ ] Production backend deployed
 - [ ] Production env verified
 - [x] Local same-WiFi beta candidate smoke test passed

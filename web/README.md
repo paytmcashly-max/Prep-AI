@@ -68,5 +68,9 @@ https://intervueai.vercel.app
 ## Remaining Launch Tasks
 
 - Keep `/web` deployed on Vercel at `https://intervueai.vercel.app`.
+- Privacy page: `https://intervueai.vercel.app/privacy`.
+- Terms page: `https://intervueai.vercel.app/terms`.
+- Refund page: `https://intervueai.vercel.app/refund`.
+- Digital delivery page: `https://intervueai.vercel.app/delivery`.
 - Support email configured as `kishan@kishan.codes`.
 - Submit the deployed Vercel URL to Razorpay as the IntervueAI website/app link.

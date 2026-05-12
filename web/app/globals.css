@@ -404,7 +404,8 @@ section {
   line-height: 1.65;
 }
 
-.about-card {
+.about-card,
+.business-card {
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
   gap: 24px;
@@ -416,32 +417,37 @@ section {
   box-shadow: var(--shadow);
 }
 
-.about-card h2 {
+.about-card h2,
+.business-card h2 {
   margin-top: 16px;
   font-size: clamp(30px, 4vw, 48px);
   line-height: 1.05;
   letter-spacing: -0.055em;
 }
 
-.reviewer-list {
+.reviewer-list,
+.business-list {
   display: grid;
   gap: 12px;
 }
 
-.reviewer-list div {
+.reviewer-list div,
+.business-list div {
   border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 18px;
   background: rgba(8, 10, 15, 0.42);
   padding: 16px;
 }
 
-.reviewer-list strong {
+.reviewer-list strong,
+.business-list strong {
   display: block;
   color: var(--text);
   font-size: 14px;
 }
 
-.reviewer-list span {
+.reviewer-list span,
+.business-list span {
   display: block;
   margin-top: 5px;
   color: var(--muted);
@@ -535,6 +541,26 @@ section {
   font-size: 18px;
 }
 
+.policy-link {
+  display: block;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease;
+}
+
+.policy-link:hover {
+  border-color: rgba(124, 108, 255, 0.48);
+  transform: translateY(-2px);
+}
+
+.policy-link span {
+  display: inline-flex;
+  margin-top: 16px;
+  color: #d8d4ff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .compact-icon {
   width: 38px;
   height: 38px;
@@ -599,9 +625,88 @@ section {
   color: var(--text);
 }
 
+.legal-shell {
+  min-height: 100vh;
+  padding: 34px 0 72px;
+}
+
+.legal-container {
+  width: min(880px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
+.legal-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.legal-back:hover {
+  color: var(--text);
+}
+
+.legal-header {
+  margin-top: 42px;
+  border: 1px solid rgba(124, 108, 255, 0.24);
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(124, 108, 255, 0.16), rgba(255, 255, 255, 0.045));
+  padding: 32px;
+  box-shadow: var(--shadow);
+}
+
+.legal-header p {
+  color: #d8d4ff;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.legal-header h1 {
+  margin-top: 12px;
+  font-size: clamp(38px, 7vw, 68px);
+}
+
+.legal-header span {
+  display: block;
+  margin-top: 14px;
+  color: var(--muted);
+}
+
+.legal-content {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.legal-content section {
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 22px;
+}
+
+.legal-content h2 {
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.legal-content p {
+  margin-top: 10px;
+  color: var(--muted);
+  line-height: 1.72;
+}
+
 @media (max-width: 900px) {
   .hero-grid,
   .about-card,
+  .business-card,
   .contact-card {
     grid-template-columns: 1fr;
   }
@@ -658,6 +763,7 @@ section {
 
   .panel,
   .about-card,
+  .business-card,
   .price-card,
   .contact-card {
     border-radius: 24px;

@@ -6,7 +6,7 @@ TODO before launch: publish these terms at the final Terms of Service URL used b
 
 ## Acceptance of Terms
 
-By accessing or using IntervueAI, you agree to these Terms of Service. If you do not agree, do not use the app.
+By accessing or using the IntervueAI website or app, you acknowledge and agree to comply with these Terms of Service. If you do not agree, do not use the website or app.
 
 ## Description of Service
 
@@ -25,6 +25,7 @@ You agree not to:
 - Upload malicious files or content.
 - Interfere with the app, backend, Firebase services, AI providers, or other users.
 - Submit content that you do not have the right to use.
+- Engage in actions that may disrupt, damage, or interfere with the smooth functioning of the website, app, backend, or related services.
 
 ## AI-Generated Content Disclaimer
 
@@ -68,7 +69,7 @@ Canceling a subscription may stop future renewals but may not automatically refu
 
 ## Intellectual Property
 
-IntervueAI, including its app design, branding, software, documentation, and service content, is owned by its respective owners and protected by intellectual property laws.
+IntervueAI, including its app design, website content, graphics, branding, software, documentation, and service content, is owned by its respective owners and protected under applicable intellectual property laws.
 
 You retain rights to content you submit, such as resume text and interview answers, subject to the permissions needed for IntervueAI to provide the service.
 
@@ -81,6 +82,14 @@ Your use of IntervueAI may also be subject to third-party terms and policies.
 ## Limitation of Liability
 
 To the maximum extent permitted by law, IntervueAI and its owners, operators, and service providers will not be liable for indirect, incidental, special, consequential, or punitive damages, or for lost opportunities, lost profits, hiring outcomes, or reliance on AI-generated content.
+
+## Indemnification
+
+By using the IntervueAI website or app, you agree to indemnify and hold IntervueAI harmless against claims, damages, liabilities, costs, or expenses arising from your misuse of the service, violation of these Terms, illegal uploads, or interference with the website, app, backend, or related services.
+
+## Governing Law
+
+These Terms of Service are governed and interpreted in accordance with the laws of India.
 
 ## Termination
 

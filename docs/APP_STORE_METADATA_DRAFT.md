@@ -82,23 +82,19 @@ Use this monitored IntervueAI support email for user and payment-related queries
 ## Privacy Policy URL Placeholder
 
 ```text
-https://example.com/prepai/privacy
+https://intervueai.vercel.app/privacy
 ```
 
-Configured placeholder: `EXPO_PUBLIC_PRIVACY_POLICY_URL`
+Configured value: `EXPO_PUBLIC_PRIVACY_POLICY_URL`
 
-TODO: replace with the final hosted Privacy Policy URL before launch.
+Hosted IntervueAI Privacy Policy URL.
 
-Replace with the hosted IntervueAI Privacy Policy URL before launch.
-
-## Terms URL Placeholder
+## Terms URL
 
 ```text
-https://example.com/prepai/terms
+https://intervueai.vercel.app/terms
 ```
 
-Configured placeholder: `EXPO_PUBLIC_TERMS_URL`
+Configured value: `EXPO_PUBLIC_TERMS_URL`
 
-TODO: replace with the final hosted Terms of Service URL before launch.
-
-Replace with the hosted IntervueAI Terms of Service URL before launch.
+Hosted IntervueAI Terms of Service URL.

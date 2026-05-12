@@ -18,8 +18,8 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 EXPO_PUBLIC_FIREBASE_APP_ID=
 EXPO_PUBLIC_SENTRY_DSN=
 EXPO_PUBLIC_ANALYTICS_ENABLED=false
-EXPO_PUBLIC_PRIVACY_POLICY_URL=https://example.com/prepai/privacy
-EXPO_PUBLIC_TERMS_URL=https://example.com/prepai/terms
+EXPO_PUBLIC_PRIVACY_POLICY_URL=https://intervueai.vercel.app/privacy
+EXPO_PUBLIC_TERMS_URL=https://intervueai.vercel.app/terms
 EXPO_PUBLIC_SUPPORT_EMAIL=kishan@kishan.codes
 ```
 

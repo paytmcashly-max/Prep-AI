@@ -2,12 +2,10 @@ import {
   BarChart3,
   BrainCircuit,
   Check,
-  ClipboardCheck,
   CreditCard,
   FileText,
   Mail,
   MessageSquareText,
-  RefreshCcw,
   ShieldCheck,
   Smartphone,
   Sparkles,
@@ -81,30 +79,31 @@ const plans = [
   }
 ];
 
-const policies = [
+const policyLinks = [
   {
-    id: "refund",
-    title: "Refund/Cancellation Policy",
-    icon: RefreshCcw,
-    body: "Refunds are available for duplicate payments, failed transactions where premium access was not granted, or accidental payments reported within 7 days. Once premium access is activated and used, payments are generally non-refundable. Approved refunds are processed to the original payment method as per Razorpay and bank timelines, typically within 5-7 business days after approval."
+    href: "/terms",
+    title: "Terms & Conditions",
+    description: "User responsibilities, acceptable use, intellectual property, and governing law.",
+    icon: ShieldCheck
   },
   {
-    id: "terms",
-    title: "Terms",
-    icon: ClipboardCheck,
-    body: "Users can use IntervueAI for interview practice, resume analysis, and progress tracking. Premium access is granted only after successful payment verification. Users must not misuse the service, upload illegal or harmful content, attempt to bypass usage limits, or interfere with the app or backend systems."
+    href: "/privacy",
+    title: "Privacy Policy",
+    description:
+      "Information we collect, how it is used, cookies, security, and third-party services.",
+    icon: FileText
   },
   {
-    id: "privacy",
-    title: "Privacy",
-    icon: ShieldCheck,
-    body: "IntervueAI uses account, interview, resume analysis, and payment-related information only to provide app features, secure access, improve reliability, and support payment verification. Payment processing is handled by Razorpay. Sensitive payment credentials are not stored in the mobile app."
+    href: "/refund",
+    title: "Refund & Cancellation Policy",
+    description: "Refund eligibility, cancellation rules, and expected processing timelines.",
+    icon: CreditCard
   },
   {
-    id: "delivery",
+    href: "/delivery",
     title: "Digital Delivery / No Shipping",
-    icon: Truck,
-    body: "IntervueAI is a digital mobile app subscription. No physical product is shipped. Premium access is delivered inside the app after successful payment verification by the backend. If access is delayed, users can refresh premium status in the app."
+    description: "IntervueAI is a digital subscription. No physical product is shipped.",
+    icon: Truck
   }
 ];
 
@@ -122,7 +121,8 @@ export default function Home() {
             <a href="#about">About</a>
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
-            <a href="#policies">Policies</a>
+            <a href="/terms">Terms</a>
+            <a href="/privacy">Privacy</a>
             <a href="#contact">Contact</a>
           </div>
 
@@ -236,8 +236,8 @@ export default function Home() {
                 <span>Digital interview-preparation subscription</span>
               </div>
               <div>
-                <strong>Payment processor</strong>
-                <span>Razorpay, verified through backend payment callbacks</span>
+                <strong>Payment processing</strong>
+                <span>Handled through a secure payment provider and verified by the backend</span>
               </div>
               <div>
                 <strong>Premium access</strong>
@@ -309,8 +309,8 @@ export default function Home() {
                   ))}
                 </ul>
                 <p className="billing-note">
-                  Premium access is enabled in the mobile app after successful Razorpay payment
-                  verification by the backend.
+                  Premium access is enabled in the mobile app after successful backend payment
+                  verification.
                 </p>
               </article>
             ))}
@@ -342,7 +342,8 @@ export default function Home() {
               </div>
               <h3>2. Pay securely</h3>
               <p>
-                Payment is processed by Razorpay. Razorpay secrets are never exposed in the app.
+                Payment is processed by a secure payment provider. Secrets are never exposed in the
+                app.
               </p>
             </article>
             <article className="card">
@@ -361,25 +362,26 @@ export default function Home() {
       <section className="section" id="policies">
         <div className="container">
           <div className="section-heading center">
-            <h2>Clear policies for payment review.</h2>
+            <h2>Policies and legal pages.</h2>
             <p>
-              These sections explain pricing, refunds, terms, privacy, and digital delivery for
-              users and payment reviewers.
+              Terms, privacy, refunds, and digital delivery are available as separate pages for
+              users and payment review.
             </p>
           </div>
 
           <div className="grid policy-grid">
-            {policies.map((policy) => {
+            {policyLinks.map((policy) => {
               const Icon = policy.icon;
 
               return (
-                <article className="policy-card" id={policy.id} key={policy.id}>
+                <a className="policy-card policy-link" href={policy.href} key={policy.href}>
                   <div className="icon-bubble compact-icon">
                     <Icon size={20} />
                   </div>
                   <h3>{policy.title}</h3>
-                  <p>{policy.body}</p>
-                </article>
+                  <p>{policy.description}</p>
+                  <span>Read page</span>
+                </a>
               );
             })}
           </div>
@@ -415,19 +417,16 @@ export default function Home() {
               <span className="brand-mark">IA</span>
               <span>IntervueAI</span>
             </a>
-            <p>
-              IntervueAI - Practice smarter. Interview better. Payment processing is handled by
-              Razorpay.
-            </p>
+            <p>IntervueAI - Practice smarter. Interview better.</p>
           </div>
 
           <div className="footer-links">
             <a href="#about">About</a>
             <a href="#pricing">Pricing</a>
-            <a href="#privacy">Privacy</a>
-            <a href="#terms">Terms</a>
-            <a href="#refund">Refund Policy</a>
-            <a href="#delivery">Digital Delivery</a>
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+            <a href="/refund">Refund Policy</a>
+            <a href="/delivery">Digital Delivery</a>
             <a href="#contact">Contact</a>
           </div>
         </div>
