@@ -31,8 +31,8 @@ import { DARK_COLORS as COLORS } from "../theme";
 const DEFAULT_QUESTION_COUNT = 5;
 const MAX_PREMIUM_QUESTION_COUNT = 20;
 const QUESTION_TIME_SECONDS = 60;
-const TIMER_SIZE = 150;
-const TIMER_STROKE_WIDTH = 8;
+const TIMER_SIZE = 62;
+const TIMER_STROKE_WIDTH = 5;
 const TIMER_RADIUS = (TIMER_SIZE - TIMER_STROKE_WIDTH) / 2;
 const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
 
@@ -156,7 +156,7 @@ function CircularTimer({ secondsLeft }) {
           {secondsLeft}s
         </Animated.Text>
         <Text selectable style={styles.timerLabel}>
-          Time remaining
+          left
         </Text>
       </View>
     </View>
@@ -567,44 +567,40 @@ export default function MockInterviewScreen({ navigation, route }) {
           onPress={() => navigation.goBack()}
           style={({ pressed }) => [styles.topBackButton, pressed && styles.pressed]}
         >
-          <Text style={styles.topBackButtonText}>Back</Text>
+          <AppIcon color={COLORS.text} name="back" size={18} />
         </HapticPressable>
-        <View style={styles.categoryPill}>
-          <Text selectable style={styles.categoryText}>
+        <View style={styles.topMeta}>
+          <Text selectable style={styles.categoryText} numberOfLines={1}>
             {categoryName}
           </Text>
+          <Text selectable style={styles.counterText}>
+            {difficultyName} - {questionNumber} of {totalQuestions}
+          </Text>
         </View>
-        <Text selectable style={styles.counterText}>
-          {difficultyName} - Question {questionNumber}/{totalQuestions}
-        </Text>
+        <CircularTimer secondsLeft={secondsLeft} />
       </View>
 
       <View style={styles.questionCard}>
-        <Text selectable style={styles.questionLabel}>
-          Interview Question
-        </Text>
+        <View style={styles.cardHeaderRow}>
+          <AppIcon color={COLORS.accent} name="practice" size={18} />
+          <Text selectable style={styles.questionLabel}>
+            Interview prompt
+          </Text>
+        </View>
         {isCheckingUsage ? (
           <View style={styles.loadingBox}>
-            <SkeletonBox style={styles.questionSkeletonTitle} />
             <SkeletonBox style={styles.questionSkeletonLine} />
             <SkeletonBox style={[styles.questionSkeletonLine, styles.questionSkeletonShort]} />
             <Text selectable style={styles.loadingText}>
-              Checking your free questions...
-            </Text>
-            <Text selectable style={styles.loadingSubText}>
-              This only takes a moment.
+              Checking your practice limit...
             </Text>
           </View>
         ) : isQuestionLoading ? (
           <View style={styles.loadingBox}>
-            <SkeletonBox style={styles.questionSkeletonTitle} />
             <SkeletonBox style={styles.questionSkeletonLine} />
             <SkeletonBox style={[styles.questionSkeletonLine, styles.questionSkeletonShort]} />
             <Text selectable style={styles.loadingText}>
-              Generating your question...
-            </Text>
-            <Text selectable style={styles.loadingSubText}>
-              Matching the question to your selected category.
+              Preparing your question...
             </Text>
           </View>
         ) : !question ? (
@@ -623,17 +619,18 @@ export default function MockInterviewScreen({ navigation, route }) {
         )}
       </View>
 
-      <CircularTimer secondsLeft={secondsLeft} />
-
       <View style={styles.answerSection}>
-        <Text selectable style={styles.sectionTitle}>
-          Your Answer
-        </Text>
+        <View style={styles.cardHeaderRow}>
+          <AppIcon color={COLORS.accent} name="edit" size={18} />
+          <Text selectable style={styles.sectionTitle}>
+            Your answer
+          </Text>
+        </View>
         <TextInput
           editable={!isCheckingUsage && !isQuestionLoading && !isEvaluating && !feedback}
           multiline
           onChangeText={setAnswer}
-          placeholder="Type your answer here..."
+          placeholder="Answer naturally. Focus on one clear example and your impact."
           placeholderTextColor={COLORS.muted}
           style={styles.answerInput}
           textAlignVertical="top"
@@ -709,9 +706,12 @@ export default function MockInterviewScreen({ navigation, route }) {
               What worked
             </Text>
             {(feedback.strengths || []).map((strength) => (
-              <Text key={strength} selectable style={styles.strengthText}>
-                {"\u2022"} {strength}
-              </Text>
+              <View key={strength} style={styles.feedbackBullet}>
+                <AppIcon color={COLORS.green} name="check" size={16} />
+                <Text selectable style={styles.feedbackBulletText}>
+                  {strength}
+                </Text>
+              </View>
             ))}
           </View>
 
@@ -720,9 +720,12 @@ export default function MockInterviewScreen({ navigation, route }) {
               What to improve
             </Text>
             {(feedback.improvements || []).map((improvement) => (
-              <Text key={improvement} selectable style={styles.improvementText}>
-                {"\u2022"} {improvement}
-              </Text>
+              <View key={improvement} style={styles.feedbackBullet}>
+                <AppIcon color={COLORS.warning} name="target" size={16} />
+                <Text selectable style={styles.feedbackBulletText}>
+                  {improvement}
+                </Text>
+              </View>
             ))}
           </View>
 
@@ -771,17 +774,23 @@ export default function MockInterviewScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   answerInput: {
-    backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
-    borderRadius: 8,
+    backgroundColor: COLORS.cardAlt,
+    borderColor: COLORS.border,
+    borderRadius: 12,
     borderWidth: 1,
     color: COLORS.text,
     fontSize: 16,
-    minHeight: 150,
+    lineHeight: 23,
+    minHeight: 132,
     padding: 16
   },
   answerSection: {
-    gap: 12
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+    padding: 16
   },
   averageScoreBox: {
     alignItems: "center",
@@ -805,6 +814,8 @@ const styles = StyleSheet.create({
     lineHeight: 52
   },
   buttonRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12
   },
   categoryPill: {
@@ -823,8 +834,8 @@ const styles = StyleSheet.create({
   collapsibleButton: {
     alignItems: "center",
     backgroundColor: "#111111",
-    borderColor: "#2A2A2A",
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    borderRadius: 12,
     borderWidth: 1,
     justifyContent: "center",
     minHeight: 48,
@@ -840,7 +851,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   content: {
-    gap: 22,
+    gap: 16,
     padding: 20,
     paddingBottom: 36
   },
@@ -894,7 +905,7 @@ const styles = StyleSheet.create({
   feedbackCard: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.accent,
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
     gap: 16,
     padding: 18
@@ -906,7 +917,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   feedbackSection: {
-    gap: 8
+    backgroundColor: COLORS.cardAlt,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+    padding: 14
   },
   feedbackSectionTitle: {
     color: COLORS.text,
@@ -930,8 +946,8 @@ const styles = StyleSheet.create({
   },
   idealAnswerBox: {
     backgroundColor: "#111111",
-    borderColor: "#2A2A2A",
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    borderRadius: 12,
     borderWidth: 1,
     gap: 8,
     padding: 14
@@ -946,19 +962,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 23
   },
-  improvementText: {
-    color: COLORS.yellow,
+  feedbackBullet: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 8
+  },
+  feedbackBulletText: {
+    color: COLORS.text,
+    flex: 1,
     fontSize: 15,
     lineHeight: 22
   },
   loadingBox: {
-    alignItems: "center",
-    gap: 14
+    alignSelf: "stretch",
+    gap: 12
   },
   loadingText: {
     color: COLORS.muted,
     fontSize: 15,
-    fontWeight: "800"
+    fontWeight: "800",
+    marginTop: 2
   },
   loadingSubText: {
     color: COLORS.muted,
@@ -987,9 +1010,11 @@ const styles = StyleSheet.create({
   primaryButton: {
     alignItems: "center",
     backgroundColor: COLORS.accent,
-    borderRadius: 8,
+    borderRadius: 12,
+    flex: 1,
     justifyContent: "center",
     minHeight: 56,
+    minWidth: 160,
     paddingHorizontal: 18
   },
   primaryButtonText: {
@@ -998,40 +1023,36 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   questionCard: {
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    borderRadius: 16,
     borderWidth: 1,
-    gap: 16,
-    justifyContent: "center",
-    minHeight: 210,
-    padding: 24
+    gap: 14,
+    justifyContent: "flex-start",
+    minHeight: 150,
+    padding: 18
   },
   questionLabel: {
     color: COLORS.accent,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "900",
     textTransform: "uppercase"
   },
   questionText: {
     color: COLORS.text,
-    fontSize: 26,
+    fontSize: 19,
     fontWeight: "900",
     letterSpacing: 0,
-    lineHeight: 34,
-    textAlign: "center"
+    lineHeight: 28,
+    textAlign: "left"
   },
   questionSkeletonLine: {
-    height: 24,
-    width: "86%"
+    height: 16,
+    width: "100%"
   },
   questionSkeletonShort: {
-    width: "62%"
-  },
-  questionSkeletonTitle: {
-    height: 16,
-    width: 140
+    width: "70%"
   },
   scoreText: {
     color: COLORS.accent,
@@ -1059,11 +1080,13 @@ const styles = StyleSheet.create({
   secondaryButton: {
     alignItems: "center",
     backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    borderRadius: 12,
     borderWidth: 1,
+    flex: 1,
     justifyContent: "center",
     minHeight: 56,
+    minWidth: 130,
     paddingHorizontal: 18
   },
   secondaryButtonText: {
@@ -1152,15 +1175,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "900"
   },
-  strengthText: {
-    color: COLORS.green,
-    fontSize: 15,
-    lineHeight: 22
-  },
   summaryCard: {
     backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    borderRadius: 18,
     borderWidth: 1,
     gap: 18,
     padding: 22
@@ -1205,8 +1223,10 @@ const styles = StyleSheet.create({
   },
   timerLabel: {
     color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "800"
+    fontSize: 9,
+    fontWeight: "900",
+    lineHeight: 11,
+    textTransform: "uppercase"
   },
   timerCenter: {
     alignItems: "center",
@@ -1216,33 +1236,32 @@ const styles = StyleSheet.create({
   },
   timerRingWrap: {
     alignItems: "center",
-    alignSelf: "center",
     backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
+    borderColor: COLORS.border,
     borderRadius: 999,
     borderWidth: 1,
-    height: 166,
+    height: 70,
     justifyContent: "center",
-    width: 166
+    width: 70
   },
   timerSvg: {
     transform: [{ rotate: "0deg" }]
   },
   timerText: {
-    fontSize: 34,
+    fontSize: 16,
     fontVariant: ["tabular-nums"],
     fontWeight: "900",
-    lineHeight: 42
+    lineHeight: 19
   },
   topBackButton: {
     alignItems: "center",
     backgroundColor: COLORS.card,
-    borderColor: "#2A2A2A",
+    borderColor: COLORS.border,
     borderRadius: 999,
     borderWidth: 1,
+    height: 42,
     justifyContent: "center",
-    minHeight: 42,
-    paddingHorizontal: 14
+    width: 42
   },
   topBackButtonText: {
     color: COLORS.text,
@@ -1252,9 +1271,18 @@ const styles = StyleSheet.create({
   topBar: {
     alignItems: "center",
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 12,
     justifyContent: "space-between",
     paddingTop: 8
+  },
+  topMeta: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0
+  },
+  cardHeaderRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8
   }
 });
