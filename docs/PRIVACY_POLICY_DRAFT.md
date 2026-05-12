@@ -2,19 +2,20 @@
 
 This is a draft and should be reviewed by a legal professional before launch.
 
-TODO before launch: replace the support email placeholder with the final monitored IntervueAI support email, and publish this policy at the final Privacy Policy URL used by the app and store listing.
+TODO before launch: publish this policy at the final Privacy Policy URL used by the app and store listing.
 
 ## Data We Collect
 
 IntervueAI may collect the following data when you use the app:
 
-- Account information, such as name, email address, job role, experience level, and profile preferences.
+- Account information, such as name, email address, contact information if provided, job role, experience level, and profile preferences.
 - Firebase authentication data used to create, verify, and manage your account.
 - Resume text or uploaded resume files that you provide for resume analysis.
 - Interview questions, answers, evaluation results, scores, and practice history.
 - App usage events, such as feature usage, session activity, and usage-limit events.
 - Crash and error reports if error tracking is configured.
 - Subscription status and payment verification information from Razorpay.
+- Newsletter or website inquiry details if these features are added later.
 
 Users should not upload highly sensitive documents unless necessary for resume analysis.
 
@@ -30,6 +31,7 @@ IntervueAI may use collected data to:
 - Enforce free-tier usage limits and prevent abuse.
 - Manage subscription status and premium access.
 - Provide account, support, and safety functionality.
+- Process payment verification, provide subscription updates, respond to inquiries, and improve the IntervueAI user experience.
 
 ## Third-Party Services
 
@@ -42,6 +44,10 @@ IntervueAI may use third-party services to operate the app:
 - Analytics provider if configured, for safe product usage events.
 
 AI calls are routed through the IntervueAI backend. API keys are not stored in the mobile app.
+
+## Cookies
+
+The IntervueAI website may use cookies or similar technologies to improve browsing experience, understand traffic, and support basic website functionality. Users can manage or disable cookies through browser settings.
 
 ## Data Retention
 
@@ -67,6 +73,8 @@ IntervueAI is designed so privileged AI provider calls go through the backend in
 
 Resume text and interview answers should not be logged intentionally. Access controls, Firebase security rules, backend authentication, rate limiting, and secure environment variable handling should be reviewed before production launch.
 
+IntervueAI takes reasonable online and offline security measures to protect personal data against unauthorized access, misuse, or disclosure.
+
 ## Children's Privacy
 
 IntervueAI is intended for job seekers and is not directed to children. Users who are not old enough to use online services in their location should not use the app without appropriate permission from a parent or guardian.
@@ -76,10 +84,17 @@ IntervueAI is intended for job seekers and is not directed to children. Users wh
 For privacy questions, support requests, or data deletion requests, contact:
 
 ```text
-support@example.com
+kishan@kishan.codes
 ```
 
-Replace this placeholder with the official IntervueAI support email before launch.
+This is the official IntervueAI support email for user and payment-related queries.
+
+Business/KYC fields for Razorpay review:
+
+- Managed by: to be updated as per PAN/KYC name.
+- Address: to be updated before live payment activation.
+- Contact number: to be updated before live payment activation.
+- Email: kishan@kishan.codes.
 
 ## Changes to This Policy
 

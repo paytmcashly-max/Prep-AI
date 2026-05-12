@@ -91,8 +91,8 @@ Copy rules:
 
 ## Support Email
 
-- Placeholder config: `EXPO_PUBLIC_SUPPORT_EMAIL=support@example.com`
-- [ ] Final support email ready
+- Config: `EXPO_PUBLIC_SUPPORT_EMAIL=kishan@kishan.codes`
+- [x] Final support email ready
 - [ ] Support inbox is monitored
 - [ ] Support email matches app store metadata
 - [ ] Support email matches legal documents

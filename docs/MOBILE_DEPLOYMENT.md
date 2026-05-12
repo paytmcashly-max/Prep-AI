@@ -18,9 +18,9 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 EXPO_PUBLIC_FIREBASE_APP_ID=
 EXPO_PUBLIC_SENTRY_DSN=
 EXPO_PUBLIC_ANALYTICS_ENABLED=false
-EXPO_PUBLIC_PRIVACY_POLICY_URL=https://example.com/prepai/privacy
-EXPO_PUBLIC_TERMS_URL=https://example.com/prepai/terms
-EXPO_PUBLIC_SUPPORT_EMAIL=support@example.com
+EXPO_PUBLIC_PRIVACY_POLICY_URL=https://intervueai.vercel.app/privacy
+EXPO_PUBLIC_TERMS_URL=https://intervueai.vercel.app/terms
+EXPO_PUBLIC_SUPPORT_EMAIL=kishan@kishan.codes
 ```
 
 Important rules:
@@ -74,7 +74,7 @@ The security audit helps catch accidental mobile references to server-only secre
 - If Razorpay backend env is missing, the paywall should show that premium payments are unavailable in the beta build.
 - Confirm Razorpay webhook verification is configured before relying on automatic premium activation.
 - Confirm backend subscription documents use `verificationStatus: "server_verified"` before premium quota bypass.
-- Confirm Privacy Policy URL, Terms URL, and support email placeholders are replaced with final public values before store submission.
+- Confirm Privacy Policy URL, Terms URL, and support email are correct before store submission.
 - Confirm Sentry and analytics settings do not capture resume text, user answers, Firebase tokens, Authorization headers, or API keys.
 
 ## External Beta Without Billing
@@ -88,6 +88,28 @@ External beta APKs can be shared before purchases are enabled. In that mode:
 
 When payments are ready, configure `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`,
 `RAZORPAY_WEBHOOK_SECRET`, plan amounts, and webhook URL on the backend.
+
+## Public Website For Razorpay
+
+The IntervueAI public landing website lives in `/web` and is deployed at:
+
+```text
+https://intervueai.vercel.app
+```
+
+Deploy it as a separate Vercel project with:
+
+- Root directory: `web`
+- Build command: `npm run build`
+- Output directory: default/empty for Next.js
+
+Submit the deployed Vercel URL to Razorpay as the app/website link. Do not put
+Razorpay secrets in the website or the Expo mobile app. The backend webhook URL
+remains:
+
+```text
+https://YOUR_BACKEND_DOMAIN/api/payments/razorpay/webhook
+```
 
 ## OTA Updates
 

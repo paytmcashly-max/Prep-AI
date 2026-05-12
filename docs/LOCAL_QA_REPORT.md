@@ -179,7 +179,7 @@ Preview APK real-device smoke update: May 9, 2026
 - Verify tab screens do not show duplicate top titles and content remains visible on small Android screens.
 - Deploy backend to a public URL.
 - Build and test a new APK pointing at the public backend URL.
-- Replace final Privacy Policy, Terms, and support email placeholders before wider beta.
+- Privacy Policy and Terms are hosted on the IntervueAI website. Support email is `kishan@kishan.codes`.
 
 ## Beta Gate
 

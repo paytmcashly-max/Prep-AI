@@ -10,6 +10,7 @@ Razorpay secrets and never grants premium directly.
 - Bank account added and verified.
 - Business details completed.
 - App or website description added.
+- IntervueAI website deployed from `/web` and submitted as the public app/website link.
 - Pricing and refund rules documented.
 - App screenshots prepared.
 - Monitored support email ready.
@@ -23,6 +24,16 @@ exist:
 - Terms & Conditions URL.
 - Refund/Cancellation Policy URL.
 - Support email.
+
+The website source lives in `/web` and is deployed on Vercel:
+
+```text
+https://intervueai.vercel.app
+```
+
+Submit this deployed Vercel URL to Razorpay as the IntervueAI app/website link.
+The website includes pricing, privacy, terms, refund/cancellation, and contact
+sections for onboarding review.
 
 ## Backend Env Variables
 
