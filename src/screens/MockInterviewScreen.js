@@ -94,7 +94,7 @@ const getAverageScore = (scores) => {
 };
 
 const isInterviewUsageLimitError = (error) =>
-  error?.status === 429 ||
+  error?.status === 429 &&
   String(error?.message || "")
     .toLowerCase()
     .includes("free interview questions");

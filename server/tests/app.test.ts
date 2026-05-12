@@ -135,6 +135,18 @@ describe("backend app", () => {
     expect(response.body).toEqual({ error: "Authentication required." });
   });
 
+  it("POST /api/payments/razorpay/webhook rejects invalid signatures", async () => {
+    const response = await request(app)
+      .post("/api/payments/razorpay/webhook")
+      .set("x-razorpay-signature", "invalid-signature")
+      .send({
+        event: "payment_link.paid"
+      })
+      .expect(400);
+
+    expect(response.body).toEqual({ error: "Invalid webhook signature." });
+  });
+
   it("resume text validation rejects too-short content before analysis", async () => {
     const { normalizeResumeTextForAnalysis, ResumeTextValidationError } =
       await import("../src/services/resumeService.js");
@@ -216,6 +228,63 @@ describe("backend app", () => {
       source: "razorpay",
       verificationStatus: "server_verified"
     });
+  });
+
+  it("Razorpay reports payments unavailable when backend env is missing", async () => {
+    const { config } = await import("../src/config.js");
+    const { getRazorpayPaymentStatus } = await import("../src/services/razorpayService.js");
+    const originalConfig = {
+      RAZORPAY_KEY_ID: config.RAZORPAY_KEY_ID,
+      RAZORPAY_KEY_SECRET: config.RAZORPAY_KEY_SECRET,
+      RAZORPAY_PREMIUM_MONTHLY_AMOUNT: config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT,
+      RAZORPAY_PREMIUM_YEARLY_AMOUNT: config.RAZORPAY_PREMIUM_YEARLY_AMOUNT
+    };
+
+    config.RAZORPAY_KEY_ID = undefined;
+    config.RAZORPAY_KEY_SECRET = undefined;
+    config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT = undefined;
+    config.RAZORPAY_PREMIUM_YEARLY_AMOUNT = undefined;
+
+    try {
+      expect(getRazorpayPaymentStatus()).toMatchObject({
+        paymentAvailable: false,
+        plans: [],
+        provider: "razorpay"
+      });
+    } finally {
+      config.RAZORPAY_KEY_ID = originalConfig.RAZORPAY_KEY_ID;
+      config.RAZORPAY_KEY_SECRET = originalConfig.RAZORPAY_KEY_SECRET;
+      config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT = originalConfig.RAZORPAY_PREMIUM_MONTHLY_AMOUNT;
+      config.RAZORPAY_PREMIUM_YEARLY_AMOUNT = originalConfig.RAZORPAY_PREMIUM_YEARLY_AMOUNT;
+    }
+  });
+
+  it("Razorpay order creation fails safely when backend env is missing", async () => {
+    const { config } = await import("../src/config.js");
+    const { createRazorpayPaymentLink, RazorpayUnavailableError } =
+      await import("../src/services/razorpayService.js");
+    const originalConfig = {
+      RAZORPAY_KEY_ID: config.RAZORPAY_KEY_ID,
+      RAZORPAY_KEY_SECRET: config.RAZORPAY_KEY_SECRET,
+      RAZORPAY_PREMIUM_MONTHLY_AMOUNT: config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT
+    };
+
+    config.RAZORPAY_KEY_ID = undefined;
+    config.RAZORPAY_KEY_SECRET = undefined;
+    config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT = undefined;
+
+    try {
+      await expect(
+        createRazorpayPaymentLink({
+          plan: "monthly",
+          uid: "test-user"
+        })
+      ).rejects.toBeInstanceOf(RazorpayUnavailableError);
+    } finally {
+      config.RAZORPAY_KEY_ID = originalConfig.RAZORPAY_KEY_ID;
+      config.RAZORPAY_KEY_SECRET = originalConfig.RAZORPAY_KEY_SECRET;
+      config.RAZORPAY_PREMIUM_MONTHLY_AMOUNT = originalConfig.RAZORPAY_PREMIUM_MONTHLY_AMOUNT;
+    }
   });
 
   it("daily usage period resets at India midnight", async () => {

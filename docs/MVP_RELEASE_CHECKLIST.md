@@ -8,7 +8,7 @@ Use this checklist before preparing the IntervueAI MVP for store submission or p
 - [x] `GROQ_API_KEY` only used in backend/server env
 - [x] No OpenAI keys
 - [x] Firebase rules deny public read/write
-- [ ] Resume text and user answers are not logged
+- [x] Resume text and user answers are not logged by app/backend request diagnostics
 - [x] `npm run security:audit` passes
 
 ## Backend
@@ -50,6 +50,7 @@ Use this checklist before preparing the IntervueAI MVP for store submission or p
 - [x] Premium status defaults to false
 - [x] Mobile never grants premium directly
 - [x] Backend premium bypass requires `verificationStatus === "server_verified"`
+- [x] External beta can run with payments unavailable while free limits remain usable
 - [ ] Razorpay backend env configured
 - [ ] Razorpay webhook configured and verified
 - [ ] Monthly and yearly Razorpay payment links tested
@@ -83,6 +84,7 @@ CI note: GitHub Actions passed on merged `main` commit `89d01fe2b2086b0a994e6bf7
 - [ ] New APK built with public `EXPO_PUBLIC_API_BASE_URL`
 - [ ] Final legal/support URLs replaced before wider beta
 - [ ] Latest preview APK full manual QA completed against public backend
+- [ ] Razorpay backend env and webhook verification enabled if payments are required
 
 ## Before Launch, Run These Commands
 

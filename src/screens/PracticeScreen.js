@@ -74,9 +74,14 @@ export default function PracticeScreen({ navigation }) {
   const interviewQuota = usageStatus?.interview;
   const hasServerPremiumAccess =
     usageStatus?.isPremium === true || interviewQuota?.isPremium === true;
-  const hasPremiumAccess = isPremium || hasServerPremiumAccess;
+  const hasPremiumAccess = hasServerPremiumAccess;
+  const isLocalPremiumPendingServerSync =
+    isPremium &&
+    !hasServerPremiumAccess &&
+    interviewQuota &&
+    Number(interviewQuota.remaining || 0) <= 0;
   const isInterviewLimitReached =
-    !hasPremiumAccess && interviewQuota && Number(interviewQuota.remaining || 0) <= 0;
+    !isPremium && !hasPremiumAccess && interviewQuota && Number(interviewQuota.remaining || 0) <= 0;
 
   const loadUsageStatus = useCallback(async () => {
     try {
@@ -197,6 +202,24 @@ export default function PracticeScreen({ navigation }) {
           resetCountdown={limitCountdown}
           secondaryLabel="Back to Home"
           title="Daily free limit reached"
+        />
+      </Screen>
+    );
+  }
+
+  if (isLocalPremiumPendingServerSync) {
+    return (
+      <Screen>
+        <LimitCard
+          benefits={[]}
+          message="Premium is active on this device, but server access has not synced yet. Refresh your plan and try again."
+          onBack={() => navigation.navigate("Home")}
+          onUpgrade={() => {
+            useSubscriptionStore.getState().refreshSubscriptionStatus().finally(loadUsageStatus);
+          }}
+          primaryLabel="Refresh Plan"
+          secondaryLabel="Back to Home"
+          title="Premium sync pending"
         />
       </Screen>
     );

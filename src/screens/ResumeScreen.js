@@ -238,9 +238,11 @@ export default function ResumeScreen({ navigation }) {
   const analysisRequestInFlightRef = useRef(false);
   const resumeQuota = usageStatus?.resume;
   const hasServerPremiumAccess = usageStatus?.isPremium === true || resumeQuota?.isPremium === true;
-  const hasPremiumAccess = isPremium || hasServerPremiumAccess;
+  const hasPremiumAccess = hasServerPremiumAccess;
+  const isLocalPremiumPendingServerSync =
+    isPremium && !hasServerPremiumAccess && resumeQuota && Number(resumeQuota.remaining || 0) <= 0;
   const isServerResumeLimitReached =
-    !hasPremiumAccess && resumeQuota && Number(resumeQuota.remaining || 0) <= 0;
+    !isPremium && !hasPremiumAccess && resumeQuota && Number(resumeQuota.remaining || 0) <= 0;
   const isBlockedByResumeLimit =
     (isResumeLimitReached || isServerResumeLimitReached) && !hasPremiumAccess;
   const shouldShowAnalysisDetails = Boolean(
@@ -549,6 +551,16 @@ export default function ResumeScreen({ navigation }) {
           onUpgrade={() => navigation.navigate("Paywall")}
           resetCountdown={resumeResetCountdown}
           title="Free resume scan limit reached"
+        />
+      ) : isLocalPremiumPendingServerSync ? (
+        <FreeLimitCard
+          benefits={[]}
+          message="Premium is active on this device, but server access has not synced yet. Refresh your plan and try again."
+          onBack={loadResumeOverview}
+          onUpgrade={() => refreshSubscriptionStatus().finally(loadResumeOverview)}
+          primaryLabel="Refresh Plan"
+          secondaryLabel="Retry"
+          title="Premium sync pending"
         />
       ) : (
         <View style={styles.card}>

@@ -77,6 +77,18 @@ The security audit helps catch accidental mobile references to server-only secre
 - Confirm Privacy Policy URL, Terms URL, and support email placeholders are replaced with final public values before store submission.
 - Confirm Sentry and analytics settings do not capture resume text, user answers, Firebase tokens, Authorization headers, or API keys.
 
+## External Beta Without Billing
+
+External beta APKs can be shared before purchases are enabled. In that mode:
+
+- Do not put Razorpay secrets in Expo public env.
+- Leave payments unavailable until backend Razorpay env and webhook verification are ready.
+- The paywall should show that premium payments are not available in this beta build.
+- Free interview and resume limits should continue to work through the backend.
+
+When payments are ready, configure `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`,
+`RAZORPAY_WEBHOOK_SECRET`, plan amounts, and webhook URL on the backend.
+
 ## OTA Updates
 
 EAS Update can ship JS/UI-compatible bug fixes without asking users to install a new APK. Native dependency, Expo plugin, app config, permission, or runtime changes still require a new APK build.

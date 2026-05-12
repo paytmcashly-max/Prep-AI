@@ -72,13 +72,18 @@ const getConfiguredPlans = () =>
       plan: plan.plan
     }));
 
-export const getRazorpayPaymentStatus = () => ({
-  paymentAvailable: Boolean(
-    config.RAZORPAY_KEY_ID && config.RAZORPAY_KEY_SECRET && getConfiguredPlans().length
-  ),
-  plans: getConfiguredPlans(),
-  provider: "razorpay"
-});
+export const getRazorpayPaymentStatus = () => {
+  const plans = getConfiguredPlans();
+  const paymentAvailable = Boolean(
+    config.RAZORPAY_KEY_ID && config.RAZORPAY_KEY_SECRET && plans.length
+  );
+
+  return {
+    paymentAvailable,
+    plans: paymentAvailable ? plans : [],
+    provider: "razorpay"
+  };
+};
 
 const requireRazorpayConfig = () => {
   if (!config.RAZORPAY_KEY_ID || !config.RAZORPAY_KEY_SECRET) {
