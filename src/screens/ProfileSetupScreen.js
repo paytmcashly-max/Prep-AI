@@ -1,22 +1,18 @@
 import { useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
-} from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { doc, serverTimestamp, writeBatch } from "firebase/firestore";
 
 import HapticPressable from "../components/HapticPressable";
 import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
+import AppButton from "../components/ui/AppButton";
+import AppCard from "../components/ui/AppCard";
 import AppIcon from "../components/ui/AppIcon";
+import AppInput from "../components/ui/AppInput";
+import AppText from "../components/ui/AppText";
 import { getCurrentUser } from "../services/authService";
 import { firestore } from "../services/firebaseConfig";
 import { useUserStore } from "../store/userStore";
-import { COLORS } from "../theme";
+import { COLORS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
 
 const JOB_ROLES = [
   "Full Stack Developer",
@@ -174,7 +170,10 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
           onPress={() => navigation.goBack()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
         >
-          <Text style={styles.backButtonText}>Back</Text>
+          <AppIcon color={COLORS.text} name="back" size={18} />
+          <AppText selectable={false} variant="button">
+            Back
+          </AppText>
         </HapticPressable>
       ) : null}
 
@@ -182,29 +181,24 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
         <View style={styles.heroIcon}>
           <AppIcon color={COLORS.accent} name="target" size={34} />
         </View>
-        <Text selectable style={styles.eyebrow}>
+        <AppText tone="primary" variant="caption">
           Profile setup
-        </Text>
-        <Text selectable style={styles.title}>
-          Personalize your practice
-        </Text>
-        <Text selectable style={styles.subtitle}>
+        </AppText>
+        <AppText variant="screenTitle">Personalize your practice</AppText>
+        <AppText tone="muted" variant="body">
           Your role and experience help PrepAI generate better interview questions.
-        </Text>
+        </AppText>
       </View>
 
-      <View style={styles.card}>
+      <AppCard style={styles.card}>
         <View style={styles.field}>
-          <Text selectable style={styles.label}>
-            Full Name
-          </Text>
-          <TextInput
+          <AppInput
             autoCapitalize="words"
             autoComplete="name"
+            icon="user"
+            label="Full name"
             onChangeText={setFullName}
             placeholder="Enter your full name"
-            placeholderTextColor={COLORS.muted}
-            style={styles.input}
             value={fullName}
           />
         </View>
@@ -237,23 +231,11 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
             })}
           </View>
         </View>
-      </View>
+      </AppCard>
 
-      <HapticPressable
-        disabled={!canSubmit}
-        onPress={saveProfile}
-        style={({ pressed }) => [
-          styles.saveButton,
-          !canSubmit && styles.saveButtonDisabled,
-          pressed && canSubmit && styles.pressed
-        ]}
-      >
-        {isSaving ? (
-          <ActivityIndicator color={COLORS.text} />
-        ) : (
-          <Text style={styles.saveButtonText}>Save Profile</Text>
-        )}
-      </HapticPressable>
+      <AppButton disabled={!canSubmit} loading={isSaving} onPress={saveProfile} rightIcon="next">
+        Save profile
+      </AppButton>
     </KeyboardAwareScrollView>
   );
 }
@@ -262,26 +244,18 @@ const styles = StyleSheet.create({
   backButton: {
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "#111111",
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 42,
-    paddingHorizontal: 16
-  },
-  backButtonText: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "900"
-  },
-  card: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
-    gap: 22,
-    padding: 18
+    flexDirection: "row",
+    gap: SPACING.xs,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: SPACING.lg
+  },
+  card: {
+    gap: SPACING.xl
   },
   container: {
     backgroundColor: COLORS.background,
@@ -289,42 +263,26 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    gap: 24,
-    padding: 20,
+    gap: SPACING.xxl,
+    padding: SPACING.screen,
     paddingBottom: 36
   },
-  eyebrow: {
-    color: COLORS.accent,
-    fontSize: 14,
-    fontWeight: "900",
-    textTransform: "uppercase"
-  },
   field: {
-    gap: 10
+    gap: SPACING.sm
   },
   header: {
-    gap: 10,
+    gap: SPACING.sm,
     paddingTop: 8
   },
   heroIcon: {
     alignItems: "center",
-    backgroundColor: "rgba(108, 99, 255, 0.12)",
-    borderColor: "rgba(108, 99, 255, 0.3)",
-    borderRadius: 999,
+    backgroundColor: COLORS.primarySoft,
+    borderColor: "rgba(124, 109, 255, 0.35)",
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
     height: 64,
     justifyContent: "center",
     width: 64
-  },
-  input: {
-    backgroundColor: "#111111",
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    color: COLORS.text,
-    fontSize: 16,
-    minHeight: 56,
-    paddingHorizontal: 16
   },
   label: {
     color: COLORS.text,
@@ -348,9 +306,9 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   optionsPanel: {
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     overflow: "hidden"
   },
@@ -362,30 +320,13 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   pressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.99 }]
-  },
-  saveButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.accent,
-    borderRadius: 8,
-    justifyContent: "center",
-    minHeight: 58,
-    paddingHorizontal: 18
-  },
-  saveButtonDisabled: {
-    opacity: 0.45
-  },
-  saveButtonText: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "900"
+    ...PRESSED_STYLE
   },
   segmentButton: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",
@@ -411,9 +352,9 @@ const styles = StyleSheet.create({
   },
   selectButton: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     flexDirection: "row",
     gap: 12,
@@ -426,17 +367,5 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: "800"
-  },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 16,
-    lineHeight: 24
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 32,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 39
   }
 });

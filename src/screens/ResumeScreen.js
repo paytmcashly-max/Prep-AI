@@ -238,10 +238,11 @@ export default function ResumeScreen({ navigation }) {
   const analysisRequestInFlightRef = useRef(false);
   const resumeQuota = usageStatus?.resume;
   const hasServerPremiumAccess = usageStatus?.isPremium === true || resumeQuota?.isPremium === true;
+  const hasPremiumAccess = isPremium || hasServerPremiumAccess;
   const isServerResumeLimitReached =
-    !hasServerPremiumAccess && resumeQuota && Number(resumeQuota.remaining || 0) <= 0;
+    !hasPremiumAccess && resumeQuota && Number(resumeQuota.remaining || 0) <= 0;
   const isBlockedByResumeLimit =
-    (isResumeLimitReached || isServerResumeLimitReached) && !hasServerPremiumAccess;
+    (isResumeLimitReached || isServerResumeLimitReached) && !hasPremiumAccess;
   const shouldShowAnalysisDetails = Boolean(
     analysis && (!isBlockedByResumeLimit || showPreviousAnalysisDetails)
   );
@@ -334,6 +335,7 @@ export default function ResumeScreen({ navigation }) {
   useEffect(() => {
     if (isPremium) {
       setIsResumeLimitReached(false);
+      setResumeResetCountdown("--:--:--");
     }
   }, [isPremium]);
 
@@ -343,6 +345,14 @@ export default function ResumeScreen({ navigation }) {
     }
 
     const updateCountdown = () => {
+      const resetTime = new Date(resumeQuota?.resetAt || 0).getTime();
+
+      if (Number.isFinite(resetTime) && resetTime <= Date.now()) {
+        setResumeResetCountdown("00:00:00");
+        loadResumeOverview();
+        return;
+      }
+
       setResumeResetCountdown(getCountdownUntil(resumeQuota?.resetAt));
     };
 
@@ -350,7 +360,7 @@ export default function ResumeScreen({ navigation }) {
     const timer = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(timer);
-  }, [isBlockedByResumeLimit, resumeQuota?.resetAt]);
+  }, [isBlockedByResumeLimit, loadResumeOverview, resumeQuota?.resetAt]);
 
   const pickPdf = async () => {
     try {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import HapticPressable from "../components/HapticPressable";
 import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
@@ -101,10 +101,6 @@ export default function LoginScreen({ navigation }) {
             </AppText>
           </HapticPressable>
         </View>
-
-        {isSubmitting ? (
-          <ActivityIndicator color={COLORS.primary} style={styles.hiddenSpinner} />
-        ) : null}
       </View>
     </KeyboardAwareScrollView>
   );
@@ -147,10 +143,6 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: SPACING.sm
-  },
-  hiddenSpinner: {
-    height: 0,
-    opacity: 0
   },
   shell: {
     alignSelf: "center",

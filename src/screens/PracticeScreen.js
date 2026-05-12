@@ -74,8 +74,9 @@ export default function PracticeScreen({ navigation }) {
   const interviewQuota = usageStatus?.interview;
   const hasServerPremiumAccess =
     usageStatus?.isPremium === true || interviewQuota?.isPremium === true;
+  const hasPremiumAccess = isPremium || hasServerPremiumAccess;
   const isInterviewLimitReached =
-    !hasServerPremiumAccess && interviewQuota && Number(interviewQuota.remaining || 0) <= 0;
+    !hasPremiumAccess && interviewQuota && Number(interviewQuota.remaining || 0) <= 0;
 
   const loadUsageStatus = useCallback(async () => {
     try {
@@ -92,20 +93,41 @@ export default function PracticeScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       setStartingCategory("");
+      useSubscriptionStore
+        .getState()
+        .refreshSubscriptionStatus()
+        .catch(() => null);
       loadUsageStatus();
     }, [loadUsageStatus])
   );
+
+  useEffect(() => {
+    if (isPremium) {
+      setLimitCountdown("--:--:--");
+    }
+  }, [isPremium]);
 
   useEffect(() => {
     if (!isInterviewLimitReached) {
       return undefined;
     }
 
-    const updateCountdown = () => setLimitCountdown(getCountdownUntil(interviewQuota?.resetAt));
+    const updateCountdown = () => {
+      const resetTime = new Date(interviewQuota?.resetAt || 0).getTime();
+
+      if (Number.isFinite(resetTime) && resetTime <= Date.now()) {
+        setLimitCountdown("00:00:00");
+        loadUsageStatus();
+        return;
+      }
+
+      setLimitCountdown(getCountdownUntil(interviewQuota?.resetAt));
+    };
+
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
-  }, [interviewQuota?.resetAt, isInterviewLimitReached]);
+  }, [interviewQuota?.resetAt, isInterviewLimitReached, loadUsageStatus]);
 
   const startCategory = (category) => {
     if (isInterviewLimitReached) {
@@ -116,7 +138,7 @@ export default function PracticeScreen({ navigation }) {
     navigation.navigate("MockInterview", {
       category,
       difficulty: selectedDifficulty,
-      questionCount: hasServerPremiumAccess ? selectedQuestionCount : FREE_QUESTION_COUNT
+      questionCount: hasPremiumAccess ? selectedQuestionCount : FREE_QUESTION_COUNT
     });
     setTimeout(() => setStartingCategory(""), 0);
   };
@@ -157,7 +179,7 @@ export default function PracticeScreen({ navigation }) {
         <LimitCard
           benefits={LIMIT_BENEFITS}
           countdownLabel="Available again"
-          message="You’ve used today’s free interview questions. Upgrade for unlimited practice, or come back tomorrow."
+          message="You've used today's free interview questions. Upgrade for unlimited practice, or come back tomorrow."
           onBack={() => navigation.navigate("Home")}
           onUpgrade={() => navigation.navigate("Paywall")}
           resetCountdown={limitCountdown}
@@ -214,7 +236,7 @@ export default function PracticeScreen({ navigation }) {
         <SectionHeader
           title="Session length"
           subtitle={
-            hasServerPremiumAccess
+            hasPremiumAccess
               ? "Choose the number of questions for this session."
               : "Free practice includes 5 questions."
           }
@@ -222,7 +244,7 @@ export default function PracticeScreen({ navigation }) {
         <View style={styles.countRow}>
           {PREMIUM_QUESTION_COUNT_OPTIONS.map((count) => {
             const isSelected = selectedQuestionCount === count;
-            const isLocked = !hasServerPremiumAccess && count !== FREE_QUESTION_COUNT;
+            const isLocked = !hasPremiumAccess && count !== FREE_QUESTION_COUNT;
 
             return (
               <HapticPressable
@@ -252,8 +274,8 @@ export default function PracticeScreen({ navigation }) {
       <View style={styles.section}>
         <SectionHeader
           title="Interview category"
-          subtitle={`${selectedDifficulty} · ${
-            hasServerPremiumAccess ? selectedQuestionCount : FREE_QUESTION_COUNT
+          subtitle={`${selectedDifficulty} - ${
+            hasPremiumAccess ? selectedQuestionCount : FREE_QUESTION_COUNT
           } questions`}
         />
         <View style={styles.categoryGrid}>
