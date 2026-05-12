@@ -337,8 +337,8 @@ export default function ProfileScreen({ navigation }) {
               ) : (
                 <Switch
                   onValueChange={toggleDailyReminder}
-                  thumbColor={isReminderEnabled ? COLORS.text : "#F4F4F5"}
-                  trackColor={{ false: "#3F3F46", true: COLORS.accent }}
+                  thumbColor={isReminderEnabled ? COLORS.text : COLORS.textSoft}
+                  trackColor={{ false: COLORS.disabled, true: COLORS.primary }}
                   value={isReminderEnabled}
                 />
               )
@@ -366,7 +366,7 @@ export default function ProfileScreen({ navigation }) {
           Account
         </Text>
         <View style={styles.sectionCard}>
-          <SettingRow icon="star" label="Rate the App" onPress={rateApp} />
+          <SettingRow icon="badge" label="Rate the App" onPress={rateApp} />
           <SettingRow icon="share" label="Share App" onPress={shareApp} />
           <SettingRow
             destructive

@@ -771,10 +771,10 @@ const styles = StyleSheet.create({
     fontWeight: "800"
   },
   atsScore: {
-    fontSize: 54,
+    fontSize: 46,
     fontVariant: ["tabular-nums"],
     fontWeight: "900",
-    lineHeight: 62
+    lineHeight: 54
   },
   atsToneText: {
     color: COLORS.muted,
@@ -1151,10 +1151,10 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.text,
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "900",
     letterSpacing: 0,
-    lineHeight: 39
+    lineHeight: 35
   },
   uploadButton: {
     alignItems: "center",

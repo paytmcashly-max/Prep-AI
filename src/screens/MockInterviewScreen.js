@@ -582,7 +582,7 @@ export default function MockInterviewScreen({ navigation, route }) {
 
       <View style={styles.questionCard}>
         <View style={styles.cardHeaderRow}>
-          <AppIcon color={COLORS.accent} name="practice" size={18} />
+          <AppIcon color={COLORS.accent} name="message" size={18} />
           <Text selectable style={styles.questionLabel}>
             Interview prompt
           </Text>
@@ -621,7 +621,7 @@ export default function MockInterviewScreen({ navigation, route }) {
 
       <View style={styles.answerSection}>
         <View style={styles.cardHeaderRow}>
-          <AppIcon color={COLORS.accent} name="edit" size={18} />
+          <AppIcon color={COLORS.accent} name="send" size={18} />
           <Text selectable style={styles.sectionTitle}>
             Your answer
           </Text>
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
   },
   averageScoreText: {
     color: COLORS.accent,
-    fontSize: 44,
+    fontSize: 38,
     fontVariant: ["tabular-nums"],
     fontWeight: "900",
     lineHeight: 52
@@ -1206,9 +1206,9 @@ const styles = StyleSheet.create({
   },
   summaryTitle: {
     color: COLORS.text,
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: "900",
-    lineHeight: 38,
+    lineHeight: 35,
     textAlign: "center"
   },
   timerCard: {

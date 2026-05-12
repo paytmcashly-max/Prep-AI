@@ -28,10 +28,10 @@ export const COLORS = {
   cardPressed: "#1A2231",
   border: "rgba(255, 255, 255, 0.1)",
   borderStrong: "rgba(255, 255, 255, 0.16)",
-  text: "#F8FAFC",
-  textSoft: "#D7DEEA",
-  muted: "#98A2B3",
-  mutedStrong: "#B7C0CF",
+  text: "#EEF3FF",
+  textSoft: "#D4DCEC",
+  muted: "#A8B3C7",
+  mutedStrong: "#C0C9D8",
   primary: "#7C6DFF",
   accent: "#7C6DFF",
   primaryDark: "#5A4CF0",
@@ -57,7 +57,7 @@ export const COLORS = {
 export const DARK_COLORS = {
   ...COLORS,
   accent: COLORS.primary,
-  dangerSoft: "#FDA4AF",
+  dangerSoft: COLORS.dangerSoft,
   green: COLORS.success,
   red: COLORS.danger,
   yellow: COLORS.warning
@@ -136,24 +136,24 @@ export const RADIUS = {
 export const TYPOGRAPHY = {
   display: {
     fontFamily: FONT_FAMILY.black,
-    fontSize: 38,
+    fontSize: 34,
     fontWeight: "900",
     letterSpacing: -0.4,
-    lineHeight: 45
+    lineHeight: 41
   },
   heroTitle: {
     fontFamily: FONT_FAMILY.black,
-    fontSize: 34,
+    fontSize: 31,
     fontWeight: "900",
     letterSpacing: -0.3,
-    lineHeight: 41
+    lineHeight: 38
   },
   screenTitle: {
     fontFamily: FONT_FAMILY.extraBold,
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: "800",
     letterSpacing: -0.2,
-    lineHeight: 38
+    lineHeight: 35
   },
   sectionTitle: {
     fontFamily: FONT_FAMILY.bold,
@@ -200,10 +200,10 @@ export const TYPOGRAPHY = {
   },
   statNumber: {
     fontFamily: FONT_FAMILY.black,
-    fontSize: 34,
+    fontSize: 30,
     fontVariant: ["tabular-nums"],
     fontWeight: "900",
-    lineHeight: 40
+    lineHeight: 36
   },
   monoNumber: {
     fontFamily: FONT_FAMILY.bold,

@@ -17,25 +17,25 @@ import { COLORS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
 
 const PRACTICE_CATEGORIES = [
   {
-    icon: "user",
+    icon: "message",
     routeCategory: "HR",
     subtitle: "Intro, motivation, strengths, and career story.",
     title: "HR Round"
   },
   {
-    icon: "target",
+    icon: "technical",
     routeCategory: "Technical",
     subtitle: "Role-based questions with concise technical answers.",
     title: "Technical Round"
   },
   {
-    icon: "star",
+    icon: "badge",
     routeCategory: "Behavioral",
     subtitle: "Structure examples with context, action, and result.",
     title: "Behavioral Round"
   },
   {
-    icon: "settings",
+    icon: "company",
     routeCategory: "Company",
     subtitle: "Prepare role-fit and company-specific responses.",
     title: "Company Round"

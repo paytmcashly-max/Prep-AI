@@ -702,10 +702,10 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.text,
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "900",
     letterSpacing: 0,
-    lineHeight: 39
+    lineHeight: 35
   },
   yAxis: {
     height: 170,

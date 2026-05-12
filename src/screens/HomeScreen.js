@@ -179,7 +179,7 @@ export default function HomeScreen({ navigation, route }) {
             </AppText>
           </View>
           <View style={styles.heroIcon}>
-            <AppIcon color={COLORS.text} name="sparkles" size={28} />
+            <AppIcon color={COLORS.text} name="message" size={28} />
           </View>
         </View>
         <AppButton
@@ -193,8 +193,8 @@ export default function HomeScreen({ navigation, route }) {
       </AppCard>
 
       <View style={styles.statsRow}>
-        <StatCard icon="timer" label="Streak" tone="warning" value={`${streak}d`} />
-        <StatCard icon="chart" label="Average" value={averageScore} />
+        <StatCard icon="calendar" label="Streak" tone="warning" value={`${streak}d`} />
+        <StatCard icon="gauge" label="Average" value={averageScore} />
         <StatCard icon="practice" label="Sessions" tone="success" value={String(sessions.length)} />
       </View>
 
@@ -250,7 +250,7 @@ export default function HomeScreen({ navigation, route }) {
               >
                 <View style={styles.sessionTop}>
                   <View style={styles.sessionIcon}>
-                    <AppIcon color={COLORS.primary} name="practice" size={19} />
+                    <AppIcon color={COLORS.primary} name="message" size={19} />
                   </View>
                   <View style={styles.sessionCopy}>
                     <AppText numberOfLines={1} variant="cardTitle">

@@ -7,7 +7,7 @@ import PracticeScreen from "../screens/PracticeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import ProgressScreen from "../screens/ProgressScreen";
 import ResumeScreen from "../screens/ResumeScreen";
-import { COLORS, ICON_SIZES, RADIUS } from "../theme";
+import { COLORS, ICON_SIZES, RADIUS, SPACING } from "../theme";
 
 const Tab = createBottomTabNavigator();
 
@@ -30,7 +30,7 @@ export default function TabNavigator() {
       }}
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveBackgroundColor: COLORS.primarySoft,
+        tabBarActiveBackgroundColor: "rgba(124, 109, 255, 0.14)",
         tabBarActiveTintColor: COLORS.text,
         tabBarHideOnKeyboard: true,
         tabBarInactiveBackgroundColor: "transparent",
@@ -39,26 +39,36 @@ export default function TabNavigator() {
           <AppIcon
             color={focused ? COLORS.primary : color}
             name={TAB_ICONS[route.name] || "info"}
-            size={Math.min(size || ICON_SIZES.tab, 24)}
-            strokeWidth={focused ? 2.7 : 2.2}
+            size={Math.min(size || ICON_SIZES.tab, focused ? 24 : 23)}
+            strokeWidth={focused ? 2.55 : 2.15}
           />
         ),
+        tabBarIconStyle: {
+          marginTop: 3
+        },
         tabBarItemStyle: {
-          borderRadius: RADIUS.md,
-          minHeight: 52,
-          marginVertical: 6
+          borderRadius: RADIUS.lg,
+          marginHorizontal: 2,
+          marginVertical: 7,
+          minHeight: 54
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "700"
+          fontSize: 10.5,
+          fontWeight: "800",
+          lineHeight: 14,
+          paddingBottom: 2
         },
         tabBarStyle: {
-          backgroundColor: COLORS.surface,
+          backgroundColor: "rgba(13, 16, 24, 0.98)",
+          borderColor: COLORS.border,
+          borderRadius: RADIUS.xl,
           borderTopColor: COLORS.border,
-          height: 68,
-          paddingBottom: 8,
-          paddingHorizontal: 8,
-          paddingTop: 6
+          borderWidth: 1,
+          height: 78,
+          marginHorizontal: SPACING.md,
+          paddingBottom: 9,
+          paddingHorizontal: 7,
+          paddingTop: 7
         }
       })}
     >
