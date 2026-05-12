@@ -100,7 +100,12 @@ export const signUpWithEmail = async (name, email, password) => {
       },
       { merge: true }
     ).catch((error) => {
-      console.warn("Initial profile document could not be created.", error);
+      if (__DEV__) {
+        console.warn("Initial profile document could not be created.", {
+          errorCode: error?.code,
+          errorMessage: error?.message
+        });
+      }
     });
 
     return credential.user;

@@ -8,7 +8,7 @@ Use this checklist before preparing the PrepAI MVP for store submission or publi
 - [x] `GROQ_API_KEY` only used in backend/server env
 - [x] No OpenAI keys
 - [x] Firebase rules deny public read/write
-- [ ] Resume text and user answers are not logged
+- [x] Resume text and user answers are not logged by app/backend request diagnostics
 - [x] `npm run security:audit` passes
 
 ## Backend
@@ -56,6 +56,7 @@ Use this checklist before preparing the PrepAI MVP for store submission or publi
 - [ ] RevenueCat Test Store products attached to the `premium` entitlement and included in offerings
 - [ ] Release-style preview APKs and Google Play builds verified without RevenueCat Test Store API key
 - [ ] Server-side RevenueCat verification or webhook updates verified subscription status before backend premium quota bypass
+- [x] External beta can run with purchases unavailable while free limits remain usable
 
 ## Testing
 
@@ -84,6 +85,7 @@ CI note: GitHub Actions passed on merged `main` commit `89d01fe2b2086b0a994e6bf7
 - [ ] New APK built with public `EXPO_PUBLIC_API_BASE_URL`
 - [ ] Final legal/support URLs replaced before wider beta
 - [ ] Latest preview APK full manual QA completed against public backend
+- [ ] RevenueCat/Google Play Billing enabled through Play internal/closed testing if purchases are required
 
 ## Before Launch, Run These Commands
 

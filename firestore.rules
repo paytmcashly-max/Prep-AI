@@ -35,8 +35,11 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
+      // Historical client-side daily usage records are read-only.
+      // The backend `usageLimits` collection is now the quota source of truth.
       match /dailyUsage/{docId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow write: if false;
       }
     }
   }
