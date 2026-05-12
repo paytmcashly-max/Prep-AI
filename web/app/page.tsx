@@ -10,8 +10,7 @@ import {
   Smartphone,
   Sparkles,
   Target,
-  TimerReset,
-  Truck
+  TimerReset
 } from "lucide-react";
 
 const features = [
@@ -79,34 +78,6 @@ const plans = [
   }
 ];
 
-const policyLinks = [
-  {
-    href: "/terms",
-    title: "Terms & Conditions",
-    description: "User responsibilities, acceptable use, intellectual property, and governing law.",
-    icon: ShieldCheck
-  },
-  {
-    href: "/privacy",
-    title: "Privacy Policy",
-    description:
-      "Information we collect, how it is used, cookies, security, and third-party services.",
-    icon: FileText
-  },
-  {
-    href: "/refund",
-    title: "Refund & Cancellation Policy",
-    description: "Refund eligibility, cancellation rules, and expected processing timelines.",
-    icon: CreditCard
-  },
-  {
-    href: "/delivery",
-    title: "Digital Delivery / No Shipping",
-    description: "IntervueAI is a digital subscription. No physical product is shipped.",
-    icon: Truck
-  }
-];
-
 export default function Home() {
   return (
     <main className="page-shell">
@@ -121,8 +92,6 @@ export default function Home() {
             <a href="#about">About</a>
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
-            <a href="/terms">Terms</a>
-            <a href="/privacy">Privacy</a>
             <a href="#contact">Contact</a>
           </div>
 
@@ -355,35 +324,6 @@ export default function Home() {
                 The backend verifies payment and then enables premium access for the user account.
               </p>
             </article>
-          </div>
-        </div>
-      </section>
-
-      <section className="section" id="policies">
-        <div className="container">
-          <div className="section-heading center">
-            <h2>Policies and legal pages.</h2>
-            <p>
-              Terms, privacy, refunds, and digital delivery are available as separate pages for
-              users and payment review.
-            </p>
-          </div>
-
-          <div className="grid policy-grid">
-            {policyLinks.map((policy) => {
-              const Icon = policy.icon;
-
-              return (
-                <a className="policy-card policy-link" href={policy.href} key={policy.href}>
-                  <div className="icon-bubble compact-icon">
-                    <Icon size={20} />
-                  </div>
-                  <h3>{policy.title}</h3>
-                  <p>{policy.description}</p>
-                  <span>Read page</span>
-                </a>
-              );
-            })}
           </div>
         </div>
       </section>
