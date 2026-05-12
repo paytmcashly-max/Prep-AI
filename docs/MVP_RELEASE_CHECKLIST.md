@@ -78,7 +78,7 @@ CI note: GitHub Actions passed on merged `main` commit `89d01fe2b2086b0a994e6bf7
 - [x] Deployed IntervueAI website URL ready
 - [ ] App screenshots prepared
 - [x] Play Store listing draft prepared
-- [ ] Support email ready
+- [x] Support email ready: `kishan@kishan.codes`
 - [ ] Final Privacy Policy URL ready
 - [ ] Final Terms URL ready
 - [ ] Production backend deployed

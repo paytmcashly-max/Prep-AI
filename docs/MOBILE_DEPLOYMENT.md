@@ -20,7 +20,7 @@ EXPO_PUBLIC_SENTRY_DSN=
 EXPO_PUBLIC_ANALYTICS_ENABLED=false
 EXPO_PUBLIC_PRIVACY_POLICY_URL=https://example.com/prepai/privacy
 EXPO_PUBLIC_TERMS_URL=https://example.com/prepai/terms
-EXPO_PUBLIC_SUPPORT_EMAIL=support@example.com
+EXPO_PUBLIC_SUPPORT_EMAIL=kishan@kishan.codes
 ```
 
 Important rules:
@@ -74,7 +74,7 @@ The security audit helps catch accidental mobile references to server-only secre
 - If Razorpay backend env is missing, the paywall should show that premium payments are unavailable in the beta build.
 - Confirm Razorpay webhook verification is configured before relying on automatic premium activation.
 - Confirm backend subscription documents use `verificationStatus: "server_verified"` before premium quota bypass.
-- Confirm Privacy Policy URL, Terms URL, and support email placeholders are replaced with final public values before store submission.
+- Confirm Privacy Policy URL, Terms URL, and support email are correct before store submission.
 - Confirm Sentry and analytics settings do not capture resume text, user answers, Firebase tokens, Authorization headers, or API keys.
 
 ## External Beta Without Billing

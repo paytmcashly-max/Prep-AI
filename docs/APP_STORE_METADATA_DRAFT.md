@@ -1,6 +1,6 @@
 # App Store Metadata Draft
 
-Status note: this is public listing draft copy, not final store-ready metadata. Final support email, Privacy Policy URL, and Terms URL must be hosted and verified before submission.
+Status note: this is public listing draft copy, not final store-ready metadata. Privacy Policy URL and Terms URL must be hosted and verified before submission.
 
 ## App Name Ideas
 
@@ -69,17 +69,15 @@ IntervueAI is a preparation tool. It does not guarantee interviews, job offers, 
 
 Prepare smarter for your next interview with AI mock practice, answer feedback, resume analysis, and daily progress tracking.
 
-## Support Email Placeholder
+## Support Email
 
 ```text
-support@example.com
+kishan@kishan.codes
 ```
 
-Configured placeholder: `EXPO_PUBLIC_SUPPORT_EMAIL`
+Configured value: `EXPO_PUBLIC_SUPPORT_EMAIL`
 
-TODO: replace with the final monitored IntervueAI support email before launch.
-
-Replace with the official IntervueAI support email before launch.
+Use this monitored IntervueAI support email for user and payment-related queries.
 
 ## Privacy Policy URL Placeholder
 

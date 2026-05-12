@@ -68,6 +68,5 @@ https://intervueai.vercel.app
 ## Remaining Launch Tasks
 
 - Keep `/web` deployed on Vercel at `https://intervueai.vercel.app`.
-- Replace the mobile `app.json` support email placeholder after the final
-  monitored support email is available.
+- Support email configured as `kishan@kishan.codes`.
 - Submit the deployed Vercel URL to Razorpay as the IntervueAI website/app link.

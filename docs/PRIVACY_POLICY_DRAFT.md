@@ -2,7 +2,7 @@
 
 This is a draft and should be reviewed by a legal professional before launch.
 
-TODO before launch: replace the support email placeholder with the final monitored IntervueAI support email, and publish this policy at the final Privacy Policy URL used by the app and store listing.
+TODO before launch: publish this policy at the final Privacy Policy URL used by the app and store listing.
 
 ## Data We Collect
 
@@ -76,10 +76,10 @@ IntervueAI is intended for job seekers and is not directed to children. Users wh
 For privacy questions, support requests, or data deletion requests, contact:
 
 ```text
-support@example.com
+kishan@kishan.codes
 ```
 
-Replace this placeholder with the official IntervueAI support email before launch.
+This is the official IntervueAI support email for user and payment-related queries.
 
 ## Changes to This Policy
 

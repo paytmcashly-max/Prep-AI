@@ -2,7 +2,7 @@
 
 This is a draft and should be reviewed by a legal professional before launch.
 
-TODO before launch: replace the support email placeholder with the final monitored IntervueAI support email, and publish these terms at the final Terms of Service URL used by the app and store listing.
+TODO before launch: publish these terms at the final Terms of Service URL used by the app and store listing.
 
 ## Acceptance of Terms
 
@@ -99,7 +99,7 @@ Continued use of the app after changes means you accept the updated terms.
 For questions about these terms, contact:
 
 ```text
-support@example.com
+kishan@kishan.codes
 ```
 
-Replace this placeholder with the official IntervueAI support email before launch.
+This is the official IntervueAI support email for user and payment-related queries.

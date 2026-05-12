@@ -396,14 +396,14 @@ export default function Home() {
               </span>
               <h2>Need help with IntervueAI?</h2>
               <p>
-                For Razorpay live activation, a real monitored support email must be added here
-                before accepting live payments. We are not showing a dummy email address.
+                For payment, account, refund, or app support, contact the IntervueAI support team.
+                We use this inbox for user help and payment-related queries.
               </p>
             </div>
-            <div className="support-status">
+            <a className="support-status" href="mailto:kishan@kishan.codes">
               <Mail size={20} />
-              Support email pending before live payments.
-            </div>
+              kishan@kishan.codes
+            </a>
           </div>
         </div>
       </section>
