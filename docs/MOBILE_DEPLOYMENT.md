@@ -85,6 +85,18 @@ The security audit helps catch accidental mobile references to server-only secre
 - Confirm Privacy Policy URL, Terms URL, and support email placeholders are replaced with final public values before store submission.
 - Confirm Sentry and analytics settings do not capture resume text, user answers, Firebase tokens, Authorization headers, or API keys.
 
+## External Beta Without Billing
+
+External beta APKs can be shared before purchases are enabled. In that mode:
+
+- Do not include `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY` in a release-style preview APK.
+- Leave purchases unavailable until Google Play internal/closed testing and RevenueCat Android products are ready.
+- The paywall should show that premium purchases are not available in this beta build.
+- Free interview and resume limits should continue to work through the backend.
+- Do not add BharatPe, Razorpay, Cashfree, Stripe, PhonePe, or any external payment provider for in-app premium access.
+
+When purchases are ready, use `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`, attach products to the `premium` entitlement, include them in offerings, and verify purchase/restore through Google Play testing.
+
 ## OTA Updates
 
 EAS Update can ship JS/UI-compatible bug fixes without asking users to install a new APK. Native dependency, Expo plugin, app config, permission, or runtime changes still require a new APK build.

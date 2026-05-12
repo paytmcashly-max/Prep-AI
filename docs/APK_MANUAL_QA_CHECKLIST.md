@@ -55,6 +55,13 @@ These items were verified in the installed development build after the beta fixe
 | Resume flow             | Resume upload/analyze flow works                         | Pass      | Verified in dev-client real-device QA |
 | Home mock interview CTA | Home routes to Practice instead of starting HR directly  | Pass      | Verified after UX fix                 |
 
+## Senior-Dev Quality Pass Notes
+
+- Client writes to historical `users/{uid}/dailyUsage/{docId}` records are blocked; backend usage limits remain the quota source of truth.
+- Client-reported RevenueCat status is non-authoritative for backend quota bypass until server-side RevenueCat verification or webhooks are implemented.
+- External beta can proceed without purchases enabled if the paywall unavailable state is verified.
+- Legal/support placeholders and the public backend URL remain launch blockers before wider tester distribution.
+
 ## Interview Flow
 
 | Item                    | Expected Result                                                | Pass/Fail | Notes |

@@ -15,7 +15,7 @@ const DEFAULT_SUBSCRIPTION_STATUS = {
   activeEntitlements: [],
   isPremium: false,
   managementUrl: null,
-  source: "placeholder"
+  source: "not_configured"
 };
 
 const PREMIUM_FEATURE_SET = new Set(Object.values(PREMIUM_FEATURES));

@@ -15,6 +15,7 @@ import SignupScreen from "../screens/SignupScreen";
 import SplashScreen from "../screens/SplashScreen";
 import { useProgressStore } from "../store/progressStore";
 import { useUserStore } from "../store/userStore";
+import { COLORS } from "../theme";
 import TabNavigator from "./TabNavigator";
 
 const Stack = createNativeStackNavigator();
@@ -23,7 +24,7 @@ const screenOptions = {
   headerBackTitleVisible: false,
   headerShadowVisible: false,
   headerShown: false,
-  contentStyle: { backgroundColor: "#F8FAFC" }
+  contentStyle: { backgroundColor: COLORS.background }
 };
 
 function AuthStack({ initialRouteName = "Splash" }) {
