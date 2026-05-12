@@ -208,7 +208,7 @@ export default function ProfileScreen({ navigation }) {
 
   const openLegalUrl = async (title, url) => {
     if (isPlaceholderValue(url)) {
-      Alert.alert(title, `Placeholder URL:\n${url}`);
+      Alert.alert(title, "This link is not configured yet. Please check again later.");
       return;
     }
 
@@ -221,7 +221,7 @@ export default function ProfileScreen({ navigation }) {
 
   const contactSupport = async () => {
     if (isPlaceholderValue(SUPPORT_EMAIL)) {
-      Alert.alert("Support", `Placeholder email:\n${SUPPORT_EMAIL}`);
+      Alert.alert("Support", "Support email is not configured yet. Please check again later.");
       return;
     }
 
@@ -253,20 +253,30 @@ export default function ProfileScreen({ navigation }) {
       contentContainerStyle={styles.content}
     >
       <View style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <Text selectable style={styles.avatarText}>
-            {initials}
-          </Text>
+        <View style={styles.profileTopRow}>
+          <View style={styles.avatar}>
+            <Text selectable style={styles.avatarText}>
+              {initials}
+            </Text>
+          </View>
+          <View style={styles.profileText}>
+            <Text selectable numberOfLines={2} style={styles.name}>
+              {displayName}
+            </Text>
+            <Text selectable numberOfLines={1} style={styles.email}>
+              {email}
+            </Text>
+          </View>
+          <HapticPressable
+            onPress={editProfile}
+            style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}
+          >
+            <AppIcon color={COLORS.text} name="edit" size={17} />
+          </HapticPressable>
         </View>
-        <View style={styles.profileText}>
-          <Text selectable style={styles.name}>
-            {displayName}
-          </Text>
-          <Text selectable style={styles.email}>
-            {email}
-          </Text>
+        <View style={styles.profileMeta}>
           <View style={styles.rolePill}>
-            <Text selectable style={styles.roleText}>
+            <Text selectable numberOfLines={2} style={styles.roleText}>
               {profile.jobRole || "Job role not set"} -{" "}
               {profile.experienceLevel || "Experience not set"}
             </Text>
@@ -314,10 +324,9 @@ export default function ProfileScreen({ navigation }) {
 
       <View style={styles.section}>
         <Text selectable style={styles.sectionTitle}>
-          Settings
+          Practice
         </Text>
         <View style={styles.sectionCard}>
-          <SettingRow icon="edit" label="Edit Profile" onPress={editProfile} />
           <SettingRow
             icon="notification"
             label="Notification Settings"
@@ -377,19 +386,21 @@ export default function ProfileScreen({ navigation }) {
           <SettingRow
             icon="document"
             label="Privacy Policy"
-            detail={PRIVACY_POLICY_URL}
+            detail={
+              isPlaceholderValue(PRIVACY_POLICY_URL) ? "Not configured yet" : PRIVACY_POLICY_URL
+            }
             onPress={() => openLegalUrl("Privacy Policy", PRIVACY_POLICY_URL)}
           />
           <SettingRow
             icon="document"
             label="Terms of Service"
-            detail={TERMS_URL}
+            detail={isPlaceholderValue(TERMS_URL) ? "Not configured yet" : TERMS_URL}
             onPress={() => openLegalUrl("Terms of Service", TERMS_URL)}
           />
           <SettingRow
             icon="mail"
             label="Support Email"
-            detail={SUPPORT_EMAIL}
+            detail={isPlaceholderValue(SUPPORT_EMAIL) ? "Not configured yet" : SUPPORT_EMAIL}
             onPress={contactSupport}
           />
         </View>
@@ -438,7 +449,18 @@ const styles = StyleSheet.create({
   email: {
     color: COLORS.muted,
     fontSize: 14,
-    fontWeight: "700"
+    fontWeight: "700",
+    maxWidth: "100%"
+  },
+  editButton: {
+    alignItems: "center",
+    backgroundColor: COLORS.cardAlt,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 42,
+    justifyContent: "center",
+    width: 42
   },
   errorText: {
     backgroundColor: "#3B1111",
@@ -483,7 +505,7 @@ const styles = StyleSheet.create({
   planCard: {
     alignItems: "center",
     alignSelf: "stretch",
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
     flexDirection: "row",
     gap: 12,
@@ -519,14 +541,21 @@ const styles = StyleSheet.create({
     borderColor: "rgba(34, 197, 94, 0.45)"
   },
   profileCard: {
-    alignItems: "center",
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 18,
     borderWidth: 1,
-    flexDirection: "row",
     gap: 16,
     padding: 18
+  },
+  profileMeta: {
+    gap: 10
+  },
+  profileTopRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 16,
+    minWidth: 0
   },
   profileText: {
     flex: 1,
@@ -535,8 +564,9 @@ const styles = StyleSheet.create({
   rolePill: {
     alignSelf: "flex-start",
     borderColor: COLORS.accent,
-    borderRadius: 999,
+    borderRadius: 14,
     borderWidth: 1,
+    maxWidth: "100%",
     paddingHorizontal: 12,
     paddingVertical: 7
   },
@@ -551,7 +581,7 @@ const styles = StyleSheet.create({
   sectionCard: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     overflow: "hidden"
   },
@@ -563,7 +593,8 @@ const styles = StyleSheet.create({
   settingDetail: {
     color: COLORS.muted,
     fontSize: 13,
-    fontWeight: "700"
+    fontWeight: "700",
+    lineHeight: 18
   },
   settingLabel: {
     color: COLORS.text,
@@ -599,7 +630,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     flex: 1,
     gap: 6,
@@ -615,6 +646,7 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10
   },
   statValue: {

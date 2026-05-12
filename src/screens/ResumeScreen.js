@@ -70,6 +70,19 @@ const getCountdownUntil = (resetAt) => {
   return formatCountdown(resetTime - Date.now());
 };
 
+const isPdfExtractionError = (error) => {
+  const message = String(error?.message || "").toLowerCase();
+
+  return (
+    message.includes("extract") ||
+    message.includes("scanned") ||
+    message.includes("image-only") ||
+    message.includes("text-based pdf") ||
+    message.includes("too short") ||
+    message.includes("could not read")
+  );
+};
+
 function JobRolePicker({ selectedValue, onSelect }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -356,6 +369,8 @@ export default function ResumeScreen({ navigation }) {
       validateResumePdfAsset(asset);
       setSelectedFile(asset);
       setErrorMessage("");
+      setResumeText("");
+      setShowPasteFallback(false);
       if (isPremium) {
         setIsResumeLimitReached(false);
       }
@@ -376,8 +391,13 @@ export default function ResumeScreen({ navigation }) {
       return;
     }
 
+    if (!selectedFile && !showPasteFallback) {
+      Alert.alert("Upload resume", "Please upload a text-based PDF resume first.");
+      return;
+    }
+
     if (!selectedFile && !resumeText.trim()) {
-      Alert.alert("Add resume", "Please upload a PDF or paste your resume text first.");
+      Alert.alert("Paste resume text", "Please paste your resume text before analyzing.");
       return;
     }
 
@@ -435,6 +455,12 @@ export default function ResumeScreen({ navigation }) {
         if (!analysis) {
           await loadResumeOverview();
         }
+      } else if (selectedFile && isPdfExtractionError(error)) {
+        setShowPasteFallback(true);
+        setSelectedFile(null);
+        setErrorMessage(
+          "We could not read enough text from this PDF. Paste your resume text manually instead."
+        );
       } else {
         setErrorMessage(error.message || "Could not analyze this resume. Please try again.");
       }
@@ -463,7 +489,8 @@ export default function ResumeScreen({ navigation }) {
             Resume Analyzer
           </Text>
           <Text selectable style={styles.subtitle}>
-            Upload a text-based PDF resume, or paste resume text if your PDF cannot be read.
+            Upload a text-based PDF under 5MB. If the PDF cannot be read, we will offer a manual
+            paste fallback.
           </Text>
         </View>
       ) : null}
@@ -516,7 +543,9 @@ export default function ResumeScreen({ navigation }) {
             ) : (
               <View style={styles.uploadButtonContent}>
                 <AppIcon color={COLORS.text} name="upload" size={20} />
-                <Text style={styles.uploadButtonText}>Upload PDF</Text>
+                <Text style={styles.uploadButtonText}>
+                  {selectedFile ? "Replace PDF" : "Upload PDF"}
+                </Text>
               </View>
             )}
           </HapticPressable>
@@ -526,33 +555,32 @@ export default function ResumeScreen({ navigation }) {
               <Text selectable style={styles.fileLabel}>
                 PDF selected
               </Text>
-              <Text selectable style={styles.fileName}>
+              <Text selectable numberOfLines={2} style={styles.fileName}>
                 {selectedFile.name}
               </Text>
             </View>
           ) : (
             <MessageCard
-              title="No PDF selected"
-              message="Choose a text-based PDF under 5MB, or paste resume text if needed."
+              title="PDF-first analysis"
+              message="Choose a text-based PDF under 5MB. Manual paste appears only if the PDF cannot be read."
             />
           )}
 
-          <HapticPressable
-            onPress={() => setShowPasteFallback((current) => !current)}
-            style={({ pressed }) => [styles.fallbackButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.fallbackButtonText}>
-              {showPasteFallback ? "Hide Pasted Text" : "Paste Resume Text Instead"}
-            </Text>
-          </HapticPressable>
-
           {showPasteFallback ? (
-            <View style={styles.field}>
+            <View style={styles.fallbackCard}>
+              <View style={styles.fallbackHeader}>
+                <AppIcon color={COLORS.warning} name="warning" size={20} />
+                <View style={styles.fallbackCopy}>
+                  <Text selectable style={styles.fallbackTitle}>
+                    We could not read this PDF
+                  </Text>
+                  <Text selectable style={styles.helperText}>
+                    Paste your resume text below so PrepAI can still analyze the content.
+                  </Text>
+                </View>
+              </View>
               <Text selectable style={styles.label}>
-                Paste your resume text here
-              </Text>
-              <Text selectable style={styles.helperText}>
-                Use this if your PDF is scanned, image-only, or fails text extraction.
+                Resume text
               </Text>
               <TextInput
                 multiline
@@ -738,7 +766,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 18,
     padding: 18
@@ -780,19 +808,26 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 20
   },
-  fallbackButton: {
-    alignItems: "center",
-    backgroundColor: "#111111",
-    borderColor: COLORS.border,
-    borderRadius: 8,
+  fallbackCard: {
+    backgroundColor: "rgba(250, 204, 21, 0.08)",
+    borderColor: "rgba(250, 204, 21, 0.3)",
+    borderRadius: 14,
     borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 48,
-    paddingHorizontal: 16
+    gap: 12,
+    padding: 14
   },
-  fallbackButtonText: {
+  fallbackCopy: {
+    flex: 1,
+    gap: 3
+  },
+  fallbackHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 10
+  },
+  fallbackTitle: {
     color: COLORS.text,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "900"
   },
   feedbackHeader: {
@@ -824,7 +859,7 @@ const styles = StyleSheet.create({
   fileBox: {
     backgroundColor: "#111111",
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     gap: 5,
     padding: 14
@@ -927,7 +962,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.card,
     borderColor: "rgba(108, 99, 255, 0.35)",
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     flexDirection: "row",
     gap: 12,
@@ -1027,7 +1062,7 @@ const styles = StyleSheet.create({
   resultsCard: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 20,
     padding: 18
@@ -1036,7 +1071,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#111111",
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 4,
     padding: 20
@@ -1102,7 +1137,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#111111",
     borderColor: COLORS.accent,
-    borderRadius: 8,
+    borderRadius: 16,
     borderStyle: "dashed",
     borderWidth: 1,
     justifyContent: "center",

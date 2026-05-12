@@ -14,17 +14,29 @@ import {
 import { useProgressStore } from "../store/progressStore";
 import { COLORS } from "../theme";
 
-function TopicBadge({ label, tone }) {
+function TopicInsight({ topic, tone }) {
   const isStrong = tone === "strong";
 
   return (
-    <View style={[styles.badge, isStrong ? styles.strongBadge : styles.improvementBadge]}>
-      <Text
-        selectable
-        style={[styles.badgeText, isStrong ? styles.strongText : styles.improvementText]}
-      >
-        {label}
-      </Text>
+    <View
+      style={[styles.topicCard, isStrong ? styles.strongTopicCard : styles.improvementTopicCard]}
+    >
+      <View style={styles.topicIcon}>
+        <AppIcon
+          color={isStrong ? COLORS.success : COLORS.warning}
+          name={isStrong ? "success" : "target"}
+          size={18}
+        />
+      </View>
+      <View style={styles.topicCopy}>
+        <Text selectable style={styles.topicTitle}>
+          {topic.label}
+        </Text>
+        <Text selectable style={styles.topicMeta}>
+          {topic.average.toFixed(1)}/10 average - {topic.count} session
+          {topic.count === 1 ? "" : "s"}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -116,9 +128,9 @@ export default function ProgressScreen() {
   );
   const stats = useMemo(
     () => [
-      { label: "Total Sessions", value: String(sessions.length) },
-      { label: "Average Score", value: averageScore.toFixed(1) },
-      { label: "Current Streak", value: `${currentStreak}d` }
+      { icon: "practice", label: "Sessions", value: String(sessions.length) },
+      { icon: "star", label: "Average", value: averageScore.toFixed(1) },
+      { icon: "calendar", label: "Streak", value: `${currentStreak}d` }
     ],
     [averageScore, currentStreak, sessions.length]
   );
@@ -176,20 +188,33 @@ export default function ProgressScreen() {
       contentContainerStyle={styles.content}
     >
       <View style={styles.header}>
-        <View style={styles.headerIcon}>
-          <AppIcon color={COLORS.accent} name="progress" size={30} />
+        <View style={styles.headerCopy}>
+          <Text selectable style={styles.eyebrow}>
+            Progress dashboard
+          </Text>
+          <Text selectable style={styles.title}>
+            Interview readiness
+          </Text>
+          <Text selectable style={styles.subtitle}>
+            Real trends from your saved mock interview sessions.
+          </Text>
         </View>
-        <Text selectable style={styles.title}>
-          Your Progress
-        </Text>
-        <Text selectable style={styles.subtitle}>
-          Last 7 days practice snapshot
-        </Text>
+        <View style={styles.headerScore}>
+          <Text selectable style={styles.headerScoreValue}>
+            {averageScore.toFixed(1)}
+          </Text>
+          <Text selectable style={styles.headerScoreLabel}>
+            avg
+          </Text>
+        </View>
       </View>
 
       <View style={styles.statsRow}>
         {stats.map((stat) => (
           <View key={stat.label} style={styles.statCard}>
+            <View style={styles.statIcon}>
+              <AppIcon color={COLORS.accent} name={stat.icon} size={18} />
+            </View>
             <Text selectable style={styles.statValue}>
               {stat.value}
             </Text>
@@ -213,12 +238,17 @@ export default function ProgressScreen() {
       ) : null}
 
       <View style={styles.card}>
-        <Text selectable style={styles.sectionTitle}>
-          Last 7 Days Performance
-        </Text>
-        <Text selectable style={styles.cardSubtext}>
-          Rolling view ending today.
-        </Text>
+        <View style={styles.sectionHeaderRow}>
+          <View>
+            <Text selectable style={styles.sectionTitle}>
+              Recent trend
+            </Text>
+            <Text selectable style={styles.cardSubtext}>
+              Last 7 days, rolling view ending today.
+            </Text>
+          </View>
+          <AppIcon color={COLORS.accent} name="chart" size={22} />
+        </View>
         {!sessions.length ? (
           <EmptyPanel
             title="No scored sessions yet"
@@ -261,9 +291,9 @@ export default function ProgressScreen() {
           Strong Topics
         </Text>
         {strongTopics.length ? (
-          <View style={styles.badgeRow}>
+          <View style={styles.topicList}>
             {strongTopics.map((topic) => (
-              <TopicBadge key={topic.label} label={topic.label} tone="strong" />
+              <TopicInsight key={topic.label} topic={topic} tone="strong" />
             ))}
           </View>
         ) : (
@@ -279,9 +309,9 @@ export default function ProgressScreen() {
           Needs Improvement
         </Text>
         {improvementTopics.length ? (
-          <View style={styles.badgeRow}>
+          <View style={styles.topicList}>
             {improvementTopics.map((topic) => (
-              <TopicBadge key={topic.label} label={topic.label} tone="improvement" />
+              <TopicInsight key={topic.label} topic={topic} tone="improvement" />
             ))}
           </View>
         ) : (
@@ -374,7 +404,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 16,
     padding: 18
@@ -388,7 +418,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 10,
-    minHeight: 230,
+    minHeight: 210,
     overflow: "hidden"
   },
   container: {
@@ -396,7 +426,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   content: {
-    gap: 20,
+    gap: 18,
     padding: 20,
     paddingBottom: 36
   },
@@ -443,7 +473,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#111111",
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 14,
     borderStyle: "dashed",
     borderWidth: 1,
     gap: 6,
@@ -480,18 +510,48 @@ const styles = StyleSheet.create({
     top: 0
   },
   header: {
-    gap: 6,
-    paddingTop: 8
-  },
-  headerIcon: {
     alignItems: "center",
-    backgroundColor: "rgba(108, 99, 255, 0.12)",
-    borderColor: "rgba(108, 99, 255, 0.3)",
-    borderRadius: 999,
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 18,
     borderWidth: 1,
-    height: 54,
+    flexDirection: "row",
+    gap: 14,
+    justifyContent: "space-between",
+    padding: 18
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 6
+  },
+  headerScore: {
+    alignItems: "center",
+    backgroundColor: COLORS.cardAlt,
+    borderColor: "rgba(108, 99, 255, 0.35)",
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 76,
     justifyContent: "center",
-    width: 54
+    width: 76
+  },
+  headerScoreLabel: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase"
+  },
+  headerScoreValue: {
+    color: COLORS.accent,
+    fontSize: 28,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "900",
+    lineHeight: 32
+  },
+  eyebrow: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase"
   },
   improvementBadge: {
     backgroundColor: "rgba(239, 68, 68, 0.12)",
@@ -539,18 +599,32 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: "900"
   },
-  statCard: {
+  sectionHeaderRow: {
     alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between"
+  },
+  statCard: {
+    alignItems: "flex-start",
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     flex: 1,
-    gap: 8,
-    justifyContent: "center",
+    gap: 9,
+    justifyContent: "space-between",
     minHeight: 98,
-    paddingHorizontal: 8,
-    paddingVertical: 14
+    minWidth: 104,
+    padding: 14
+  },
+  statIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(108, 99, 255, 0.12)",
+    borderRadius: 999,
+    height: 34,
+    justifyContent: "center",
+    width: 34
   },
   statLabel: {
     color: COLORS.muted,
@@ -561,6 +635,7 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10
   },
   statValue: {
@@ -582,6 +657,48 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 15,
     fontWeight: "700"
+  },
+  topicCard: {
+    alignItems: "flex-start",
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    padding: 14
+  },
+  topicCopy: {
+    flex: 1,
+    gap: 3
+  },
+  topicIcon: {
+    alignItems: "center",
+    backgroundColor: COLORS.cardAlt,
+    borderRadius: 999,
+    height: 34,
+    justifyContent: "center",
+    width: 34
+  },
+  topicList: {
+    gap: 10
+  },
+  topicMeta: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18
+  },
+  topicTitle: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  strongTopicCard: {
+    backgroundColor: "rgba(34, 197, 94, 0.08)",
+    borderColor: "rgba(34, 197, 94, 0.28)"
+  },
+  improvementTopicCard: {
+    backgroundColor: "rgba(250, 204, 21, 0.08)",
+    borderColor: "rgba(250, 204, 21, 0.28)"
   },
   title: {
     color: COLORS.text,
