@@ -345,10 +345,23 @@ export default function ResumeScreen({ navigation }) {
     }
 
     const updateCountdown = () => {
-      const resetTime = new Date(resumeQuota?.resetAt || 0).getTime();
+      const resetTime = resumeQuota?.resetAt ? new Date(resumeQuota.resetAt).getTime() : NaN;
 
       if (Number.isFinite(resetTime) && resetTime <= Date.now()) {
         setResumeResetCountdown("00:00:00");
+        setIsResumeLimitReached(false);
+        setUsageStatus((current) =>
+          current
+            ? {
+                ...current,
+                resume: {
+                  ...current.resume,
+                  remaining: current.resume?.limit || 1,
+                  used: 0
+                }
+              }
+            : current
+        );
         loadResumeOverview();
         return;
       }
@@ -804,7 +817,7 @@ const styles = StyleSheet.create({
     gap: 10
   },
   errorText: {
-    color: "#FCA5A5",
+    color: COLORS.danger,
     fontSize: 14,
     fontWeight: "700",
     lineHeight: 20
@@ -846,7 +859,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   feedbackItem: {
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
@@ -867,7 +880,7 @@ const styles = StyleSheet.create({
     gap: 10
   },
   fileBox: {
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
     borderRadius: 12,
     borderWidth: 1,
@@ -909,7 +922,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9
   },
   keywordBadgeText: {
-    color: "#FCA5A5",
+    color: COLORS.danger,
     fontSize: 13,
     fontWeight: "900"
   },
@@ -919,7 +932,7 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   messageCard: {
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
@@ -954,7 +967,7 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   optionsPanel: {
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
@@ -1018,7 +1031,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.accent,
     borderRadius: 8,
     borderWidth: 1,
@@ -1059,7 +1072,7 @@ const styles = StyleSheet.create({
     lineHeight: 21
   },
   resumeInput: {
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
@@ -1079,7 +1092,7 @@ const styles = StyleSheet.create({
   },
   scoreBox: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
     borderRadius: 16,
     borderWidth: 1,
@@ -1088,7 +1101,7 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.accent,
     borderRadius: 8,
     borderWidth: 1,
@@ -1114,7 +1127,7 @@ const styles = StyleSheet.create({
   },
   selectButton: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
@@ -1145,7 +1158,7 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.accent,
     borderRadius: 16,
     borderStyle: "dashed",

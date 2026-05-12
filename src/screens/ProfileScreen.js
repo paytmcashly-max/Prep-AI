@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     paddingBottom: 44
   },
   destructiveText: {
-    color: "#FCA5A5"
+    color: COLORS.danger
   },
   destructiveIcon: {
     backgroundColor: "rgba(239, 68, 68, 0.12)",
@@ -463,11 +463,11 @@ const styles = StyleSheet.create({
     width: 42
   },
   errorText: {
-    backgroundColor: "#3B1111",
-    borderColor: "#7F1D1D",
+    backgroundColor: COLORS.dangerSoft,
+    borderColor: COLORS.danger,
     borderRadius: 8,
     borderWidth: 1,
-    color: "#FCA5A5",
+    color: COLORS.danger,
     fontSize: 14,
     fontWeight: "700",
     lineHeight: 20,
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.muted
   },
   freePlanCard: {
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border
   },
   planCard: {
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   premiumDot: {
-    backgroundColor: "#22C55E"
+    backgroundColor: COLORS.success
   },
   premiumPlanCard: {
     backgroundColor: "rgba(34, 197, 94, 0.14)",

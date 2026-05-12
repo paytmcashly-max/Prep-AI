@@ -21,10 +21,10 @@ export default function LimitCard({
   return (
     <AppCard style={styles.card} tone="warning">
       <View style={styles.iconBubble}>
-        <AppIcon color={COLORS.warning} name="warning" size={30} />
+        <AppIcon color={COLORS.warning} name="warning" size={24} />
       </View>
       <View style={styles.copy}>
-        <AppText style={styles.center} variant="screenTitle">
+        <AppText style={styles.center} variant="sectionTitle">
           {title}
         </AppText>
         <AppText style={styles.center} tone="muted" variant="body">
@@ -36,7 +36,7 @@ export default function LimitCard({
           <AppText tone="muted" variant="caption">
             {countdownLabel}
           </AppText>
-          <AppText color={COLORS.warning} variant="statNumber">
+          <AppText color={COLORS.warning} style={styles.countdownValue} variant="monoNumber">
             {resetCountdown}
           </AppText>
         </View>
@@ -77,10 +77,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.surface,
     borderColor: "rgba(251, 191, 36, 0.34)",
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     gap: SPACING.xs,
-    padding: SPACING.lg
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md
+  },
+  countdownValue: {
+    fontSize: 28,
+    lineHeight: 34
   },
   iconBubble: {
     alignItems: "center",
@@ -89,8 +94,8 @@ const styles = StyleSheet.create({
     borderColor: "rgba(251, 191, 36, 0.35)",
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    height: 58,
+    height: 50,
     justifyContent: "center",
-    width: 58
+    width: 50
   }
 });

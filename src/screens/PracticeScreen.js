@@ -113,10 +113,22 @@ export default function PracticeScreen({ navigation }) {
     }
 
     const updateCountdown = () => {
-      const resetTime = new Date(interviewQuota?.resetAt || 0).getTime();
+      const resetTime = interviewQuota?.resetAt ? new Date(interviewQuota.resetAt).getTime() : NaN;
 
       if (Number.isFinite(resetTime) && resetTime <= Date.now()) {
         setLimitCountdown("00:00:00");
+        setUsageStatus((current) =>
+          current
+            ? {
+                ...current,
+                interview: {
+                  ...current.interview,
+                  remaining: current.interview?.limit || FREE_QUESTION_COUNT,
+                  used: 0
+                }
+              }
+            : current
+        );
         loadUsageStatus();
         return;
       }

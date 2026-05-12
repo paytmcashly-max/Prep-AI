@@ -171,7 +171,7 @@ export default function HomeScreen({ navigation, route }) {
         <View style={styles.heroTop}>
           <View style={styles.heroCopy}>
             <AppText tone="primary" variant="caption">
-              Today’s prep
+              {"Today's prep"}
             </AppText>
             <AppText variant="screenTitle">Good morning, {userName}</AppText>
             <AppText tone="muted" variant="body">
@@ -202,7 +202,7 @@ export default function HomeScreen({ navigation, route }) {
         <SectionHeader
           icon="info"
           title="Prep tip"
-          subtitle="A small nudge for today’s practice."
+          subtitle="A small nudge for today's practice."
         />
         {isTipLoading ? (
           <View style={styles.inlineLoading}>
@@ -257,7 +257,7 @@ export default function HomeScreen({ navigation, route }) {
                       {session.category || "Mock Interview"}
                     </AppText>
                     <AppText numberOfLines={1} tone="muted" variant="bodyMuted">
-                      {session.jobRole || "Role not set"} · {formatSessionDate(session.date)}
+                      {session.jobRole || "Role not set"} - {formatSessionDate(session.date)}
                     </AppText>
                   </View>
                   <AppText color={COLORS.primary} variant="monoNumber">

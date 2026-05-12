@@ -135,7 +135,7 @@ function CircularTimer({ secondsLeft }) {
           cy={TIMER_SIZE / 2}
           fill="transparent"
           r={TIMER_RADIUS}
-          stroke="#2A2A2A"
+          stroke={COLORS.border}
           strokeWidth={TIMER_STROKE_WIDTH}
         />
         <AnimatedCircle
@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
   },
   averageScoreBox: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.accent,
     borderRadius: 8,
     borderWidth: 1,
@@ -833,7 +833,7 @@ const styles = StyleSheet.create({
   },
   collapsibleButton: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
     borderRadius: 12,
     borderWidth: 1,
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
     opacity: 0.5
   },
   errorText: {
-    color: "#FCA5A5",
+    color: COLORS.danger,
     fontSize: 14,
     fontWeight: "700",
     lineHeight: 20,
@@ -945,7 +945,7 @@ const styles = StyleSheet.create({
     gap: 4
   },
   idealAnswerBox: {
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
     borderRadius: 12,
     borderWidth: 1,
@@ -1068,7 +1068,7 @@ const styles = StyleSheet.create({
   },
   scorePill: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.accent,
     borderRadius: 8,
     borderWidth: 1,
@@ -1121,8 +1121,8 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   shareCard: {
-    backgroundColor: "#111111",
-    borderColor: "#2A2A2A",
+    backgroundColor: COLORS.cardAlt,
+    borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 12,
@@ -1157,7 +1157,7 @@ const styles = StyleSheet.create({
   },
   shareMetricRow: {
     alignItems: "center",
-    borderColor: "#2A2A2A",
+    borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",

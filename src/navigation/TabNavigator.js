@@ -30,8 +30,10 @@ export default function TabNavigator() {
       }}
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarActiveBackgroundColor: COLORS.primarySoft,
         tabBarActiveTintColor: COLORS.text,
         tabBarHideOnKeyboard: true,
+        tabBarInactiveBackgroundColor: "transparent",
         tabBarInactiveTintColor: COLORS.muted,
         tabBarIcon: ({ color, focused, size }) => (
           <AppIcon
@@ -43,6 +45,7 @@ export default function TabNavigator() {
         ),
         tabBarItemStyle: {
           borderRadius: RADIUS.md,
+          minHeight: 52,
           marginVertical: 6
         },
         tabBarLabelStyle: {

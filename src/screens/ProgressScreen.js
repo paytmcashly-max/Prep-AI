@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   },
   emptyPanel: {
     alignItems: "center",
-    backgroundColor: "#111111",
+    backgroundColor: COLORS.cardAlt,
     borderColor: COLORS.border,
     borderRadius: 14,
     borderStyle: "dashed",
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   gridLineBottom: {
-    backgroundColor: "#242424",
+    backgroundColor: COLORS.border,
     bottom: 50,
     height: 1,
     left: 0,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     right: 0
   },
   gridLineMiddle: {
-    backgroundColor: "#242424",
+    backgroundColor: COLORS.border,
     bottom: 120,
     height: 1,
     left: 0,
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     right: 0
   },
   gridLineTop: {
-    backgroundColor: "#242424",
+    backgroundColor: COLORS.border,
     height: 1,
     left: 0,
     position: "absolute",
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(239, 68, 68, 0.42)"
   },
   improvementText: {
-    color: "#FCA5A5"
+    color: COLORS.danger
   },
   loadingCard: {
     alignItems: "center",
