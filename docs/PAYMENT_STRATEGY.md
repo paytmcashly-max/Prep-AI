@@ -10,6 +10,8 @@ IntervueAI uses Razorpay as the payment provider.
 - Mobile never stores Razorpay secrets.
 - Mobile never grants premium directly.
 - Backend premium access requires `verificationStatus === "server_verified"`.
+- The public IntervueAI website lives in `/web` and is deployed to Vercel at
+  `https://intervueai.vercel.app` for Razorpay onboarding.
 
 ## Beta Behavior
 
@@ -35,9 +37,17 @@ and profile features.
 ## Launch Blockers
 
 - Public backend URL.
+- Deployed `/web` Vercel URL submitted to Razorpay as the app/website link:
+  `https://intervueai.vercel.app`.
 - Razorpay KYC/live keys if live payments are required.
 - Razorpay webhook URL and secret.
 - Privacy Policy URL.
 - Terms & Conditions URL.
 - Refund/Cancellation Policy URL.
 - Support email.
+
+Backend webhook URL format:
+
+```text
+https://YOUR_BACKEND_DOMAIN/api/payments/razorpay/webhook
+```

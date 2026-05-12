@@ -51,6 +51,9 @@ Use this checklist before preparing the IntervueAI MVP for store submission or p
 - [x] Mobile never grants premium directly
 - [x] Backend premium bypass requires `verificationStatus === "server_verified"`
 - [x] External beta can run with payments unavailable while free limits remain usable
+- [x] Public landing website source added under `/web`
+- [x] `/web` deployed to Vercel at `https://intervueai.vercel.app`
+- [ ] Deployed website URL submitted to Razorpay as app/website link
 - [ ] Razorpay backend env configured
 - [ ] Razorpay webhook configured and verified
 - [ ] Monthly and yearly Razorpay payment links tested
@@ -72,6 +75,7 @@ CI note: GitHub Actions passed on merged `main` commit `89d01fe2b2086b0a994e6bf7
 - [x] App name finalized
 - [x] Privacy policy drafted
 - [x] Terms drafted
+- [x] Deployed IntervueAI website URL ready
 - [ ] App screenshots prepared
 - [x] Play Store listing draft prepared
 - [ ] Support email ready

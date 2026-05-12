@@ -89,6 +89,28 @@ External beta APKs can be shared before purchases are enabled. In that mode:
 When payments are ready, configure `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`,
 `RAZORPAY_WEBHOOK_SECRET`, plan amounts, and webhook URL on the backend.
 
+## Public Website For Razorpay
+
+The IntervueAI public landing website lives in `/web` and is deployed at:
+
+```text
+https://intervueai.vercel.app
+```
+
+Deploy it as a separate Vercel project with:
+
+- Root directory: `web`
+- Build command: `npm run build`
+- Output directory: default/empty for Next.js
+
+Submit the deployed Vercel URL to Razorpay as the app/website link. Do not put
+Razorpay secrets in the website or the Expo mobile app. The backend webhook URL
+remains:
+
+```text
+https://YOUR_BACKEND_DOMAIN/api/payments/razorpay/webhook
+```
+
 ## OTA Updates
 
 EAS Update can ship JS/UI-compatible bug fixes without asking users to install a new APK. Native dependency, Expo plugin, app config, permission, or runtime changes still require a new APK build.

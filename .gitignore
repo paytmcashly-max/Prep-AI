@@ -2,6 +2,9 @@ node_modules/
 dist/
 server/node_modules/
 server/dist/
+web/node_modules/
+web/.next/
+web/out/
 .expo/
 android/.gradle/
 android/.kotlin/

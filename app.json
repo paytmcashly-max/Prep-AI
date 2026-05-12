@@ -38,8 +38,8 @@
     },
     "plugins": ["expo-font", "expo-notifications", "expo-document-picker"],
     "extra": {
-      "privacyPolicyUrl": "https://example.com/prepai/privacy",
-      "termsUrl": "https://example.com/prepai/terms",
+      "privacyPolicyUrl": "https://intervueai.vercel.app/#privacy",
+      "termsUrl": "https://intervueai.vercel.app/#terms",
       "supportEmail": "support@example.com",
       "eas": {
         "projectId": "b1741c61-796c-457e-ac99-18d4e06fd66e"
