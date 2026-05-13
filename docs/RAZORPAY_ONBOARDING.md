@@ -3,6 +3,10 @@
 IntervueAI uses Razorpay for premium payments. The mobile app never receives
 Razorpay secrets and never grants premium directly.
 
+Use Razorpay **Test Mode** for beta builds, preview APKs, and onboarding
+verification until the live legal/compliance checklist and production backend
+deployment are complete.
+
 ## Account Checklist
 
 - Razorpay account created.

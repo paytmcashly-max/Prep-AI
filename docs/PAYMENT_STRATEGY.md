@@ -24,6 +24,10 @@ configured, the paywall shows:
 Free users can still use the free interview quota, resume cooldown, progress,
 and profile features.
 
+For beta builds and preview APK testing, use Razorpay **Test Mode** only. Do
+not use live keys until legal URLs, support, webhook handling, and production
+backend deployment are fully ready.
+
 ## Premium Flow
 
 1. Mobile requests a Razorpay payment link from the backend.

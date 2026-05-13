@@ -15,19 +15,12 @@ import SignupScreen from "../screens/SignupScreen";
 import SplashScreen from "../screens/SplashScreen";
 import { useProgressStore } from "../store/progressStore";
 import { useUserStore } from "../store/userStore";
-import { COLORS } from "../theme";
+import { useAppTheme } from "../theme";
 import TabNavigator from "./TabNavigator";
 
 const Stack = createNativeStackNavigator();
 
-const screenOptions = {
-  headerBackTitleVisible: false,
-  headerShadowVisible: false,
-  headerShown: false,
-  contentStyle: { backgroundColor: COLORS.background }
-};
-
-function AuthStack({ initialRouteName = "Splash" }) {
+function AuthStack({ initialRouteName = "Splash", screenOptions }) {
   return (
     <Stack.Navigator
       key={initialRouteName}
@@ -42,7 +35,7 @@ function AuthStack({ initialRouteName = "Splash" }) {
   );
 }
 
-function AppStack({ hasCompletedProfile, onProfileCompleted }) {
+function AppStack({ hasCompletedProfile, onProfileCompleted, screenOptions }) {
   return (
     <Stack.Navigator
       key={hasCompletedProfile ? "profile-complete" : "profile-required"}
@@ -71,6 +64,7 @@ const isProfileComplete = (profile) =>
   );
 
 export default function AppNavigator() {
+  const { colors } = useAppTheme();
   const setUser = useUserStore((state) => state.setUser);
   const resetUser = useUserStore((state) => state.resetUser);
   const updateProfile = useUserStore((state) => state.updateProfile);
@@ -80,6 +74,12 @@ export default function AppNavigator() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [hasCompletedProfile, setHasCompletedProfile] = useState(false);
+  const screenOptions = {
+    headerBackTitleVisible: false,
+    headerShadowVisible: false,
+    headerShown: false,
+    contentStyle: { backgroundColor: colors.background }
+  };
 
   useEffect(() => {
     let unsubscribeProfile = null;
@@ -163,9 +163,10 @@ export default function AppNavigator() {
         <AppStack
           hasCompletedProfile={hasCompletedProfile}
           onProfileCompleted={() => setHasCompletedProfile(true)}
+          screenOptions={screenOptions}
         />
       ) : (
-        <AuthStack initialRouteName={authInitialRoute} />
+        <AuthStack initialRouteName={authInitialRoute} screenOptions={screenOptions} />
       )}
     </NavigationContainer>
   );
