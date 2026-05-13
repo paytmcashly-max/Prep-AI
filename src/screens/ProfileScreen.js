@@ -130,7 +130,10 @@ export default function ProfileScreen({ navigation }) {
       setIsReminderEnabled(nextEnabled);
 
       if (enabled && !nextEnabled) {
-        Alert.alert("Notifications off", "Please allow notifications to enable daily reminders.");
+        Alert.alert(
+          "Notifications off",
+          "Turn on notifications to get your daily practice reminder."
+        );
       }
     } catch (error) {
       Alert.alert("Reminder failed", error.message || "Could not update notification settings.");
@@ -273,8 +276,8 @@ export default function ProfileScreen({ navigation }) {
         <AppCard style={styles.sectionCard}>
           <ListRow
             icon="notification"
-            label="Notification Settings"
-            detail="Daily reminder at 9:00 AM"
+            label="Daily practice reminder"
+            detail="Get a reminder at 9:00 AM"
             right={
               isReminderSaving ? (
                 <ActivityIndicator color={colors.primary} />

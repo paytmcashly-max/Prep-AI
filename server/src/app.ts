@@ -296,7 +296,11 @@ app.use(
 );
 
 app.get("/health", (_request, response) => {
-  response.json({ ok: true });
+  response.status(200).json({
+    ok: true,
+    service: "prepai-server",
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.get("/ready", (_request, response) => {

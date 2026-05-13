@@ -21,7 +21,12 @@ describe("backend app", () => {
   it("GET /health returns liveness", async () => {
     const response = await request(app).get("/health").expect(200);
 
-    expect(response.body).toEqual({ ok: true });
+    expect(response.body).toMatchObject({
+      ok: true,
+      service: "prepai-server",
+      timestamp: expect.any(String)
+    });
+    expect(Number.isNaN(Date.parse(response.body.timestamp))).toBe(false);
   });
 
   it("GET /ready returns safe readiness JSON without secret values", async () => {

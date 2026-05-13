@@ -98,8 +98,40 @@ const configureAndroidChannel = async () => {
   });
 };
 
-const requestNotificationPermissions = async () => {
+const getNotificationPermissionSnapshot = async () => {
   await configureAndroidChannel();
+
+  const Notifications = await getNotificationsModule();
+
+  if (!Notifications) {
+    return {
+      canAskAgain: false,
+      granted: false,
+      status: "unavailable"
+    };
+  }
+
+  const existing = await Notifications.getPermissionsAsync();
+
+  return {
+    canAskAgain: existing.canAskAgain !== false,
+    granted: existing.status === "granted",
+    status: existing.status
+  };
+};
+
+const requestNotificationPermissions = async () => {
+  const existing = await getNotificationPermissionSnapshot();
+
+  if (existing.granted) {
+    logNotificationDebug("permission status", { status: existing.status });
+    return true;
+  }
+
+  if (!existing.canAskAgain) {
+    logNotificationDebug("permission status", { status: existing.status });
+    return false;
+  }
 
   const Notifications = await getNotificationsModule();
 
@@ -107,13 +139,8 @@ const requestNotificationPermissions = async () => {
     return false;
   }
 
-  const existing = await Notifications.getPermissionsAsync();
-  let status = existing.status;
-
-  if (status !== "granted") {
-    const requested = await Notifications.requestPermissionsAsync();
-    status = requested.status;
-  }
+  const requested = await Notifications.requestPermissionsAsync();
+  const status = requested.status;
 
   logNotificationDebug("permission status", { status });
 
@@ -191,6 +218,8 @@ export const cancelDailyPracticeNotification = async () => {
 };
 
 export const scheduleDailyPracticeNotification = async () => {
+  await configureAndroidChannel();
+
   const Notifications = await getNotificationsModule();
 
   if (!Notifications) {
@@ -254,11 +283,22 @@ export const showSessionCompleteNotification = async () => {
       return;
     }
 
+    const permission = await getNotificationPermissionSnapshot();
+
+    if (!permission.granted) {
+      logNotificationDebug("session completion notification skipped", {
+        reason: "permission not granted"
+      });
+      return;
+    }
+
     const Notifications = await getNotificationsModule();
 
     if (!Notifications) {
       return;
     }
+
+    await configureAndroidChannel();
 
     const scheduledNotificationId = await Notifications.scheduleNotificationAsync({
       content: {
@@ -295,9 +335,11 @@ export const setupNotifications = async (user = auth.currentUser) => {
   }
 
   try {
-    const hasPermission = await requestNotificationPermissions();
+    await configureAndroidChannel();
 
-    if (!hasPermission) {
+    const permission = await getNotificationPermissionSnapshot();
+
+    if (!permission.granted) {
       return;
     }
 
@@ -311,8 +353,6 @@ export const setupNotifications = async (user = auth.currentUser) => {
         errorMessage: error instanceof Error ? error.message : "Unknown error"
       });
     }
-
-    await scheduleDailyPracticeNotification();
   } catch (error) {
     logNotificationDebug("notification setup failed", {
       errorMessage: error instanceof Error ? error.message : "Unknown error"
