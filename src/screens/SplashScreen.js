@@ -1,11 +1,14 @@
 import { useEffect, useRef } from "react";
-import { Animated, Image, StyleSheet, Text, View } from "react-native";
+import { Animated, Image, StyleSheet, View } from "react-native";
 
-import { APP_NAME, COLORS } from "../utils/constants";
+import AppText from "../components/ui/AppText";
+import { APP_NAME } from "../utils/constants";
+import { RADIUS, SPACING, useAppTheme } from "../theme";
 
 const LOGO_MARK = require("../../assets/logo-mark.png");
 
 export default function SplashScreen({ navigation }) {
+  const { colors } = useAppTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const liftAnim = useRef(new Animated.Value(18)).current;
 
@@ -31,7 +34,7 @@ export default function SplashScreen({ navigation }) {
   }, [fadeAnim, liftAnim, navigation]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Animated.View
         style={[
           styles.content,
@@ -41,15 +44,27 @@ export default function SplashScreen({ navigation }) {
           }
         ]}
       >
-        <View style={styles.logoMark}>
+        <View
+          style={[
+            styles.logoMark,
+            {
+              backgroundColor: colors.cardAlt,
+              borderColor: colors.border
+            }
+          ]}
+        >
           <Image accessibilityIgnoresInvertColors source={LOGO_MARK} style={styles.logoImage} />
         </View>
-        <Text selectable style={styles.logoText}>
+        <AppText selectable={false} style={[styles.logoText, { color: colors.text }]} variant="display">
           {APP_NAME}
-        </Text>
-        <Text selectable style={styles.tagline}>
+        </AppText>
+        <AppText
+          selectable={false}
+          style={[styles.tagline, { color: colors.muted }]}
+          variant="body"
+        >
           Practice smarter. Interview better.
-        </Text>
+        </AppText>
       </Animated.View>
     </View>
   );
@@ -58,7 +73,6 @@ export default function SplashScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    backgroundColor: COLORS.background,
     flex: 1,
     justifyContent: "center",
     padding: 24
@@ -69,16 +83,14 @@ const styles = StyleSheet.create({
   },
   logoMark: {
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    borderColor: "rgba(255, 255, 255, 0.09)",
-    borderRadius: 30,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
     height: 88,
     justifyContent: "center",
-    shadowColor: COLORS.primary,
+    shadowColor: "#000000",
     shadowOffset: { height: 12, width: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
     width: 88
   },
   logoImage: {
@@ -86,18 +98,11 @@ const styles = StyleSheet.create({
     width: 72
   },
   logoText: {
-    color: COLORS.text,
-    fontFamily: "Inter_800ExtraBold",
-    fontSize: 38,
-    fontWeight: "800",
-    letterSpacing: -0.2
+    textAlign: "center"
   },
   tagline: {
-    color: COLORS.muted,
-    fontFamily: "Inter_500Medium",
-    fontSize: 16,
-    fontWeight: "500",
     lineHeight: 22,
+    marginTop: SPACING.xs,
     textAlign: "center"
   }
 });

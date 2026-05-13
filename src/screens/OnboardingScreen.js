@@ -8,7 +8,7 @@ import AppIcon from "../components/ui/AppIcon";
 import AppText from "../components/ui/AppText";
 import BrandMark from "../components/ui/BrandMark";
 import Screen from "../components/ui/Screen";
-import { COLORS, PRESSED_STYLE, RADIUS, SPACING, useAppTheme } from "../theme";
+import { PRESSED_STYLE, RADIUS, SPACING, useAppTheme } from "../theme";
 
 const SLIDES = [
   {
@@ -54,6 +54,8 @@ export default function OnboardingScreen({ navigation }) {
           <AppText variant="cardTitle">IntervueAI</AppText>
         </View>
         <HapticPressable
+          accessibilityLabel="Sign in"
+          accessibilityRole="button"
           hitSlop={12}
           onPress={() => navigation.navigate("Login")}
           style={({ pressed }) => [styles.signIn, pressed && PRESSED_STYLE]}
@@ -87,8 +89,7 @@ export default function OnboardingScreen({ navigation }) {
               style={[
                 styles.previewLineLong,
                 {
-                  backgroundColor:
-                    colorScheme === "light" ? colors.borderStrong : "rgba(255, 255, 255, 0.28)"
+                  backgroundColor: colorScheme === "light" ? colors.borderStrong : colors.borderStrong
                 }
               ]}
             />
@@ -96,8 +97,7 @@ export default function OnboardingScreen({ navigation }) {
               style={[
                 styles.previewLine,
                 {
-                  backgroundColor:
-                    colorScheme === "light" ? colors.border : "rgba(255, 255, 255, 0.16)"
+                  backgroundColor: colorScheme === "light" ? colors.border : colors.border
                 }
               ]}
             />
@@ -131,7 +131,12 @@ export default function OnboardingScreen({ navigation }) {
           {SLIDES.map((item, index) => (
             <View
               key={item.title}
-              style={[styles.dot, index === activeIndex ? styles.dotActive : styles.dotIdle]}
+              style={[
+                styles.dot,
+                index === activeIndex
+                  ? [styles.dotActive, { backgroundColor: colors.primary }]
+                  : [styles.dotIdle, { backgroundColor: colors.borderStrong }]
+              ]}
             />
           ))}
         </View>
@@ -182,11 +187,9 @@ const styles = StyleSheet.create({
     height: 8
   },
   dotActive: {
-    backgroundColor: COLORS.secondaryStrong,
     width: 34
   },
   dotIdle: {
-    backgroundColor: COLORS.borderStrong,
     width: 8
   },
   dots: {
@@ -198,8 +201,6 @@ const styles = StyleSheet.create({
   feedbackMini: {
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: COLORS.surface,
-    borderColor: COLORS.border,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
     flexDirection: "row",
@@ -238,13 +239,11 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm
   },
   previewLine: {
-    backgroundColor: "rgba(255, 255, 255, 0.16)",
     borderRadius: RADIUS.pill,
     height: 14,
     width: "72%"
   },
   previewLineLong: {
-    backgroundColor: "rgba(255, 255, 255, 0.28)",
     borderRadius: RADIUS.pill,
     height: 18,
     width: "100%"

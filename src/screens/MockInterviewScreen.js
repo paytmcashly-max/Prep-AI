@@ -407,7 +407,12 @@ export default function MockInterviewScreen({ navigation, route }) {
         contentContainerStyle={[styles.content, styles.summaryContent]}
       >
         <AppCard style={styles.summaryCard}>
-          <View style={styles.summaryIconBubble}>
+          <View
+            style={[
+              styles.summaryIconBubble,
+              { backgroundColor: colors.successSoft, borderColor: colors.success }
+            ]}
+          >
             <AppIcon color={colors.success} name="success" size={40} />
           </View>
           <AppText style={styles.centerText} variant="screenTitle">
@@ -840,8 +845,6 @@ const styles = StyleSheet.create({
   },
   feedbackScoreIcon: {
     alignItems: "center",
-    backgroundColor: "rgba(139, 128, 255, 0.12)",
-    borderColor: "rgba(139, 128, 255, 0.24)",
     borderRadius: 999,
     borderWidth: 1,
     height: 40,
@@ -850,8 +853,6 @@ const styles = StyleSheet.create({
   },
   feedbackScorePanel: {
     alignItems: "center",
-    backgroundColor: "rgba(10, 10, 12, 0.22)",
-    borderColor: "rgba(255, 255, 255, 0.08)",
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: "row",
@@ -916,8 +917,6 @@ const styles = StyleSheet.create({
   summaryIconBubble: {
     alignItems: "center",
     alignSelf: "center",
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
-    borderColor: "rgba(34, 197, 94, 0.35)",
     borderRadius: 999,
     borderWidth: 1,
     height: 54,

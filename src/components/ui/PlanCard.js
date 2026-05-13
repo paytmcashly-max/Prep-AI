@@ -23,8 +23,12 @@ export default function PlanCard({
   const { colors } = useAppTheme();
 
   return (
-    <AppCard gradient={badge ? "premium" : undefined} tone={badge ? "accent" : "default"}>
-      <Stack gap="md">
+    <AppCard
+      gradient={badge ? "premium" : undefined}
+      style={{ padding: 14 }}
+      tone={badge ? "accent" : "default"}
+    >
+      <Stack gap="sm">
         <Inline justify="space-between">
           <Inline align="flex-start" gap="sm" style={{ flex: 1 }}>
             <Inline

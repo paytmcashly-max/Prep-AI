@@ -53,13 +53,7 @@ export const getSubscriptionStatus = async () => {
   try {
     const status = await getAuthenticatedJson("/api/subscription/status");
     return normalizeSubscriptionStatus(status);
-  } catch (error) {
-    if (typeof __DEV__ !== "undefined" && __DEV__) {
-      console.warn("Subscription status unavailable", {
-        errorMessage: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-
+  } catch {
     return createDefaultSubscriptionStatus();
   }
 };

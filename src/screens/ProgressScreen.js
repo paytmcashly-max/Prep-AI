@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { RefreshControl, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
 import AppCard from "../components/ui/AppCard";
@@ -14,6 +14,7 @@ import ProgressBar from "../components/ui/ProgressBar";
 import Screen from "../components/ui/Screen";
 import ScreenHero from "../components/ui/ScreenHero";
 import SectionHeader from "../components/ui/SectionHeader";
+import { useAppTheme } from "../theme";
 import {
   calculateAverageScore,
   calculateCurrentStreak,
@@ -21,7 +22,6 @@ import {
   getLastSevenDayScores
 } from "../services/sessionService";
 import { useProgressStore } from "../store/progressStore";
-import { COLORS, useAppTheme } from "../theme";
 
 function TopicInsight({ topic, tone }) {
   const isStrong = tone === "strong";
@@ -188,7 +188,12 @@ export default function ProgressScreen() {
         title="Interview readiness"
         subtitle="Real trends from your saved mock interview sessions."
       >
-        <View style={styles.headerScore}>
+        <View
+          style={[
+            styles.headerScore,
+            { backgroundColor: colors.secondarySoft, borderColor: colors.border }
+          ]}
+        >
           <AppText color={colors.secondary} variant="statNumber">
             {averageScore.toFixed(1)}
           </AppText>
@@ -240,9 +245,9 @@ export default function ProgressScreen() {
           <View style={styles.chartWrap}>
             <View style={styles.yAxis}>
               {[10, 8, 6, 4, 2, 0].map((tick) => (
-                <Text key={tick} selectable style={[styles.axisLabel, { color: colors.muted }]}>
+                <AppText key={tick} color={colors.muted} selectable style={styles.axisLabel}>
                   {tick}
-                </Text>
+                </AppText>
               ))}
             </View>
             <View style={styles.chartArea}>
@@ -265,18 +270,22 @@ export default function ProgressScreen() {
                         />
                       ) : null}
                     </View>
-                    <Text
+                    <AppText
+                      color={item.practiced ? colors.text : colors.muted}
                       selectable
-                      style={[
-                        styles.scoreLabel,
-                        { color: item.practiced ? colors.text : colors.muted }
-                      ]}
+                      style={styles.scoreLabel}
+                      variant="caption"
                     >
                       {item.practiced ? item.score.toFixed(1) : "-"}
-                    </Text>
-                    <Text selectable style={[styles.dayText, { color: colors.muted }]}>
+                    </AppText>
+                    <AppText
+                      color={colors.muted}
+                      selectable
+                      style={styles.dayText}
+                      variant="caption"
+                    >
                       {index === weeklyScores.length - 1 ? "Today" : item.day}
-                    </Text>
+                    </AppText>
                   </View>
                 ))}
               </View>
@@ -335,9 +344,9 @@ export default function ProgressScreen() {
                   <AppIcon color={colors.secondary} name="check" size={14} />
                 ) : null}
               </View>
-              <Text selectable style={[styles.dayLabel, { color: colors.muted }]}>
+              <AppText color={colors.muted} selectable style={styles.dayLabel} variant="caption">
                 {index === weeklyScores.length - 1 ? "Today" : item.day}
-              </Text>
+              </AppText>
             </View>
           ))}
         </View>
@@ -348,26 +357,10 @@ export default function ProgressScreen() {
 
 const styles = StyleSheet.create({
   axisLabel: {
-    color: COLORS.muted,
     fontSize: 10,
     fontVariant: ["tabular-nums"],
     fontWeight: "800",
     lineHeight: 15
-  },
-  badge: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10
-  },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10
-  },
-  badgeText: {
-    fontSize: 14,
-    fontWeight: "900"
   },
   barColumn: {
     alignItems: "center",
@@ -376,7 +369,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end"
   },
   barFill: {
-    backgroundColor: COLORS.secondaryStrong,
     borderRadius: 7,
     bottom: 0,
     left: 0,
@@ -391,7 +383,6 @@ const styles = StyleSheet.create({
     zIndex: 1
   },
   barTrack: {
-    backgroundColor: "rgba(98, 214, 255, 0.12)",
     borderRadius: 7,
     flex: 1,
     minHeight: 112,
@@ -425,15 +416,11 @@ const styles = StyleSheet.create({
   },
   dayCircle: {
     alignItems: "center",
-    borderColor: "rgba(98, 214, 255, 0.42)",
     borderRadius: 14,
     borderWidth: 2,
     height: 28,
     justifyContent: "center",
     width: 28
-  },
-  dayCircleFilled: {
-    backgroundColor: COLORS.secondaryStrong
   },
   dayItem: {
     alignItems: "center",
@@ -442,12 +429,10 @@ const styles = StyleSheet.create({
     minWidth: 34
   },
   dayLabel: {
-    color: COLORS.muted,
     fontSize: 11,
     fontWeight: "800"
   },
   dayText: {
-    color: COLORS.muted,
     fontSize: 10,
     fontWeight: "800"
   },
@@ -455,7 +440,6 @@ const styles = StyleSheet.create({
     padding: 14
   },
   gridLineBottom: {
-    backgroundColor: COLORS.border,
     bottom: 50,
     height: 1,
     left: 0,
@@ -463,7 +447,6 @@ const styles = StyleSheet.create({
     right: 0
   },
   gridLineMiddle: {
-    backgroundColor: COLORS.border,
     bottom: 120,
     height: 1,
     left: 0,
@@ -471,60 +454,21 @@ const styles = StyleSheet.create({
     right: 0
   },
   gridLineTop: {
-    backgroundColor: COLORS.border,
     height: 1,
     left: 0,
     position: "absolute",
     right: 0,
     top: 0
   },
-  header: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 14,
-    justifyContent: "space-between",
-    overflow: "hidden",
-    shadowColor: COLORS.primary,
-    shadowOffset: { height: 16, width: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20
-  },
-  headerCopy: {
-    flex: 1,
-    gap: 6
-  },
   headerScore: {
     alignItems: "center",
-    backgroundColor: "rgba(98, 214, 255, 0.08)",
-    borderColor: "rgba(98, 214, 255, 0.24)",
     borderRadius: 18,
     borderWidth: 1,
     height: 66,
     justifyContent: "center",
     width: 66
   },
-  loadingCard: {
-    alignItems: "center",
-    gap: 12,
-    justifyContent: "center",
-    minHeight: 96
-  },
-  loadingSkeletonLine: {
-    height: 18,
-    width: "82%"
-  },
-  loadingSkeletonShort: {
-    width: "54%"
-  },
-  loadingSkeletonTitle: {
-    height: 24,
-    width: "64%"
-  },
-  mutedScore: {
-    color: COLORS.muted
-  },
   scoreLabel: {
-    color: COLORS.text,
     fontSize: 11,
     fontVariant: ["tabular-nums"],
     fontWeight: "900"
@@ -533,26 +477,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10
-  },
-  topicCard: {
-    alignItems: "flex-start",
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 10,
-    padding: 14
-  },
-  topicCopy: {
-    flex: 1,
-    gap: 3
-  },
-  topicIcon: {
-    alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderRadius: 999,
-    height: 34,
-    justifyContent: "center",
-    width: 34
   },
   topicList: {
     gap: 10

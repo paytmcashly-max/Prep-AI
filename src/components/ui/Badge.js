@@ -15,12 +15,21 @@ export default function Badge({ icon, label, tone = "default", style }) {
           ? colors.danger
           : colors.secondary;
 
+  const backgroundColor =
+    tone === "success"
+      ? colors.successSoft
+      : tone === "warning"
+        ? colors.warningSoft
+        : tone === "danger"
+          ? colors.dangerSoft
+          : colors.secondarySoft;
+
   return (
     <View
       style={[
         styles.badge,
         {
-          backgroundColor: colors.secondarySoft,
+          backgroundColor,
           borderColor: colors.border
         },
         style

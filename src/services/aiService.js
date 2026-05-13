@@ -148,13 +148,7 @@ const resolveJobRole = async (jobRole) => {
     }
 
     return firestoreRole || DEFAULT_JOB_ROLE;
-  } catch (error) {
-    if (__DEV__) {
-      console.warn("Could not fetch profile job role.", {
-        errorCode: error?.code,
-        errorMessage: error?.message
-      });
-    }
+  } catch {
     return DEFAULT_JOB_ROLE;
   }
 };

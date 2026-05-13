@@ -27,6 +27,15 @@ export default function TabNavigator() {
   const { colors } = useAppTheme();
   const floatingBottom = Math.max(insets.bottom + 6, 10);
   const tabBarWidth = Math.min(width - SPACING.lg * 2, 430);
+  const iconPillActiveStyle = {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.borderStrong,
+    borderWidth: 1,
+    shadowColor: colors.primary,
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12
+  };
 
   return (
     <Tab.Navigator
@@ -47,10 +56,10 @@ export default function TabNavigator() {
         tabBarInactiveBackgroundColor: "transparent",
         tabBarInactiveTintColor: colors.muted,
         tabBarIcon: ({ color, focused, size }) => {
-          const iconColor = focused ? colors.secondary : color;
+          const iconColor = focused ? colors.primary : color;
 
           return (
-            <View style={[styles.iconPill, focused && styles.iconPillActive]}>
+            <View style={[styles.iconPill, focused && iconPillActiveStyle]}>
               <AppIcon
                 color={iconColor}
                 name={TAB_ICONS[route.name] || "info"}
@@ -78,6 +87,7 @@ export default function TabNavigator() {
         },
         tabBarLabelStyle: {
           fontSize: 10,
+          fontFamily: "Inter_700Bold",
           fontWeight: "800",
           lineHeight: 13,
           paddingBottom: 3
@@ -87,7 +97,7 @@ export default function TabNavigator() {
           bottom: floatingBottom,
           left: Math.max((width - tabBarWidth) / 2, SPACING.lg),
           alignSelf: "center",
-          backgroundColor: colors.overlay,
+          backgroundColor: colors.card,
           borderColor: colors.border,
           borderRadius: 32,
           borderTopColor: colors.border,
@@ -99,9 +109,9 @@ export default function TabNavigator() {
           paddingTop: 5,
           shadowColor: "#000000",
           shadowOffset: { height: 14, width: 0 },
-          shadowOpacity: 0.32,
-          shadowRadius: 22,
-          elevation: Platform.OS === "android" ? 12 : 0,
+          shadowOpacity: 0.18,
+          shadowRadius: 18,
+          elevation: Platform.OS === "android" ? 8 : 0,
           overflow: Platform.OS === "android" ? "hidden" : "visible",
           width: tabBarWidth
         }
@@ -123,14 +133,5 @@ const styles = {
     width: 36,
     height: 28,
     borderRadius: RADIUS.pill
-  },
-  iconPillActive: {
-    backgroundColor: "rgba(98, 214, 255, 0.12)",
-    borderColor: "rgba(98, 214, 255, 0.22)",
-    borderWidth: 1,
-    shadowColor: "#62D6FF",
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.14,
-    shadowRadius: 12
   }
 };

@@ -6,50 +6,14 @@ import AppCard from "../components/ui/AppCard";
 import AppIcon from "../components/ui/AppIcon";
 import AppText from "../components/ui/AppText";
 import BetaNoticeCard from "../components/ui/BetaNoticeCard";
-import FeatureRow from "../components/ui/FeatureRow";
 import LoadingState from "../components/ui/LoadingState";
 import MessageCard from "../components/ui/MessageCard";
 import PlanCard from "../components/ui/PlanCard";
 import ScreenHero from "../components/ui/ScreenHero";
 import Screen from "../components/ui/Screen";
-import SectionHeader from "../components/ui/SectionHeader";
 import { createRazorpayOrder, openRazorpayPayment } from "../services/subscriptionService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
-import { COLORS, SPACING } from "../theme";
-
-const FREE_FEATURES = [
-  { available: true, label: "5 interview questions per day" },
-  { available: true, label: "1 resume scan every 3 days" },
-  { available: true, label: "Core answer feedback" },
-  { available: false, label: "Longer interview sessions" },
-  { available: false, label: "More resume scans" }
-];
-
-const PREMIUM_FEATURES = [
-  "Unlimited interview practice",
-  "Longer interviews: 10/15/20 questions",
-  "More resume scans",
-  "Detailed answer feedback",
-  "Voice and video practice when available"
-];
-
-const PREMIUM_HIGHLIGHTS = [
-  {
-    icon: "practice",
-    subtitle: "Longer rounds and no daily cap when server-verified premium is active.",
-    title: "Practice with fewer limits"
-  },
-  {
-    icon: "resume",
-    subtitle: "More resume scans and cleaner review loops while you are actively applying.",
-    title: "Keep your resume moving"
-  },
-  {
-    icon: "sparkles",
-    subtitle: "Sharper answer review and premium features as they go live.",
-    title: "Get deeper coaching"
-  }
-];
+import { SPACING, useAppTheme } from "../theme";
 
 const FALLBACK_PLAN_LABELS = {
   monthly: "Monthly",
@@ -57,8 +21,8 @@ const FALLBACK_PLAN_LABELS = {
 };
 
 const PLAN_BENEFITS = {
-  monthly: ["30 days of Premium access", "Unlimited interview questions", "More resume scans"],
-  yearly: ["365 days of Premium access", "Unlimited interview questions", "More resume scans"]
+  monthly: ["Unlimited practice", "More resume scans"],
+  yearly: ["Unlimited practice", "Best long-term value"]
 };
 
 const formatPrice = (amount, currency = "INR") => {
@@ -82,12 +46,12 @@ const getPlanDurationLabel = (planId) =>
 const getPlanDecisionCopy = (planId) =>
   planId === "yearly"
     ? {
-        meta: "Lower long-term cost if you are preparing consistently.",
-        subtitle: "Best for ongoing interview prep"
+        meta: "Lower yearly cost",
+        subtitle: "Best for longer prep"
       }
     : {
-        meta: "Shorter commitment if you only need Premium for a focused sprint.",
-        subtitle: "Best for short preparation cycles"
+        meta: "Shorter commitment",
+        subtitle: "Best for short prep"
       };
 
 const getSavingsCopy = (plans) => {
@@ -107,7 +71,7 @@ const getSavingsCopy = (plans) => {
     return null;
   }
 
-  return `${formatPrice(savings) || "Savings available"} less than paying monthly for a full year.`;
+  return `Save ${formatPrice(savings) || ""} over monthly billing.`;
 };
 
 const getPaymentNoticeFromStatus = (status, { pendingPaymentCheck = false } = {}) => {
@@ -179,6 +143,7 @@ const getPaymentNoticeFromStatus = (status, { pendingPaymentCheck = false } = {}
 };
 
 export default function PaywallScreen({ navigation }) {
+  const { colors } = useAppTheme();
   const isPremium = useSubscriptionStore((state) => state.isPremium);
   const isSubscriptionLoading = useSubscriptionStore((state) => state.isLoading);
   const availablePlans = useSubscriptionStore((state) => state.availablePlans);
@@ -328,11 +293,11 @@ export default function PaywallScreen({ navigation }) {
         badge="IntervueAI Premium"
         badgeIcon="premium"
         logo
-        title={isPremium ? "Premium is active" : "Practice with fewer interruptions"}
+        title={isPremium ? "Premium is active" : "Unlock Premium"}
         subtitle={
           isPremium
             ? "Your plan is active and ready to use across the app."
-            : "Unlock longer interview practice, more resume scans, and a smoother prep routine."
+            : "Both plans unlock the same Premium features. Only the billing duration changes."
         }
       />
 
@@ -341,7 +306,7 @@ export default function PaywallScreen({ navigation }) {
       ) : isPremium ? (
         <AppCard gradient="calm" style={styles.activeCard} tone="accent">
           <View style={styles.activeRow}>
-            <AppIcon color={COLORS.success} name="success" size={26} />
+            <AppIcon color={colors.success} name="success" size={26} />
             <View style={styles.activeCopy}>
               <AppText variant="cardTitle">Premium is active on this account</AppText>
               <AppText tone="muted" variant="bodyMuted">
@@ -364,20 +329,20 @@ export default function PaywallScreen({ navigation }) {
         <>
           {paymentAvailable ? (
             <AppCard style={styles.selectionCard}>
-              <SectionHeader
-                title="Choose your Premium plan"
-                subtitle="Both plans unlock the same Premium features. The difference is how long access stays active."
-              />
               <AppCard style={styles.selectionGuide} tone="subtle">
                 <View style={styles.selectionGuideRow}>
-                  <View style={styles.selectionGuideIcon}>
-                    <AppIcon color={COLORS.secondary} name="info" size={16} />
+                  <View
+                    style={[
+                      styles.selectionGuideIcon,
+                      { backgroundColor: colors.secondarySoft, borderColor: colors.border }
+                    ]}
+                  >
+                    <AppIcon color={colors.secondary} name="info" size={16} />
                   </View>
                   <View style={styles.selectionGuideCopy}>
-                    <AppText variant="bodyStrong">Same benefits, different duration</AppText>
+                    <AppText variant="bodyStrong">Same Premium features</AppText>
                     <AppText tone="muted" variant="bodyMuted">
-                      Choose monthly if you need a short Premium sprint. Choose yearly if you want
-                      the better long-term value.
+                      Pick monthly for a shorter sprint or yearly for better value.
                     </AppText>
                   </View>
                 </View>
@@ -428,66 +393,24 @@ export default function PaywallScreen({ navigation }) {
               title="Premium payments are not available in this beta build yet."
             />
           )}
-
-          <AppCard style={styles.comparisonCard}>
-            <SectionHeader
-              title="What changes with Premium"
-              subtitle="A calmer, less interrupted practice flow."
-            />
-            <View style={styles.highlightStack}>
-              {PREMIUM_HIGHLIGHTS.map((highlight) => (
-                <View key={highlight.title} style={styles.highlightRow}>
-                  <View style={styles.highlightIcon}>
-                    <AppIcon color={COLORS.secondary} name={highlight.icon} size={18} />
-                  </View>
-                  <View style={styles.highlightCopy}>
-                    <AppText variant="bodyStrong">{highlight.title}</AppText>
-                    <AppText tone="muted" variant="bodyMuted">
-                      {highlight.subtitle}
-                    </AppText>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </AppCard>
-
-          <AppCard style={styles.comparisonCard}>
-            <SectionHeader
-              title="Free vs Premium"
-              subtitle="Free beta remains available while Premium stays optional."
-            />
-            <View style={styles.featureColumns}>
-              <View style={styles.featureColumn}>
-                <AppText variant="cardTitle">Free</AppText>
-                {FREE_FEATURES.map((feature) => (
-                  <FeatureRow
-                    key={`free-${feature.label}`}
-                    available={feature.available}
-                    label={feature.label}
-                  />
-                ))}
-              </View>
-              <View style={styles.featureColumn}>
-                <AppText variant="cardTitle">Premium</AppText>
-                {PREMIUM_FEATURES.map((feature) => (
-                  <FeatureRow key={`premium-${feature}`} label={feature} />
-                ))}
-              </View>
-            </View>
-          </AppCard>
         </>
       ) : null}
 
       {!isPremium ? (
         <AppCard style={styles.helpCard} tone="subtle">
           <View style={styles.helpRow}>
-            <View style={styles.helpIcon}>
-              <AppIcon color={COLORS.secondary} name="lock" size={18} />
+            <View
+              style={[
+                styles.helpIcon,
+                { backgroundColor: colors.secondarySoft, borderColor: colors.border }
+              ]}
+            >
+              <AppIcon color={colors.secondary} name="lock" size={18} />
             </View>
             <View style={styles.helpCopy}>
-              <AppText variant="bodyStrong">Secure payment and verified activation</AppText>
+              <AppText variant="bodyStrong">Secure payment</AppText>
               <AppText tone="muted" variant="bodyMuted">
-                Premium starts only after your payment is verified by the backend.
+                Premium starts after backend verification.
               </AppText>
             </View>
           </View>
@@ -524,9 +447,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: SPACING.md
   },
-  comparisonCard: {
-    gap: SPACING.md
-  },
   helpCard: {
     gap: SPACING.sm
   },
@@ -536,8 +456,6 @@ const styles = StyleSheet.create({
   },
   helpIcon: {
     alignItems: "center",
-    backgroundColor: COLORS.secondarySoft,
-    borderColor: COLORS.border,
     borderRadius: 14,
     borderWidth: 1,
     height: 36,
@@ -549,39 +467,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: SPACING.md
   },
-  featureColumn: {
-    gap: SPACING.sm
-  },
-  featureColumns: {
-    gap: SPACING.lg
-  },
-  grid: {
-    gap: SPACING.md
-  },
-  highlightCopy: {
-    flex: 1,
-    gap: 2
-  },
-  highlightIcon: {
-    alignItems: "center",
-    backgroundColor: COLORS.secondarySoft,
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    borderWidth: 1,
-    height: 38,
-    justifyContent: "center",
-    width: 38
-  },
-  highlightRow: {
-    alignItems: "flex-start",
-    flexDirection: "row",
-    gap: SPACING.md
-  },
-  highlightStack: {
-    gap: SPACING.md
-  },
   packageStack: {
-    gap: SPACING.md
+    gap: SPACING.sm
   },
   selectionGuide: {
     gap: SPACING.sm
@@ -592,8 +479,6 @@ const styles = StyleSheet.create({
   },
   selectionGuideIcon: {
     alignItems: "center",
-    backgroundColor: COLORS.secondarySoft,
-    borderColor: COLORS.border,
     borderRadius: 999,
     borderWidth: 1,
     height: 28,

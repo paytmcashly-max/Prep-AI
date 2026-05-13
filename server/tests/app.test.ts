@@ -103,6 +103,12 @@ describe("backend app", () => {
     expect(response.body).toEqual({ error: "Authentication required." });
   });
 
+  it("GET /api/resume/history without Authorization returns 401", async () => {
+    const response = await request(app).get("/api/resume/history").expect(401);
+
+    expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
   it("GET /api/subscription/status without Authorization returns 401", async () => {
     const response = await request(app).get("/api/subscription/status").expect(401);
 

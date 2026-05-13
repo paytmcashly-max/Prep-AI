@@ -60,48 +60,12 @@ const getErrorMessage = (status, payload, options = {}) => {
     return payload?.error || "Usage limit reached";
   }
 
-  return payload?.error || "Backend request failed. Please try again.";
-};
-
-const SENSITIVE_REQUEST_KEYS = new Set([
-  "answer",
-  "authorization",
-  "firebaseIdToken",
-  "idToken",
-  "previousQuestions",
-  "question",
-  "resumeText",
-  "token"
-]);
-
-const sanitizeRequestBodyForLog = (body) => {
-  if (!body || typeof body !== "object") {
-    return {};
-  }
-
-  return Object.entries(body).reduce((safeBody, [key, value]) => {
-    if (SENSITIVE_REQUEST_KEYS.has(key)) {
-      return safeBody;
-    }
-
-    if (["boolean", "number", "string"].includes(typeof value) || value === null) {
-      return {
-        ...safeBody,
-        [key]: value
-      };
-    }
-
-    return safeBody;
-  }, {});
+  return payload?.error || "Something went wrong. Please try again.";
 };
 
 const logDevelopmentRequest = (path, body) => {
-  if (typeof __DEV__ !== "undefined" && __DEV__) {
-    console.log("API request", {
-      body: sanitizeRequestBodyForLog(body),
-      path
-    });
-  }
+  void path;
+  void body;
 };
 
 const parseResponsePayload = async (response) => response.json().catch(() => null);
@@ -220,3 +184,6 @@ export const getUsageStatus = () => getAuthenticatedJson("/api/usage/status");
 
 export const getLatestResumeAnalysis = () =>
   getAuthenticatedJson("/api/resume/latest", { allowNull: true });
+
+export const getResumeAnalysisHistory = () =>
+  getAuthenticatedJson("/api/resume/history", { allowNull: true });

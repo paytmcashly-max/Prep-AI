@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, RefreshControl, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
 import AppButton from "../components/ui/AppButton";
@@ -19,7 +19,7 @@ import { generateDailyTip } from "../services/aiService";
 import { showSessionCompleteNotification } from "../services/notificationService";
 import { calculateCurrentStreak, fetchUserSessions } from "../services/sessionService";
 import { useUserStore } from "../store/userStore";
-import { COLORS, RADIUS, SPACING, useAppTheme } from "../theme";
+import { RADIUS, SPACING, useAppTheme } from "../theme";
 
 const getDisplayName = (profileName) => {
   if (profileName?.trim()) {
@@ -68,6 +68,7 @@ export default function HomeScreen({ navigation, route }) {
   const [isSessionsLoading, setIsSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState("");
   const [isStartingInterview, setIsStartingInterview] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const streak = useMemo(() => calculateCurrentStreak(sessions), [sessions]);
   const recentSessions = useMemo(() => sessions.slice(0, 3), [sessions]);
@@ -84,48 +85,35 @@ export default function HomeScreen({ navigation, route }) {
     setUserName(getDisplayName(profileName));
   }, [profileName]);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadDailyTip = useCallback(async ({ force = false } = {}) => {
+    try {
+      setIsTipLoading(true);
+      setTipError("");
 
-    const fetchDailyTip = async () => {
-      try {
-        setIsTipLoading(true);
-        setTipError("");
+      const cacheKey = `daily_prep_tip_v2_${getTodayDateKey()}`;
 
-        const cacheKey = `daily_prep_tip_v2_${getTodayDateKey()}`;
+      if (!force) {
         const cachedTip = await AsyncStorage.getItem(cacheKey);
 
         if (cachedTip) {
-          if (isMounted) {
-            setDailyTip(cachedTip);
-          }
+          setDailyTip(cachedTip);
           return;
         }
-
-        const tip = await generateDailyTip();
-
-        if (isMounted) {
-          setDailyTip(tip);
-        }
-
-        await AsyncStorage.setItem(cacheKey, tip);
-      } catch (error) {
-        if (isMounted) {
-          setTipError(error.message || "Could not load today's prep tip.");
-        }
-      } finally {
-        if (isMounted) {
-          setIsTipLoading(false);
-        }
       }
-    };
 
-    fetchDailyTip();
-
-    return () => {
-      isMounted = false;
-    };
+      const tip = await generateDailyTip();
+      setDailyTip(tip);
+      await AsyncStorage.setItem(cacheKey, tip);
+    } catch (error) {
+      setTipError(error.message || "Could not load today's prep tip.");
+    } finally {
+      setIsTipLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadDailyTip();
+  }, [loadDailyTip]);
 
   useFocusEffect(
     useCallback(() => {
@@ -162,6 +150,25 @@ export default function HomeScreen({ navigation, route }) {
     }, [profileName])
   );
 
+  const refreshHome = useCallback(async () => {
+    try {
+      setIsRefreshing(true);
+      setSessionsError("");
+      setTipError("");
+
+      const [nextSessions] = await Promise.all([
+        fetchUserSessions(),
+        loadDailyTip({ force: true })
+      ]);
+      setSessions(nextSessions);
+    } catch (error) {
+      setSessionsError(error.message || "Could not refresh your dashboard right now.");
+    } finally {
+      setIsRefreshing(false);
+      setIsSessionsLoading(false);
+    }
+  }, [loadDailyTip]);
+
   useFocusEffect(
     useCallback(() => {
       if (!route?.params?.sessionCompleted) {
@@ -181,7 +188,16 @@ export default function HomeScreen({ navigation, route }) {
   };
 
   return (
-    <Screen>
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={refreshHome}
+          tintColor={colors.secondary}
+          colors={[colors.secondary]}
+        />
+      }
+    >
       <ScreenHero
         badge="Interview coach"
         badgeIcon="sparkles"
@@ -235,7 +251,7 @@ export default function HomeScreen({ navigation, route }) {
         />
         {isTipLoading ? (
           <View style={styles.inlineLoading}>
-            <ActivityIndicator color={COLORS.primary} />
+            <ActivityIndicator color={colors.primary} />
             <AppText tone="muted" variant="bodyMuted">
               Preparing your tip...
             </AppText>
@@ -318,22 +334,8 @@ export default function HomeScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: SPACING.lg,
-    overflow: "hidden"
-  },
-  heroAccent: {
-    backgroundColor: COLORS.secondaryStrong,
-    borderRadius: RADIUS.pill,
-    height: 4,
-    width: 72
-  },
   heroButton: {
     alignSelf: "stretch"
-  },
-  heroCopy: {
-    flex: 1,
-    gap: SPACING.sm
   },
   heroMetric: {
     alignItems: "center",
@@ -347,14 +349,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm
-  },
-  heroTitle: {
-    letterSpacing: -0.25
-  },
-  heroTop: {
-    alignItems: "flex-start",
-    flexDirection: "row",
-    gap: SPACING.md
   },
   inlineLoading: {
     alignItems: "center",
@@ -375,8 +369,6 @@ const styles = StyleSheet.create({
   },
   sessionIcon: {
     alignItems: "center",
-    backgroundColor: COLORS.secondarySoft,
-    borderColor: COLORS.border,
     borderWidth: 1,
     borderRadius: RADIUS.pill,
     height: 40,

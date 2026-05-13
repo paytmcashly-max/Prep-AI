@@ -15,7 +15,7 @@ import SectionHeader from "../components/ui/SectionHeader";
 import { getUsageStatus } from "../services/apiClient";
 import { formatCountdown } from "../services/quotaService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
-import { COLORS, PRESSED_STYLE, RADIUS, SPACING, useAppTheme } from "../theme";
+import { PRESSED_STYLE, RADIUS, SPACING, useAppTheme } from "../theme";
 
 const PRACTICE_CATEGORIES = [
   {
@@ -280,6 +280,8 @@ export default function PracticeScreen({ navigation }) {
 
             return (
               <HapticPressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
                 key={option.value}
                 onPress={() => setSelectedDifficulty(option.value)}
                 style={({ pressed }) => [
@@ -292,7 +294,7 @@ export default function PracticeScreen({ navigation }) {
                 ]}
               >
                 <AppText
-                  color={isSelected ? colors.primary : colors.muted}
+                  color={isSelected ? colors.primary : colors.text}
                   selectable={false}
                   variant="button"
                 >
@@ -321,6 +323,8 @@ export default function PracticeScreen({ navigation }) {
 
             return (
               <HapticPressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isLocked, selected: isSelected }}
                 key={count}
                 disabled={isLocked}
                 onPress={() => setSelectedQuestionCount(count)}
@@ -335,9 +339,7 @@ export default function PracticeScreen({ navigation }) {
                 ]}
               >
                 <AppText
-                  color={
-                    isLocked ? COLORS.disabledText : isSelected ? colors.primary : colors.muted
-                  }
+                  color={isLocked ? colors.disabledText : isSelected ? colors.primary : colors.text}
                   selectable={false}
                   variant="button"
                 >
@@ -359,6 +361,8 @@ export default function PracticeScreen({ navigation }) {
         <View style={styles.categoryGrid}>
           {PRACTICE_CATEGORIES.map((category) => (
             <HapticPressable
+              accessibilityLabel={`${category.title}. ${category.subtitle}`}
+              accessibilityRole="button"
               key={category.routeCategory}
               disabled={Boolean(startingCategory)}
               onPress={() => startCategory(category.routeCategory)}
@@ -409,6 +413,7 @@ export default function PracticeScreen({ navigation }) {
             <AppText variant="caption">Text mode</AppText>
           </View>
           <HapticPressable
+            accessibilityRole="button"
             onPress={() => handleLockedMode("Voice mode")}
             style={[styles.modePill, { backgroundColor: colors.card, borderColor: colors.border }]}
           >
@@ -418,6 +423,7 @@ export default function PracticeScreen({ navigation }) {
             </AppText>
           </HapticPressable>
           <HapticPressable
+            accessibilityRole="button"
             onPress={() => handleLockedMode("Video mode")}
             style={[styles.modePill, { backgroundColor: colors.card, borderColor: colors.border }]}
           >
@@ -435,26 +441,19 @@ export default function PracticeScreen({ navigation }) {
 const styles = StyleSheet.create({
   categoryArrow: {
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: RADIUS.pill,
     height: 28,
     justifyContent: "center",
     width: 28
   },
   categoryCard: {
-    backgroundColor: "rgba(13, 19, 32, 0.94)",
-    borderColor: "rgba(169, 190, 255, 0.14)",
     borderRadius: RADIUS.xl,
     borderWidth: 1,
     flexBasis: "47%",
     flexGrow: 1,
     gap: SPACING.md,
     minHeight: 150,
-    padding: SPACING.lg,
-    shadowColor: COLORS.primary,
-    shadowOffset: { height: 14, width: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18
+    padding: SPACING.lg
   },
   categoryCopy: {
     gap: SPACING.xs
@@ -466,8 +465,6 @@ const styles = StyleSheet.create({
   },
   categoryIcon: {
     alignItems: "center",
-    backgroundColor: "rgba(98, 214, 255, 0.1)",
-    borderColor: "rgba(98, 214, 255, 0.2)",
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     height: 44,
@@ -481,17 +478,11 @@ const styles = StyleSheet.create({
   },
   countChip: {
     alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",
     minHeight: 42
-  },
-  countChipSelected: {
-    backgroundColor: "rgba(98, 214, 255, 0.12)",
-    borderColor: COLORS.secondaryStrong
   },
   countRow: {
     flexDirection: "row",
@@ -505,8 +496,6 @@ const styles = StyleSheet.create({
   },
   modePill: {
     alignItems: "center",
-    backgroundColor: COLORS.surface,
-    borderColor: COLORS.border,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
     flexDirection: "row",
@@ -531,8 +520,6 @@ const styles = StyleSheet.create({
   },
   quotaIcon: {
     alignItems: "center",
-    backgroundColor: "rgba(98, 214, 255, 0.1)",
-    borderColor: "rgba(127, 255, 231, 0.18)",
     borderRadius: RADIUS.pill,
     borderWidth: 1,
     height: 42,
@@ -544,8 +531,6 @@ const styles = StyleSheet.create({
   },
   segment: {
     alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
     flex: 1,
@@ -556,10 +541,6 @@ const styles = StyleSheet.create({
   segmentRow: {
     flexDirection: "row",
     gap: SPACING.sm
-  },
-  segmentSelected: {
-    backgroundColor: "rgba(98, 214, 255, 0.12)",
-    borderColor: COLORS.secondaryStrong
   },
   setupCard: {
     gap: SPACING.md

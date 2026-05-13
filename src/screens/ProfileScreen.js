@@ -26,7 +26,7 @@ import {
 } from "../services/sessionService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
-import { COLORS, useAppTheme } from "../theme";
+import { useAppTheme } from "../theme";
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.prepai.prepai";
 const APP_CONFIG_EXTRA = Constants.expoConfig?.extra || Constants.manifest?.extra || {};
@@ -200,10 +200,18 @@ export default function ProfileScreen({ navigation }) {
   return (
     <Screen contentContainerStyle={styles.content}>
       <AppCard gradient="calm" style={styles.profileCard}>
-        <View pointerEvents="none" style={styles.profileGlow} />
+        <View
+          pointerEvents="none"
+          style={[styles.profileGlow, { backgroundColor: colors.secondarySoft }]}
+        />
         <View style={styles.profileTopRow}>
-          <View style={styles.avatarFrame}>
-            <View style={styles.avatar}>
+          <View
+            style={[
+              styles.avatarFrame,
+              { backgroundColor: colors.secondarySoft, borderColor: colors.borderStrong }
+            ]}
+          >
+            <View style={[styles.avatar, { backgroundColor: colors.primarySoft }]}>
               <AppText variant="cardTitle">{initials}</AppText>
             </View>
           </View>
@@ -217,9 +225,14 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <IconButton accessibilityLabel="Edit profile" icon="edit" onPress={editProfile} />
         </View>
-        <View style={styles.profileDivider} />
+        <View style={[styles.profileDivider, { backgroundColor: colors.border }]} />
         <View style={styles.profileMeta}>
-          <View style={styles.rolePill}>
+          <View
+            style={[
+              styles.rolePill,
+              { backgroundColor: colors.secondarySoft, borderColor: colors.border }
+            ]}
+          >
             <AppIcon color={colors.primary} name="briefcase" size={15} />
             <AppText numberOfLines={1} tone="muted" variant="caption">
               {profile.jobRole || "Job role not set"} -{" "}
@@ -264,12 +277,12 @@ export default function ProfileScreen({ navigation }) {
             detail="Daily reminder at 9:00 AM"
             right={
               isReminderSaving ? (
-                <ActivityIndicator color={COLORS.secondaryStrong} />
+                <ActivityIndicator color={colors.primary} />
               ) : (
                 <Switch
                   onValueChange={toggleDailyReminder}
-                  thumbColor={isReminderEnabled ? COLORS.text : COLORS.textSoft}
-                  trackColor={{ false: COLORS.disabled, true: COLORS.primary }}
+                  thumbColor={isReminderEnabled ? colors.text : colors.textSoft}
+                  trackColor={{ false: colors.disabled, true: colors.primary }}
                   value={isReminderEnabled}
                 />
               )
@@ -294,7 +307,7 @@ export default function ProfileScreen({ navigation }) {
             icon="logout"
             label={isSigningOut ? "Logging out..." : "Logout"}
             onPress={handleLogout}
-            right={isSigningOut ? <ActivityIndicator color={COLORS.danger} /> : null}
+            right={isSigningOut ? <ActivityIndicator color={colors.danger} /> : null}
           />
         </AppCard>
       </View>
@@ -335,7 +348,6 @@ export default function ProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   avatar: {
     alignItems: "center",
-    backgroundColor: "rgba(98, 214, 255, 0.14)",
     borderRadius: 24,
     height: 48,
     justifyContent: "center",
@@ -343,16 +355,10 @@ const styles = StyleSheet.create({
   },
   avatarFrame: {
     alignItems: "center",
-    backgroundColor: "rgba(98, 214, 255, 0.08)",
-    borderColor: "rgba(98, 214, 255, 0.22)",
     borderRadius: 30,
     borderWidth: 1,
     height: 58,
     justifyContent: "center",
-    shadowColor: COLORS.primary,
-    shadowOffset: { height: 10, width: 0 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
     width: 58
   },
   content: {
@@ -361,18 +367,12 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     gap: 10,
-    overflow: "hidden",
-    shadowColor: COLORS.primary,
-    shadowOffset: { height: 18, width: 0 },
-    shadowOpacity: 0.14,
-    shadowRadius: 24
+    overflow: "hidden"
   },
   profileDivider: {
-    backgroundColor: "rgba(255, 255, 255, 0.09)",
     height: 1
   },
   profileGlow: {
-    backgroundColor: "rgba(98, 214, 255, 0.16)",
     borderRadius: 120,
     height: 132,
     position: "absolute",
@@ -399,8 +399,6 @@ const styles = StyleSheet.create({
   rolePill: {
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "rgba(98, 214, 255, 0.11)",
-    borderColor: "rgba(98, 214, 255, 0.14)",
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: "row",

@@ -14,7 +14,7 @@ import ScreenHero from "../components/ui/ScreenHero";
 import { getCurrentUser } from "../services/authService";
 import { firestore } from "../services/firebaseConfig";
 import { useUserStore } from "../store/userStore";
-import { COLORS, PRESSED_STYLE, RADIUS, SPACING, useAppTheme } from "../theme";
+import { PRESSED_STYLE, RADIUS, SPACING, useAppTheme } from "../theme";
 
 const EXPERIENCE_LEVELS = ["Fresher", "1-2 Years", "3-5 Years"];
 
@@ -121,8 +121,6 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
-      <View pointerEvents="none" style={styles.orbTop} />
-      <View pointerEvents="none" style={styles.orbBottom} />
       {isEditMode ? (
         <IconButton
           accessibilityLabel="Go back"
@@ -167,16 +165,21 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
 
               return (
                 <HapticPressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
                   key={level}
                   onPress={() => setExperienceLevel(level)}
                   style={({ pressed }) => [
                     styles.segmentButton,
-                    selected && styles.segmentButtonSelected,
+                    {
+                      backgroundColor: selected ? colors.primarySoft : colors.cardAlt,
+                      borderColor: selected ? colors.primary : colors.border
+                    },
                     pressed && styles.pressed
                   ]}
                 >
                   <AppText
-                    color={selected ? COLORS.background : COLORS.text}
+                    color={selected ? colors.primary : colors.text}
                     selectable={false}
                     variant="bodyStrong"
                   >
@@ -199,20 +202,19 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
 const styles = StyleSheet.create({
   backButton: {
     alignSelf: "flex-start",
-    marginBottom: -SPACING.md
+    marginBottom: -SPACING.sm
   },
   card: {
     gap: SPACING.xl
   },
   container: {
-    backgroundColor: COLORS.background,
     flex: 1
   },
   content: {
     flexGrow: 1,
-    gap: SPACING.xxl,
+    gap: SPACING.xl,
     padding: SPACING.screen,
-    paddingBottom: 36
+    paddingBottom: 28
   },
   field: {
     gap: SPACING.sm
@@ -220,28 +222,8 @@ const styles = StyleSheet.create({
   pressed: {
     ...PRESSED_STYLE
   },
-  orbBottom: {
-    backgroundColor: "rgba(98, 214, 255, 0.055)",
-    borderRadius: 150,
-    height: 300,
-    position: "absolute",
-    right: -130,
-    top: 260,
-    width: 300
-  },
-  orbTop: {
-    backgroundColor: "rgba(139, 128, 255, 0.08)",
-    borderRadius: 160,
-    height: 320,
-    left: -150,
-    position: "absolute",
-    top: -90,
-    width: 320
-  },
   segmentButton: {
     alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     flex: 1,
@@ -249,12 +231,9 @@ const styles = StyleSheet.create({
     minHeight: 50,
     paddingHorizontal: 10
   },
-  segmentButtonSelected: {
-    backgroundColor: "rgba(98, 214, 255, 0.12)",
-    borderColor: "rgba(127, 255, 231, 0.34)"
-  },
   segmentRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10
   }
 });

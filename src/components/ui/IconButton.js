@@ -17,6 +17,8 @@ export default function IconButton({
   return (
     <HapticPressable
       accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [

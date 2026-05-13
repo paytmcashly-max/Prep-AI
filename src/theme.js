@@ -265,11 +265,11 @@ export const ICON_SIZES = {
 
 export const SHADOWS = {
   card: {
-    elevation: 4,
+    elevation: 2,
     shadowColor: "#000000",
-    shadowOffset: { height: 12, width: 0 },
-    shadowOpacity: 0.24,
-    shadowRadius: 22
+    shadowOffset: { height: 10, width: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18
   },
   glow: {
     elevation: 6,
@@ -313,10 +313,10 @@ export function AppThemeProvider({ children }) {
 export const useAppTheme = () => useContext(ThemeContext);
 
 export const createScreenContentStyle = (topInset = 0, bottomInset = 0) => ({
-  gap: SPACING.xl,
+  gap: SPACING.lg,
   paddingHorizontal: SPACING.screen,
-  paddingTop: Math.max(topInset + 6, 12),
-  paddingBottom: Math.max(bottomInset + 88, 100)
+  paddingTop: Math.max(topInset + 2, 10),
+  paddingBottom: Math.max(bottomInset + 82, 92)
 });
 
 export const getThemeColors = (colorScheme) =>

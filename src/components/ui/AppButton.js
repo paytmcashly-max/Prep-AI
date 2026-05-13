@@ -60,6 +60,8 @@ export default function AppButton({
 
   return (
     <HapticPressable
+      accessibilityRole="button"
+      accessibilityState={{ busy: Boolean(loading), disabled: Boolean(isDisabled) }}
       disabled={isDisabled}
       onPress={onPress}
       style={({ pressed }) => [

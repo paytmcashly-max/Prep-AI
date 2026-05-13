@@ -19,7 +19,7 @@ export default function ScreenHero({
   const { colors } = useAppTheme();
 
   return (
-    <AppCard gradient="calm" style={{ gap: SPACING.sm, overflow: "hidden", padding: 14 }}>
+    <AppCard gradient="calm" style={{ gap: SPACING.sm, overflow: "hidden", padding: 13 }}>
       <Inline align="flex-start" gap="sm">
         {logo ? (
           <BrandMark size="lg" />

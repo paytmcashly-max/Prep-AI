@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 
 import KeyboardAwareScrollView from "../KeyboardAwareScrollView";
 import { SPACING, useAppTheme } from "../../theme";
@@ -15,11 +15,6 @@ export default function AuthScaffold({ children, eyebrow, subtitle, title }) {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
-      <View pointerEvents="none" style={[styles.orbTop, { backgroundColor: colors.primarySoft }]} />
-      <View
-        pointerEvents="none"
-        style={[styles.orbBottom, { backgroundColor: colors.secondarySoft }]}
-      />
       <Stack gap="xl" style={styles.shell}>
         <Inline gap="sm" style={styles.brandRow}>
           <BrandMark />
@@ -62,22 +57,6 @@ const styles = StyleSheet.create({
   },
   copy: {
     maxWidth: 390
-  },
-  orbBottom: {
-    borderRadius: 140,
-    height: 280,
-    position: "absolute",
-    right: -120,
-    top: "48%",
-    width: 280
-  },
-  orbTop: {
-    borderRadius: 150,
-    height: 300,
-    left: -140,
-    position: "absolute",
-    top: -80,
-    width: 300
   },
   shell: {
     alignSelf: "center",

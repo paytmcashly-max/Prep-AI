@@ -180,38 +180,35 @@ const saveResumeAnalysis = async ({
   uid: string;
 }) => {
   const firebaseAdmin = getFirebaseAdmin();
-
-  await firebaseAdmin
+  const historyLimit = (await getUserSubscriptionStatus(uid)).isPremium ? 5 : 1;
+  const resumeAnalysesCollection = firebaseAdmin
     .firestore()
     .collection("users")
     .doc(uid)
-    .collection("resumeAnalyses")
-    .add({
-      atsScore: analysis.atsScore,
-      createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-      grammarIssues: analysis.grammarIssues,
-      jobRole,
-      missingKeywords: analysis.missingKeywords,
-      rewriteSuggestions: analysis.rewriteSuggestions || [],
-      sectionFeedback: analysis.sectionFeedback
-    });
+    .collection("resumeAnalyses");
+
+  await resumeAnalysesCollection.add({
+    atsScore: analysis.atsScore,
+    createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    grammarIssues: analysis.grammarIssues,
+    jobRole,
+    missingKeywords: analysis.missingKeywords,
+    rewriteSuggestions: analysis.rewriteSuggestions || [],
+    sectionFeedback: analysis.sectionFeedback
+  });
+
+  const historySnapshot = await resumeAnalysesCollection.orderBy("createdAt", "desc").get();
+  const staleDocs = historySnapshot.docs.slice(historyLimit);
+
+  if (staleDocs.length) {
+    const batch = firebaseAdmin.firestore().batch();
+
+    staleDocs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+  }
 };
 
-const getLatestResumeAnalysis = async (uid: string) => {
-  const snapshot = await getFirebaseAdmin()
-    .firestore()
-    .collection("users")
-    .doc(uid)
-    .collection("resumeAnalyses")
-    .orderBy("createdAt", "desc")
-    .limit(1)
-    .get();
-
-  if (snapshot.empty) {
-    return null;
-  }
-
-  const doc = snapshot.docs[0];
+const mapResumeAnalysisDoc = (doc: { id: string; data: () => Record<string, unknown> }) => {
   const data = doc.data();
 
   return {
@@ -225,6 +222,26 @@ const getLatestResumeAnalysis = async (uid: string) => {
     sectionFeedback: data.sectionFeedback || {}
   };
 };
+
+const getResumeAnalysisHistory = async (uid: string, limit: number) => {
+  const snapshot = await getFirebaseAdmin()
+    .firestore()
+    .collection("users")
+    .doc(uid)
+    .collection("resumeAnalyses")
+    .orderBy("createdAt", "desc")
+    .limit(limit)
+    .get();
+
+  if (snapshot.empty) {
+    return [];
+  }
+
+  return snapshot.docs.map(mapResumeAnalysisDoc);
+};
+
+const getLatestResumeAnalysis = async (uid: string) =>
+  (await getResumeAnalysisHistory(uid, 1))[0] || null;
 
 const getReadinessChecks = () => {
   const firebase = Boolean(
@@ -303,6 +320,17 @@ app.get("/api/usage/status", requireFirebaseAuth, async (request, response, next
 app.get("/api/resume/latest", requireFirebaseAuth, async (request, response, next) => {
   try {
     response.json(await getLatestResumeAnalysis(getAuthenticatedUid(request)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/resume/history", requireFirebaseAuth, async (request, response, next) => {
+  try {
+    const uid = getAuthenticatedUid(request);
+    const subscription = await getUserSubscriptionStatus(uid);
+
+    response.json(await getResumeAnalysisHistory(uid, subscription.isPremium ? 5 : 1));
   } catch (error) {
     next(error);
   }

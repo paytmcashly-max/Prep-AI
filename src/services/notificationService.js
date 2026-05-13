@@ -16,20 +16,14 @@ let notificationHandlerRegistered = false;
 
 const isExpoGo = () => Constants.appOwnership === "expo";
 
-const isDevelopment = () => typeof __DEV__ !== "undefined" && __DEV__;
-
 const getTodayDateKey = () => new Date().toISOString().slice(0, 10);
 
 const getSessionCompleteNotificationKey = (uid) =>
   `${SESSION_COMPLETE_NOTIFICATION_KEY_PREFIX}_${uid || "anonymous"}`;
 
 const logNotificationDebug = (message, metadata = {}) => {
-  if (isDevelopment()) {
-    console.log("Notifications:", {
-      message,
-      ...metadata
-    });
-  }
+  void message;
+  void metadata;
 };
 
 const getScheduledNotificationType = (notification) =>

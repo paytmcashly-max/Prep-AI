@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, StyleSheet, TextInput, View } from "react-native";
+import { Alert, RefreshControl, StyleSheet, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import { useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import FreeLimitCard from "../components/FreeLimitCard";
 import HapticPressable from "../components/HapticPressable";
@@ -12,6 +13,7 @@ import AppCard from "../components/ui/AppCard";
 import AppText from "../components/ui/AppText";
 import ExpandableSection from "../components/ui/ExpandableSection";
 import AppIcon from "../components/ui/AppIcon";
+import Badge from "../components/ui/Badge";
 import JobRolePicker from "../components/ui/JobRolePicker";
 import LoadingState from "../components/ui/LoadingState";
 import MessageCard from "../components/ui/MessageCard";
@@ -19,7 +21,7 @@ import ScoreRing from "../components/ui/ScoreRing";
 import ScreenHero from "../components/ui/ScreenHero";
 import UploadCard from "../components/ui/UploadCard";
 import { trackEvent } from "../services/analyticsService";
-import { ApiClientError, getLatestResumeAnalysis, getUsageStatus } from "../services/apiClient";
+import { ApiClientError, getResumeAnalysisHistory, getUsageStatus } from "../services/apiClient";
 import { auth } from "../services/firebaseConfig";
 import { analyzeResume, analyzeResumePdf } from "../services/aiService";
 import { formatCountdown, getMsUntilNextResumeReset } from "../services/quotaService";
@@ -83,20 +85,7 @@ const isPdfExtractionError = (error) => {
 };
 
 function KeywordBadge({ label }) {
-  const { colors } = useAppTheme();
-
-  return (
-    <View
-      style={[
-        styles.keywordBadge,
-        { backgroundColor: colors.dangerSoft, borderColor: colors.danger }
-      ]}
-    >
-      <AppText color={colors.danger} variant="caption">
-        {label}
-      </AppText>
-    </View>
-  );
+  return <Badge label={label} style={styles.keywordBadge} tone="danger" />;
 }
 
 function SectionFeedbackCard({ title, value }) {
@@ -109,7 +98,7 @@ function SectionFeedbackCard({ title, value }) {
   );
 }
 
-function PreviousResumeCheckCard({ analysis, isOpen, onPress }) {
+function PreviousResumeCheckCard({ analysis, isOpen, label, onPress }) {
   const { colors } = useAppTheme();
 
   if (!analysis) {
@@ -124,6 +113,11 @@ function PreviousResumeCheckCard({ analysis, isOpen, onPress }) {
 
   return (
     <HapticPressable
+      accessibilityLabel={
+        isOpen ? "Hide previous resume check details" : "Show previous resume check details"
+      }
+      accessibilityRole="button"
+      accessibilityState={{ expanded: isOpen }}
       onPress={onPress}
       style={({ pressed }) => [
         styles.previousCheckCard,
@@ -145,9 +139,7 @@ function PreviousResumeCheckCard({ analysis, isOpen, onPress }) {
         </AppText>
       </View>
       <View style={styles.previousCheckCopy}>
-        <AppText tone="secondary" variant="caption">
-          Latest resume check
-        </AppText>
+        <Badge icon="calendar" label={label} tone="default" />
         <AppText variant="cardTitle">{analysis.jobRole || "Target role"}</AppText>
         <View style={styles.previousStatsRow}>
           <View style={styles.previousStatItem}>
@@ -177,8 +169,137 @@ function PreviousResumeCheckCard({ analysis, isOpen, onPress }) {
   );
 }
 
+function ResumeAnalysisDetails({ analysis, atsColor, atsToneLabel, onReset }) {
+  const { colors } = useAppTheme();
+
+  return (
+    <AppCard style={styles.resultsCard}>
+      <View style={styles.scoreHero}>
+        <ScoreRing label="ATS" score={analysis.atsScore} size={92} />
+        <View style={styles.scoreHeroCopy}>
+          <AppText variant="sectionTitle">Resume readiness</AppText>
+          <AppText color={atsColor} variant="bodyStrong">
+            {atsToneLabel}
+          </AppText>
+          <AppText tone="muted" variant="bodyMuted">
+            Score is based on role fit, keywords, clarity, and section strength.
+          </AppText>
+        </View>
+      </View>
+
+      <View
+        style={[
+          styles.resultSection,
+          { backgroundColor: colors.cardAlt, borderColor: colors.border }
+        ]}
+      >
+        <AppText variant="sectionTitle">Missing Keywords</AppText>
+        {(analysis.missingKeywords || []).length ? (
+          <View style={styles.badgeRow}>
+            {(analysis.missingKeywords || []).map((keyword) => (
+              <KeywordBadge key={keyword} label={keyword} />
+            ))}
+          </View>
+        ) : (
+          <View style={styles.cleanStateRow}>
+            <AppIcon color={colors.success} name="success" size={17} />
+            <AppText style={styles.flexText} tone="muted" variant="bodyMuted">
+              No major missing keywords were returned.
+            </AppText>
+          </View>
+        )}
+      </View>
+
+      <View
+        style={[
+          styles.resultSection,
+          { backgroundColor: colors.cardAlt, borderColor: colors.border }
+        ]}
+      >
+        <AppText variant="sectionTitle">Grammar Issues</AppText>
+        {(analysis.grammarIssues || []).length ? (
+          (analysis.grammarIssues || []).map((issue) => (
+            <View
+              key={issue}
+              style={[
+                styles.issueRow,
+                { backgroundColor: colors.card, borderColor: colors.border }
+              ]}
+            >
+              <AppIcon color={colors.warning} name="warning" size={16} />
+              <AppText style={styles.flexText} variant="bodyMuted">
+                {issue}
+              </AppText>
+            </View>
+          ))
+        ) : (
+          <View style={styles.cleanStateRow}>
+            <AppIcon color={colors.success} name="success" size={17} />
+            <AppText style={styles.flexText} tone="muted" variant="bodyMuted">
+              No obvious grammar issues found.
+            </AppText>
+          </View>
+        )}
+      </View>
+
+      <View
+        style={[
+          styles.resultSection,
+          { backgroundColor: colors.cardAlt, borderColor: colors.border }
+        ]}
+      >
+        <View style={styles.resultSectionHeader}>
+          <AppText variant="sectionTitle">Suggested Lines to Add</AppText>
+          <AppText tone="muted" variant="bodyMuted">
+            Copy the strongest lines into the right resume section.
+          </AppText>
+        </View>
+        {(analysis.rewriteSuggestions || []).length ? (
+          (analysis.rewriteSuggestions || []).map((suggestion, index) => (
+            <View
+              key={`${suggestion}-${index}`}
+              style={[
+                styles.rewriteCard,
+                { backgroundColor: colors.secondarySoft, borderColor: colors.border }
+              ]}
+            >
+              <AppText color={colors.secondary} variant="caption">
+                {String(index + 1).padStart(2, "0")}
+              </AppText>
+              <AppText style={styles.flexText} variant="body">
+                {suggestion}
+              </AppText>
+            </View>
+          ))
+        ) : (
+          <AppText tone="muted" variant="bodyMuted">
+            No suggested lines were returned for this resume.
+          </AppText>
+        )}
+      </View>
+
+      <View
+        style={[
+          styles.resultSection,
+          { backgroundColor: colors.cardAlt, borderColor: colors.border }
+        ]}
+      >
+        <AppText variant="sectionTitle">Section Feedback</AppText>
+        {Object.entries(SECTION_LABELS).map(([key, label]) => (
+          <SectionFeedbackCard key={key} title={label} value={analysis.sectionFeedback?.[key]} />
+        ))}
+      </View>
+
+      <AppButton onPress={onReset} tone="secondary">
+        Analyze Another
+      </AppButton>
+    </AppCard>
+  );
+}
+
 export default function ResumeScreen({ navigation }) {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const savedJobRole = useUserStore((state) => state.profile.jobRole);
   const isPremium = useSubscriptionStore((state) => state.isPremium);
   const refreshSubscriptionStatus = useSubscriptionStore(
@@ -190,9 +311,10 @@ export default function ResumeScreen({ navigation }) {
   const [isPickingPdf, setIsPickingPdf] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLoadingOverview, setIsLoadingOverview] = useState(true);
+  const [isRefreshingOverview, setIsRefreshingOverview] = useState(false);
   const [overviewError, setOverviewError] = useState("");
   const [usageStatus, setUsageStatus] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
+  const [analysisHistory, setAnalysisHistory] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [isResumeLimitReached, setIsResumeLimitReached] = useState(false);
   const [resumeResetCountdown, setResumeResetCountdown] = useState(() =>
@@ -200,6 +322,7 @@ export default function ResumeScreen({ navigation }) {
   );
   const [showPasteFallback, setShowPasteFallback] = useState(false);
   const [showPreviousAnalysisDetails, setShowPreviousAnalysisDetails] = useState(true);
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState(null);
   const analysisRequestInFlightRef = useRef(false);
   const resumeQuota = usageStatus?.resume;
   const hasServerPremiumAccess = usageStatus?.isPremium === true || resumeQuota?.isPremium === true;
@@ -213,9 +336,15 @@ export default function ResumeScreen({ navigation }) {
   const shouldShowResumeLimit = !isLoadingOverview && isBlockedByResumeLimit;
   const hasResumeInput = Boolean(selectedFile || (showPasteFallback && resumeText.trim()));
   const canAnalyzeResume = Boolean(jobRole && hasResumeInput && !isAnalyzing && !isLoadingOverview);
-  const shouldShowAnalysisDetails = Boolean(
-    analysis && (!shouldShowResumeLimit || showPreviousAnalysisDetails)
-  );
+  const analysis = useMemo(() => {
+    if (!analysisHistory.length) {
+      return null;
+    }
+
+    return (
+      analysisHistory.find((item) => item.id === selectedAnalysisId) || analysisHistory[0] || null
+    );
+  }, [analysisHistory, selectedAnalysisId]);
   const atsColor = useMemo(() => {
     const score = Number(analysis?.atsScore || 0);
 
@@ -242,9 +371,15 @@ export default function ResumeScreen({ navigation }) {
         const parsedAnalysis = JSON.parse(savedAnalysis);
 
         if (parsedAnalysis && typeof parsedAnalysis === "object") {
-          setAnalysis(parsedAnalysis);
+          const cachedAnalysis = {
+            id: parsedAnalysis.id || "cached-latest",
+            ...parsedAnalysis
+          };
+
+          setAnalysisHistory([cachedAnalysis]);
+          setSelectedAnalysisId(cachedAnalysis.id);
           setShowPreviousAnalysisDetails(false);
-          return parsedAnalysis;
+          return cachedAnalysis;
         }
       }
     } catch {
@@ -262,38 +397,64 @@ export default function ResumeScreen({ navigation }) {
     }
   }, []);
 
-  const loadResumeOverview = useCallback(async () => {
-    try {
-      setIsLoadingOverview(true);
-      setOverviewError("");
+  const loadResumeOverview = useCallback(
+    async ({ collapseDetails = true, silent = false } = {}) => {
+      try {
+        if (!silent) {
+          setIsLoadingOverview(true);
+        }
+        setOverviewError("");
 
-      const [nextUsageStatus, latestAnalysis] = await Promise.all([
-        getUsageStatus(),
-        getLatestResumeAnalysis()
-      ]);
+        const [nextUsageStatus, nextHistory] = await Promise.all([
+          getUsageStatus(),
+          getResumeAnalysisHistory()
+        ]);
 
-      setUsageStatus(nextUsageStatus);
-      setIsResumeLimitReached(
-        !useSubscriptionStore.getState().isPremium &&
-          Number(nextUsageStatus?.resume?.remaining || 0) <= 0
-      );
+        setUsageStatus(nextUsageStatus);
+        setIsResumeLimitReached(
+          !useSubscriptionStore.getState().isPremium &&
+            Number(nextUsageStatus?.resume?.remaining || 0) <= 0
+        );
 
-      if (latestAnalysis) {
-        setAnalysis(latestAnalysis);
-        setShowPreviousAnalysisDetails(false);
-        await persistLastAnalysis(latestAnalysis);
-      } else {
+        if (nextHistory?.length) {
+          setAnalysisHistory(nextHistory);
+          setSelectedAnalysisId((current) => {
+            if (!collapseDetails && current && nextHistory.some((item) => item.id === current)) {
+              return current;
+            }
+
+            return nextHistory[0].id;
+          });
+          if (collapseDetails) {
+            setShowPreviousAnalysisDetails(false);
+          }
+          await persistLastAnalysis(nextHistory[0]);
+        } else {
+          setAnalysisHistory([]);
+          setSelectedAnalysisId(null);
+          await loadLastAnalysis();
+        }
+      } catch (error) {
+        setOverviewError(error.message || "Could not load resume usage status.");
+        setUsageStatus(null);
+        setIsResumeLimitReached(false);
         await loadLastAnalysis();
+      } finally {
+        setIsLoadingOverview(false);
       }
-    } catch (error) {
-      setOverviewError(error.message || "Could not load resume usage status.");
-      setUsageStatus(null);
-      setIsResumeLimitReached(false);
-      await loadLastAnalysis();
+    },
+    [loadLastAnalysis, persistLastAnalysis]
+  );
+
+  const refreshResumeOverview = useCallback(async () => {
+    try {
+      setIsRefreshingOverview(true);
+      await refreshSubscriptionStatus().catch(() => null);
+      await loadResumeOverview({ collapseDetails: false, silent: true });
     } finally {
-      setIsLoadingOverview(false);
+      setIsRefreshingOverview(false);
     }
-  }, [loadLastAnalysis, persistLastAnalysis]);
+  }, [loadResumeOverview, refreshSubscriptionStatus]);
 
   useFocusEffect(
     useCallback(() => {
@@ -440,13 +601,20 @@ export default function ResumeScreen({ navigation }) {
       const nextAnalysis = {
         ...result,
         createdAt: new Date().toISOString(),
+        id: `local-${Date.now()}`,
         jobRole
       };
 
-      setAnalysis(nextAnalysis);
+      setAnalysisHistory((current) => {
+        const keepCount = hasPremiumAccess || isPremium ? 5 : 1;
+        const withoutDuplicate = current.filter((item) => item.id !== nextAnalysis.id);
+
+        return [nextAnalysis, ...withoutDuplicate].slice(0, keepCount);
+      });
+      setSelectedAnalysisId(nextAnalysis.id);
       setShowPreviousAnalysisDetails(true);
       await persistLastAnalysis(nextAnalysis);
-      loadResumeOverview().catch(() => null);
+      loadResumeOverview({ collapseDetails: false }).catch(() => null);
       setIsResumeLimitReached(false);
       trackEvent("resume_analysis_completed", {
         atsScore: Number(result.atsScore || 0),
@@ -479,8 +647,6 @@ export default function ResumeScreen({ navigation }) {
   const resetScreen = () => {
     setSelectedFile(null);
     setResumeText("");
-    setAnalysis(null);
-    setShowPreviousAnalysisDetails(false);
     setErrorMessage("");
     setIsResumeLimitReached(false);
     setIsAnalyzing(false);
@@ -491,7 +657,21 @@ export default function ResumeScreen({ navigation }) {
     return (
       <KeyboardAwareScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom: Math.max(insets.bottom + 82, 92),
+            paddingTop: Math.max(insets.top + 2, 10)
+          }
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshingOverview}
+            onRefresh={refreshResumeOverview}
+            tintColor={colors.secondary}
+            colors={[colors.secondary]}
+          />
+        }
       >
         <LoadingState
           message="Checking your scan availability and latest resume result."
@@ -504,15 +684,29 @@ export default function ResumeScreen({ navigation }) {
   return (
     <KeyboardAwareScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingBottom: Math.max(insets.bottom + 82, 92),
+          paddingTop: Math.max(insets.top + 2, 10)
+        }
+      ]}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshingOverview}
+          onRefresh={refreshResumeOverview}
+          tintColor={colors.secondary}
+          colors={[colors.secondary]}
+        />
+      }
     >
       {!shouldShowResumeLimit ? (
         <ScreenHero
           badge="Resume intelligence"
           badgeIcon="document"
           logo
-          title="Resume Analyzer"
-          subtitle="Upload a text-based PDF under 5MB for ATS feedback, missing keywords, and cleaner resume lines."
+          title="Resume Review"
+          subtitle="Get ATS feedback, keyword gaps, and sharper resume lines for your target role."
         />
       ) : null}
 
@@ -562,7 +756,12 @@ export default function ResumeScreen({ navigation }) {
           />
 
           {selectedFile ? (
-            <View style={styles.fileBox}>
+            <View
+              style={[
+                styles.fileBox,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border }
+              ]}
+            >
               <AppText tone="secondary" variant="caption">
                 PDF selected
               </AppText>
@@ -570,15 +769,15 @@ export default function ResumeScreen({ navigation }) {
                 {selectedFile.name}
               </AppText>
             </View>
-          ) : (
-            <MessageCard
-              title="PDF-first analysis"
-              message="Choose a text-based PDF under 5MB. If extraction fails, a manual paste fallback will appear here."
-            />
-          )}
+          ) : null}
 
           {showPasteFallback ? (
-            <View style={styles.fallbackCard}>
+            <View
+              style={[
+                styles.fallbackCard,
+                { backgroundColor: colors.warningSoft, borderColor: colors.warning }
+              ]}
+            >
               <View style={styles.fallbackHeader}>
                 <AppIcon color={colors.warning} name="warning" size={20} />
                 <View style={styles.fallbackCopy}>
@@ -615,11 +814,7 @@ export default function ResumeScreen({ navigation }) {
             <MessageCard title="Resume check stopped" message={errorMessage} tone="error" />
           ) : null}
 
-          <AppButton
-            disabled={!canAnalyzeResume}
-            loading={isAnalyzing}
-            onPress={analyzeSelectedResume}
-          >
+          <AppButton disabled={!canAnalyzeResume} onPress={analyzeSelectedResume}>
             {selectedFile
               ? "Analyze PDF"
               : showPasteFallback
@@ -629,136 +824,47 @@ export default function ResumeScreen({ navigation }) {
         </AppCard>
       )}
 
-      {analysis ? (
-        <PreviousResumeCheckCard
-          analysis={analysis}
-          isOpen={showPreviousAnalysisDetails}
-          onPress={() => setShowPreviousAnalysisDetails((current) => !current)}
+      {isAnalyzing ? (
+        <LoadingState
+          message="Reviewing ATS fit, keywords, grammar, and section quality for your selected role."
+          title="Analyzing your resume"
         />
       ) : null}
 
-      {shouldShowAnalysisDetails ? (
-        <AppCard style={styles.resultsCard}>
-          <View style={styles.scoreHero}>
-            <ScoreRing label="ATS" score={analysis.atsScore} size={92} />
-            <View style={styles.scoreHeroCopy}>
-              <AppText variant="sectionTitle">Resume readiness</AppText>
-              <AppText color={atsColor} variant="bodyStrong">
-                {atsToneLabel}
-              </AppText>
-              <AppText tone="muted" variant="bodyMuted">
-                Score is based on role fit, keywords, clarity, and section strength.
-              </AppText>
-            </View>
-          </View>
+      {analysisHistory.length ? (
+        <View style={styles.historyList}>
+          {analysisHistory.map((item, index) => {
+            const isSelected = analysis?.id === item.id;
+            const isOpen = isSelected && showPreviousAnalysisDetails;
 
-          <View
-            style={[
-              styles.resultSection,
-              { backgroundColor: colors.cardAlt, borderColor: colors.border }
-            ]}
-          >
-            <AppText variant="sectionTitle">Missing Keywords</AppText>
-            {(analysis.missingKeywords || []).length ? (
-              <View style={styles.badgeRow}>
-                {(analysis.missingKeywords || []).map((keyword) => (
-                  <KeywordBadge key={keyword} label={keyword} />
-                ))}
+            return (
+              <View key={item.id} style={styles.historyItem}>
+                <PreviousResumeCheckCard
+                  analysis={item}
+                  isOpen={isOpen}
+                  label={index === 0 ? "Latest resume check" : "Saved resume check"}
+                  onPress={() => {
+                    if (isSelected) {
+                      setShowPreviousAnalysisDetails((current) => !current);
+                      return;
+                    }
+
+                    setSelectedAnalysisId(item.id);
+                    setShowPreviousAnalysisDetails(true);
+                  }}
+                />
+                {isOpen ? (
+                  <ResumeAnalysisDetails
+                    analysis={item}
+                    atsColor={atsColor}
+                    atsToneLabel={atsToneLabel}
+                    onReset={resetScreen}
+                  />
+                ) : null}
               </View>
-            ) : (
-              <View style={styles.cleanStateRow}>
-                <AppIcon color={colors.success} name="success" size={17} />
-                <AppText style={styles.flexText} tone="muted" variant="bodyMuted">
-                  No major missing keywords were returned.
-                </AppText>
-              </View>
-            )}
-          </View>
-
-          <View
-            style={[
-              styles.resultSection,
-              { backgroundColor: colors.cardAlt, borderColor: colors.border }
-            ]}
-          >
-            <AppText variant="sectionTitle">Grammar Issues</AppText>
-            {(analysis.grammarIssues || []).length ? (
-              (analysis.grammarIssues || []).map((issue) => (
-                <View key={issue} style={styles.issueRow}>
-                  <AppIcon color={colors.warning} name="warning" size={16} />
-                  <AppText style={styles.flexText} variant="bodyMuted">
-                    {issue}
-                  </AppText>
-                </View>
-              ))
-            ) : (
-              <View style={styles.cleanStateRow}>
-                <AppIcon color={colors.success} name="success" size={17} />
-                <AppText style={styles.flexText} tone="muted" variant="bodyMuted">
-                  No obvious grammar issues found.
-                </AppText>
-              </View>
-            )}
-          </View>
-
-          <View
-            style={[
-              styles.resultSection,
-              { backgroundColor: colors.cardAlt, borderColor: colors.border }
-            ]}
-          >
-            <View style={styles.resultSectionHeader}>
-              <AppText variant="sectionTitle">Suggested Lines to Add</AppText>
-              <AppText tone="muted" variant="bodyMuted">
-                Copy the strongest lines into the right resume section.
-              </AppText>
-            </View>
-            {(analysis.rewriteSuggestions || []).length ? (
-              (analysis.rewriteSuggestions || []).map((suggestion, index) => (
-                <View
-                  key={`${suggestion}-${index}`}
-                  style={[
-                    styles.rewriteCard,
-                    { backgroundColor: colors.secondarySoft, borderColor: colors.border }
-                  ]}
-                >
-                  <AppText color={colors.secondary} variant="caption">
-                    {String(index + 1).padStart(2, "0")}
-                  </AppText>
-                  <AppText style={styles.flexText} variant="body">
-                    {suggestion}
-                  </AppText>
-                </View>
-              ))
-            ) : (
-              <AppText tone="muted" variant="bodyMuted">
-                No suggested lines were returned for this resume.
-              </AppText>
-            )}
-          </View>
-
-          <View
-            style={[
-              styles.resultSection,
-              { backgroundColor: colors.cardAlt, borderColor: colors.border }
-            ]}
-          >
-            <AppText variant="sectionTitle">Section Feedback</AppText>
-            {Object.entries(SECTION_LABELS).map(([key, label]) => (
-              <SectionFeedbackCard
-                key={key}
-                title={label}
-                value={analysis.sectionFeedback?.[key]}
-              />
-            ))}
-          </View>
-
-          {!shouldShowResumeLimit ? (
-            <AppButton onPress={resetScreen} tone="secondary">
-              Analyze Another
-            </AppButton>
-          ) : null}
-        </AppCard>
+            );
+          })}
+        </View>
       ) : null}
     </KeyboardAwareScrollView>
   );
@@ -779,13 +885,10 @@ const styles = StyleSheet.create({
     flex: 1
   },
   content: {
-    gap: 16,
-    padding: 16,
-    paddingBottom: 108
+    gap: 14,
+    paddingHorizontal: 16
   },
   fallbackCard: {
-    backgroundColor: "rgba(250, 204, 21, 0.08)",
-    borderColor: "rgba(250, 204, 21, 0.3)",
     borderRadius: 14,
     borderWidth: 1,
     gap: 12,
@@ -803,22 +906,28 @@ const styles = StyleSheet.create({
   fileBox: {
     borderRadius: 12,
     borderWidth: 1,
-    gap: 5,
-    padding: 14
+    gap: 4,
+    padding: 12
   },
   flexText: {
     flex: 1
   },
-  issueRow: {
-    alignItems: "flex-start",
-    flexDirection: "row",
+  historyList: {
     gap: 8
   },
-  keywordBadge: {
-    borderRadius: 999,
+  historyItem: {
+    gap: 8
+  },
+  issueRow: {
+    alignItems: "flex-start",
+    borderRadius: 12,
     borderWidth: 1,
-    paddingHorizontal: 13,
-    paddingVertical: 9
+    flexDirection: "row",
+    gap: 8,
+    padding: 10
+  },
+  keywordBadge: {
+    paddingHorizontal: 13
   },
   pressed: {
     opacity: 0.82,
@@ -829,13 +938,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: "row",
-    gap: 12,
+    gap: 10,
     justifyContent: "space-between",
-    padding: 14
+    padding: 12
   },
   previousCheckCopy: {
     flex: 1,
-    gap: 5
+    gap: 4
   },
   previousCheckAction: {
     alignItems: "center",
@@ -850,8 +959,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 1,
     justifyContent: "center",
-    minHeight: 64,
-    width: 64
+    minHeight: 58,
+    width: 58
   },
   previousStatItem: {
     alignItems: "center",
@@ -866,8 +975,8 @@ const styles = StyleSheet.create({
   resultSection: {
     borderRadius: 14,
     borderWidth: 1,
-    gap: 10,
-    padding: 12
+    gap: 8,
+    padding: 10
   },
   resultSectionHeader: {
     gap: 5
@@ -900,20 +1009,20 @@ const styles = StyleSheet.create({
   resultsCard: {
     borderRadius: 16,
     borderWidth: 1,
-    gap: 13,
-    padding: 14
+    gap: 11,
+    padding: 12
   },
   scoreHero: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 12
+    gap: 10
   },
   scoreHeroCopy: {
     flex: 1,
-    gap: 5,
+    gap: 4,
     minWidth: 0
   },
   inputCard: {
-    gap: 14
+    gap: 12
   }
 });
