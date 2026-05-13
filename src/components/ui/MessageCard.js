@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 
-import { COLORS, RADIUS, SPACING } from "../../theme";
+import { COLORS, RADIUS, SPACING, useAppTheme } from "../../theme";
 import AppIcon from "./AppIcon";
 import AppText from "./AppText";
 
@@ -19,19 +19,47 @@ const TONE_COLOR = {
 };
 
 export default function MessageCard({ children, message, title, tone = "default", style }) {
-  const iconColor = TONE_COLOR[tone] || TONE_COLOR.default;
+  const { colors } = useAppTheme();
+  const toneColors = {
+    default: colors.info,
+    error: colors.danger,
+    success: colors.success,
+    warning: colors.warning
+  };
+  const iconColor = toneColors[tone] || TONE_COLOR[tone] || TONE_COLOR.default;
 
   return (
     <View
       style={[
         styles.card,
-        tone === "error" && styles.errorCard,
-        tone === "success" && styles.successCard,
-        tone === "warning" && styles.warningCard,
+        {
+          backgroundColor: colors.cardAlt,
+          borderColor: colors.border
+        },
+        tone === "error" && {
+          backgroundColor: colors.dangerSoft,
+          borderColor: colors.danger
+        },
+        tone === "success" && {
+          backgroundColor: colors.successSoft,
+          borderColor: colors.success
+        },
+        tone === "warning" && {
+          backgroundColor: colors.warningSoft,
+          borderColor: colors.warning
+        },
         style
       ]}
     >
-      <View style={styles.iconBubble}>
+      <View
+        style={[
+          styles.iconBubble,
+          {
+            backgroundColor: colors.secondarySoft,
+            borderColor: colors.border
+          }
+        ]}
+      >
         <AppIcon color={iconColor} name={TONE_ICON[tone] || TONE_ICON.default} size={20} />
       </View>
       <View style={styles.copy}>
@@ -50,9 +78,7 @@ export default function MessageCard({ children, message, title, tone = "default"
 const styles = StyleSheet.create({
   card: {
     alignItems: "flex-start",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
     flexDirection: "row",
     gap: SPACING.md,
@@ -62,24 +88,12 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: SPACING.xs
   },
-  errorCard: {
-    backgroundColor: COLORS.dangerSoft,
-    borderColor: "rgba(251, 113, 133, 0.35)"
-  },
   iconBubble: {
     alignItems: "center",
-    backgroundColor: COLORS.surface,
+    borderWidth: 1,
     borderRadius: RADIUS.pill,
     height: 36,
     justifyContent: "center",
     width: 36
-  },
-  successCard: {
-    backgroundColor: COLORS.successSoft,
-    borderColor: "rgba(52, 211, 153, 0.32)"
-  },
-  warningCard: {
-    backgroundColor: COLORS.warningSoft,
-    borderColor: "rgba(251, 191, 36, 0.34)"
   }
 });

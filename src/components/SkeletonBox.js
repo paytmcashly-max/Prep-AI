@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet } from "react-native";
 
+import { COLORS, RADIUS } from "../theme";
+
 export default function SkeletonBox({ style }) {
   const opacity = useRef(new Animated.Value(0.35)).current;
 
@@ -30,7 +32,7 @@ export default function SkeletonBox({ style }) {
 
 const styles = StyleSheet.create({
   skeleton: {
-    backgroundColor: "#333333",
-    borderRadius: 8
+    backgroundColor: COLORS.cardPressed,
+    borderRadius: RADIUS.md
   }
 });

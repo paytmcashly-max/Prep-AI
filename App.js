@@ -25,10 +25,27 @@ import { initializeErrorTracking, withErrorTracking } from "./src/services/error
 import { setupNotifications } from "./src/services/notificationService";
 import { checkForAppUpdate } from "./src/services/updateService";
 import { useSubscriptionStore } from "./src/store/subscriptionStore";
-import { COLORS } from "./src/theme";
+import { AppThemeProvider, useAppTheme } from "./src/theme";
 
 initializeErrorTracking();
 initializeAnalytics();
+
+function AppShell() {
+  const { colorScheme, colors } = useAppTheme();
+
+  return (
+    <>
+      <StatusBar
+        backgroundColor={colors.background}
+        style={colorScheme === "light" ? "dark" : "light"}
+        translucent={false}
+      />
+      <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.background, flex: 1 }}>
+        <AppNavigator />
+      </SafeAreaView>
+    </>
+  );
+}
 
 function App() {
   const hasStartedUpdateCheckRef = useRef(false);
@@ -73,10 +90,9 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar backgroundColor={COLORS.background} style="light" translucent={false} />
-        <SafeAreaView edges={["top"]} style={{ backgroundColor: COLORS.background, flex: 1 }}>
-          <AppNavigator />
-        </SafeAreaView>
+        <AppThemeProvider>
+          <AppShell />
+        </AppThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

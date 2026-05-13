@@ -1,14 +1,33 @@
 import { StyleSheet, View } from "react-native";
 
-import { COLORS, RADIUS, SPACING } from "../../theme";
+import { RADIUS, SPACING, useAppTheme } from "../../theme";
 import AppIcon from "./AppIcon";
 import AppText from "./AppText";
 
 export default function EmptyState({ action, icon = "info", message, title, style }) {
+  const { colors } = useAppTheme();
+
   return (
-    <View style={[styles.card, style]}>
-      <View style={styles.icon}>
-        <AppIcon color={COLORS.primary} name={icon} size={30} />
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.cardAlt,
+          borderColor: colors.border
+        },
+        style
+      ]}
+    >
+      <View
+        style={[
+          styles.icon,
+          {
+            backgroundColor: colors.secondarySoft,
+            borderColor: colors.border
+          }
+        ]}
+      >
+        <AppIcon color={colors.secondary} name={icon} size={30} />
       </View>
       <AppText style={styles.center} variant="cardTitle">
         {title}
@@ -26,9 +45,7 @@ export default function EmptyState({ action, icon = "info", message, title, styl
 const styles = StyleSheet.create({
   card: {
     alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xl,
     borderStyle: "dashed",
     borderWidth: 1,
     gap: SPACING.md,
@@ -39,7 +56,7 @@ const styles = StyleSheet.create({
   },
   icon: {
     alignItems: "center",
-    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
     borderRadius: RADIUS.pill,
     height: 56,
     justifyContent: "center",

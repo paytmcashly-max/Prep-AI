@@ -1,17 +1,34 @@
 import { StyleSheet, View } from "react-native";
 
-import { COLORS, RADIUS, SPACING } from "../../theme";
+import { RADIUS, SPACING, useAppTheme } from "../../theme";
 import AppIcon from "./AppIcon";
 import AppText from "./AppText";
 
 export default function StatCard({ icon, label, tone = "primary", value }) {
+  const { colors } = useAppTheme();
   const iconColor =
-    tone === "success" ? COLORS.success : tone === "warning" ? COLORS.warning : COLORS.primary;
+    tone === "success" ? colors.success : tone === "warning" ? colors.warning : colors.secondary;
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border
+        }
+      ]}
+    >
       {icon ? (
-        <View style={styles.icon}>
+        <View
+          style={[
+            styles.icon,
+            {
+              backgroundColor: colors.secondarySoft,
+              borderColor: colors.border
+            }
+          ]}
+        >
           <AppIcon color={iconColor} name={icon} size={20} />
         </View>
       ) : null}
@@ -25,22 +42,20 @@ export default function StatCard({ icon, label, tone = "primary", value }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
     flex: 1,
     gap: SPACING.xs,
-    minWidth: 104,
-    padding: SPACING.lg
+    minWidth: 96,
+    padding: SPACING.md
   },
   icon: {
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
     borderRadius: RADIUS.pill,
-    height: 32,
+    height: 30,
     justifyContent: "center",
-    width: 32
+    width: 30
   }
 });

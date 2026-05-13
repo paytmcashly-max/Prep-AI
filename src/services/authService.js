@@ -86,6 +86,10 @@ export const signUpWithEmail = async (name, email, password) => {
 
     if (displayName) {
       await updateProfile(credential.user, { displayName });
+      useUserStore.getState().updateProfile({
+        fullName: displayName,
+        name: displayName
+      });
     }
 
     setDoc(

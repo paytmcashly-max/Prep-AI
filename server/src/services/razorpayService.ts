@@ -19,6 +19,16 @@ type CreatePaymentLinkInput = {
   uid: string;
 };
 
+type StoredPaymentRecord = {
+  createdAt?: unknown;
+  paymentId?: string | null;
+  paymentLinkId: string;
+  plan: PremiumPlan;
+  status?: string;
+  uid: string;
+  updatedAt?: unknown;
+};
+
 type VerifyPaymentInput = {
   paymentId?: string;
   paymentLinkId?: string;
@@ -85,6 +95,36 @@ export const getRazorpayPaymentStatus = () => {
   };
 };
 
+const fetchRazorpayPaymentLinkStatus = async (paymentLinkId: string) => {
+  const credentials = requireRazorpayConfig();
+  const response = await fetch(`${razorpayApiBaseUrl}/payment_links/${paymentLinkId}`, {
+    headers: {
+      Authorization: getBasicAuthHeader(credentials)
+    },
+    method: "GET"
+  });
+
+  const payload = (await response.json().catch(() => null)) as {
+    id?: string;
+    payments?: Array<{ payment_id?: string }>;
+    status?: string;
+  } | null;
+
+  if (!response.ok || !payload?.id || !payload?.status) {
+    logger.warn("Razorpay payment status lookup failed", {
+      paymentLinkId,
+      status: response.status
+    });
+    throw new RazorpayVerificationError();
+  }
+
+  return {
+    paymentId: payload.payments?.[0]?.payment_id || null,
+    paymentLinkId: payload.id,
+    status: payload.status
+  };
+};
+
 const requireRazorpayConfig = () => {
   if (!config.RAZORPAY_KEY_ID || !config.RAZORPAY_KEY_SECRET) {
     throw new RazorpayUnavailableError();
@@ -111,6 +151,22 @@ const getBasicAuthHeader = ({ keyId, keySecret }: { keyId: string; keySecret: st
 
 const createHmacDigest = (payload: string, secret: string) =>
   crypto.createHmac("sha256", secret).update(payload).digest("hex");
+
+const serializeFirestoreValue = (value: unknown) => {
+  if (value && typeof value === "object" && "toDate" in value) {
+    return (value as { toDate: () => Date }).toDate().toISOString();
+  }
+
+  return value ?? null;
+};
+
+const getFirestoreTimestampMs = (value: unknown) => {
+  if (value && typeof value === "object" && "toDate" in value) {
+    return (value as { toDate: () => Date }).toDate().getTime();
+  }
+
+  return 0;
+};
 
 const signaturesMatch = (expectedSignature: string, receivedSignature?: string) => {
   if (!receivedSignature) {
@@ -294,6 +350,98 @@ export const verifyRazorpayWebhookSignature = (rawBody: string, signature?: stri
   }
 
   return signaturesMatch(createHmacDigest(rawBody, config.RAZORPAY_WEBHOOK_SECRET), signature);
+};
+
+const getLatestStoredPaymentForUser = async (uid: string): Promise<StoredPaymentRecord | null> => {
+  const snapshot = await getFirebaseAdmin()
+    .firestore()
+    .collection(paymentsCollection)
+    .where("uid", "==", uid)
+    .get();
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  const latestPayment = snapshot.docs
+    .map((doc) => doc.data() as StoredPaymentRecord)
+    .filter((doc) => typeof doc.paymentLinkId === "string" && doc.paymentLinkId)
+    .sort((left, right) => {
+      const rightTimestamp = Math.max(
+        getFirestoreTimestampMs(right.updatedAt),
+        getFirestoreTimestampMs(right.createdAt)
+      );
+      const leftTimestamp = Math.max(
+        getFirestoreTimestampMs(left.updatedAt),
+        getFirestoreTimestampMs(left.createdAt)
+      );
+
+      return rightTimestamp - leftTimestamp;
+    })[0];
+
+  return latestPayment || null;
+};
+
+export const getLatestRazorpayPaymentForUser = async (uid: string) => {
+  const latestPayment = await getLatestStoredPaymentForUser(uid);
+
+  if (!latestPayment) {
+    return null;
+  }
+
+  let status = latestPayment.status || "created";
+  let paymentId = latestPayment.paymentId || null;
+
+  if (
+    config.RAZORPAY_KEY_ID &&
+    config.RAZORPAY_KEY_SECRET &&
+    !["verified", "webhook_verified", "reconciled_paid", "cancelled", "expired", "failed"].includes(
+      status
+    )
+  ) {
+    try {
+      const remotePayment = await fetchRazorpayPaymentLinkStatus(latestPayment.paymentLinkId);
+      paymentId = remotePayment.paymentId || paymentId;
+
+      if (remotePayment.status === "paid") {
+        status = "reconciled_paid";
+        await markPaymentVerified({
+          paymentId,
+          paymentLinkId: latestPayment.paymentLinkId,
+          status
+        });
+        await grantPremiumForPayment({
+          orderId: latestPayment.paymentLinkId,
+          paymentId,
+          plan: latestPayment.plan,
+          uid
+        });
+      } else if (["cancelled", "expired", "failed"].includes(remotePayment.status)) {
+        status = remotePayment.status;
+        await markPaymentVerified({
+          paymentId,
+          paymentLinkId: latestPayment.paymentLinkId,
+          status
+        });
+      } else {
+        status = remotePayment.status;
+      }
+    } catch (error) {
+      logger.warn("Razorpay payment reconciliation skipped", {
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
+        paymentLinkId: latestPayment.paymentLinkId
+      });
+    }
+  }
+
+  return {
+    createdAt: serializeFirestoreValue(latestPayment.createdAt),
+    paymentId,
+    paymentLinkId: latestPayment.paymentLinkId,
+    plan: latestPayment.plan,
+    status,
+    updatedAt: serializeFirestoreValue(latestPayment.updatedAt)
+  };
 };
 
 export const handleRazorpayWebhook = async (body: unknown) => {

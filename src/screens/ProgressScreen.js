@@ -1,10 +1,19 @@
 import { useCallback, useMemo, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
+import AppCard from "../components/ui/AppCard";
 import AppIcon from "../components/ui/AppIcon";
+import AppText from "../components/ui/AppText";
+import EmptyState from "../components/ui/EmptyState";
+import InsightCard from "../components/ui/InsightCard";
+import LoadingState from "../components/ui/LoadingState";
+import MetricCard from "../components/ui/MetricCard";
 import MessageCard from "../components/ui/MessageCard";
-import SkeletonBox from "../components/SkeletonBox";
+import ProgressBar from "../components/ui/ProgressBar";
+import Screen from "../components/ui/Screen";
+import ScreenHero from "../components/ui/ScreenHero";
+import SectionHeader from "../components/ui/SectionHeader";
 import {
   calculateAverageScore,
   calculateCurrentStreak,
@@ -12,47 +21,29 @@ import {
   getLastSevenDayScores
 } from "../services/sessionService";
 import { useProgressStore } from "../store/progressStore";
-import { COLORS } from "../theme";
+import { COLORS, useAppTheme } from "../theme";
 
 function TopicInsight({ topic, tone }) {
   const isStrong = tone === "strong";
 
   return (
-    <View
-      style={[styles.topicCard, isStrong ? styles.strongTopicCard : styles.improvementTopicCard]}
+    <InsightCard
+      icon={isStrong ? "success" : "target"}
+      title={topic.label}
+      tone={isStrong ? "success" : "warning"}
     >
-      <View style={styles.topicIcon}>
-        <AppIcon
-          color={isStrong ? COLORS.success : COLORS.warning}
-          name={isStrong ? "success" : "target"}
-          size={18}
-        />
-      </View>
-      <View style={styles.topicCopy}>
-        <Text selectable style={styles.topicTitle}>
-          {topic.label}
-        </Text>
-        <Text selectable style={styles.topicMeta}>
+      <View style={styles.topicMeta}>
+        <AppText tone="muted" variant="bodyMuted">
           {topic.average.toFixed(1)}/10 average - {topic.count} session
           {topic.count === 1 ? "" : "s"}
-        </Text>
+        </AppText>
       </View>
-    </View>
+    </InsightCard>
   );
 }
 
 function EmptyPanel({ title, message }) {
-  return (
-    <View style={styles.emptyPanel}>
-      <AppIcon color={COLORS.accent} name="chart" size={28} />
-      <Text selectable style={styles.emptyTitle}>
-        {title}
-      </Text>
-      <Text selectable style={styles.emptyText}>
-        {message}
-      </Text>
-    </View>
-  );
+  return <EmptyState icon="chart" message={message} style={styles.emptyPanel} title={title} />;
 }
 
 const formatTopicLabel = (category) => {
@@ -102,7 +93,10 @@ const getSessionTopics = (sessions) => {
     .sort((a, b) => b.average - a.average);
 };
 
+const clampScore = (score) => Math.min(Math.max(Number(score || 0), 0), 10);
+
 export default function ProgressScreen() {
+  const { colors } = useAppTheme();
   const sessions = useProgressStore((state) => state.sessions);
   const hasLoadedSessions = useProgressStore((state) => state.hasLoadedSessions);
   const setCachedSessions = useProgressStore((state) => state.setSessions);
@@ -136,7 +130,7 @@ export default function ProgressScreen() {
   );
 
   const loadSessions = useCallback(
-    async ({ force = false } = {}) => {
+    async ({ force = false, silent = false } = {}) => {
       if (hasLoadedSessions && !force) {
         setIsLoading(false);
         return;
@@ -145,7 +139,9 @@ export default function ProgressScreen() {
       try {
         setErrorMessage("");
 
-        if (force) {
+        if (silent) {
+          setIsRefreshing(false);
+        } else if (force) {
           setIsRefreshing(true);
         } else {
           setIsLoading(true);
@@ -165,8 +161,8 @@ export default function ProgressScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadSessions();
-    }, [loadSessions])
+      loadSessions({ force: true, silent: hasLoadedSessions });
+    }, [hasLoadedSessions, loadSessions])
   );
 
   const refreshSessions = useCallback(() => {
@@ -174,122 +170,123 @@ export default function ProgressScreen() {
   }, [loadSessions]);
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+    <Screen
       refreshControl={
         <RefreshControl
           refreshing={isRefreshing}
           onRefresh={refreshSessions}
-          tintColor={COLORS.accent}
-          colors={[COLORS.accent]}
+          tintColor={colors.secondary}
+          colors={[colors.secondary]}
         />
       }
-      style={styles.container}
       contentContainerStyle={styles.content}
     >
-      <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <Text selectable style={styles.eyebrow}>
-            Progress dashboard
-          </Text>
-          <Text selectable style={styles.title}>
-            Interview readiness
-          </Text>
-          <Text selectable style={styles.subtitle}>
-            Real trends from your saved mock interview sessions.
-          </Text>
-        </View>
+      <ScreenHero
+        badge="Progress dashboard"
+        badgeIcon="chart"
+        icon="chart"
+        title="Interview readiness"
+        subtitle="Real trends from your saved mock interview sessions."
+      >
         <View style={styles.headerScore}>
-          <Text selectable style={styles.headerScoreValue}>
+          <AppText color={colors.secondary} variant="statNumber">
             {averageScore.toFixed(1)}
-          </Text>
-          <Text selectable style={styles.headerScoreLabel}>
+          </AppText>
+          <AppText tone="muted" variant="caption">
             avg
-          </Text>
+          </AppText>
         </View>
-      </View>
+        <ProgressBar progress={averageScore / 10} />
+      </ScreenHero>
 
       <View style={styles.statsRow}>
         {stats.map((stat) => (
-          <View key={stat.label} style={styles.statCard}>
-            <View style={styles.statIcon}>
-              <AppIcon color={COLORS.accent} name={stat.icon} size={18} />
-            </View>
-            <Text selectable style={styles.statValue}>
-              {stat.value}
-            </Text>
-            <Text selectable style={styles.statLabel}>
-              {stat.label}
-            </Text>
-          </View>
+          <MetricCard
+            key={stat.label}
+            helper={
+              stat.label === "Sessions"
+                ? "Saved rounds"
+                : stat.label === "Average"
+                  ? "Out of 10"
+                  : "Current run"
+            }
+            icon={stat.icon}
+            label={stat.label}
+            value={stat.value}
+          />
         ))}
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingCard}>
-          <SkeletonBox style={styles.loadingSkeletonTitle} />
-          <SkeletonBox style={styles.loadingSkeletonLine} />
-          <SkeletonBox style={[styles.loadingSkeletonLine, styles.loadingSkeletonShort]} />
-        </View>
+        <LoadingState message="Loading your saved interview sessions." title="Progress loading" />
       ) : null}
 
       {errorMessage ? (
         <MessageCard message={errorMessage} title="Progress unavailable" tone="error" />
       ) : null}
 
-      <View style={styles.card}>
-        <View style={styles.sectionHeaderRow}>
-          <View>
-            <Text selectable style={styles.sectionTitle}>
-              Recent trend
-            </Text>
-            <Text selectable style={styles.cardSubtext}>
-              Last 7 days, rolling view ending today.
-            </Text>
-          </View>
-          <AppIcon color={COLORS.accent} name="chart" size={22} />
-        </View>
+      <AppCard style={styles.card}>
+        <SectionHeader
+          action={<AppIcon color={colors.secondary} name="chart" size={22} />}
+          subtitle="Last 7 days, rolling view ending today."
+          title="Recent trend"
+        />
         {!sessions.length ? (
           <EmptyPanel
             title="No scored sessions yet"
             message="Complete a mock interview to start building your last 7 days chart."
           />
-        ) : null}
-        <View style={styles.chartWrap}>
-          <View style={styles.yAxis}>
-            {[10, 8, 6, 4, 2, 0].map((tick) => (
-              <Text key={tick} selectable style={styles.axisLabel}>
-                {tick}
-              </Text>
-            ))}
-          </View>
-          <View style={styles.chartArea}>
-            <View style={styles.gridLineTop} />
-            <View style={styles.gridLineMiddle} />
-            <View style={styles.gridLineBottom} />
-            <View style={styles.barRow}>
-              {weeklyScores.map((item, index) => (
-                <View key={`${item.day}-${index}`} style={styles.barColumn}>
-                  <View style={styles.barTrack}>
-                    <View style={[styles.barFill, { height: `${item.score * 10}%` }]} />
-                  </View>
-                  <Text selectable style={styles.scoreLabel}>
-                    {item.score.toFixed(1)}
-                  </Text>
-                  <Text selectable style={styles.dayText}>
-                    {index === weeklyScores.length - 1 ? "Today" : item.day}
-                  </Text>
-                </View>
+        ) : (
+          <View style={styles.chartWrap}>
+            <View style={styles.yAxis}>
+              {[10, 8, 6, 4, 2, 0].map((tick) => (
+                <Text key={tick} selectable style={[styles.axisLabel, { color: colors.muted }]}>
+                  {tick}
+                </Text>
               ))}
             </View>
+            <View style={styles.chartArea}>
+              <View style={[styles.gridLineTop, { backgroundColor: colors.border }]} />
+              <View style={[styles.gridLineMiddle, { backgroundColor: colors.border }]} />
+              <View style={[styles.gridLineBottom, { backgroundColor: colors.border }]} />
+              <View style={styles.barRow}>
+                {weeklyScores.map((item, index) => (
+                  <View key={`${item.day}-${index}`} style={styles.barColumn}>
+                    <View style={[styles.barTrack, { backgroundColor: colors.secondarySoft }]}>
+                      {item.practiced ? (
+                        <View
+                          style={[
+                            styles.barFill,
+                            {
+                              backgroundColor: colors.secondary,
+                              height: `${Math.max(clampScore(item.score) * 10, 6)}%`
+                            }
+                          ]}
+                        />
+                      ) : null}
+                    </View>
+                    <Text
+                      selectable
+                      style={[
+                        styles.scoreLabel,
+                        { color: item.practiced ? colors.text : colors.muted }
+                      ]}
+                    >
+                      {item.practiced ? item.score.toFixed(1) : "-"}
+                    </Text>
+                    <Text selectable style={[styles.dayText, { color: colors.muted }]}>
+                      {index === weeklyScores.length - 1 ? "Today" : item.day}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
+        )}
+      </AppCard>
 
-      <View style={styles.card}>
-        <Text selectable style={styles.sectionTitle}>
-          Strong Topics
-        </Text>
+      <AppCard style={styles.card}>
+        <SectionHeader title="Strong topics" />
         {strongTopics.length ? (
           <View style={styles.topicList}>
             {strongTopics.map((topic) => (
@@ -302,12 +299,10 @@ export default function ProgressScreen() {
             message="Score above 7 in a few sessions and your strongest categories will appear here."
           />
         )}
-      </View>
+      </AppCard>
 
-      <View style={styles.card}>
-        <Text selectable style={styles.sectionTitle}>
-          Needs Improvement
-        </Text>
+      <AppCard style={styles.card}>
+        <SectionHeader title="Needs improvement" />
         {improvementTopics.length ? (
           <View style={styles.topicList}>
             {improvementTopics.map((topic) => (
@@ -320,27 +315,34 @@ export default function ProgressScreen() {
             message="After a few scored sessions, categories that need attention will show up here."
           />
         )}
-      </View>
+      </AppCard>
 
-      <View style={styles.card}>
-        <Text selectable style={styles.sectionTitle}>
-          Last 7 Days Streak
-        </Text>
-        <Text selectable style={styles.cardSubtext}>
-          Rolling view ending today.
-        </Text>
+      <AppCard style={styles.card}>
+        <SectionHeader subtitle="Rolling view ending today." title="Last 7 days streak" />
         <View style={styles.calendarRow}>
           {weeklyScores.map((item, index) => (
             <View key={`${item.day}-${index}`} style={styles.dayItem}>
-              <View style={[styles.dayCircle, item.practiced && styles.dayCircleFilled]} />
-              <Text selectable style={styles.dayLabel}>
+              <View
+                style={[
+                  styles.dayCircle,
+                  { borderColor: item.practiced ? colors.secondary : colors.borderStrong },
+                  item.practiced && {
+                    backgroundColor: colors.secondarySoft
+                  }
+                ]}
+              >
+                {item.practiced ? (
+                  <AppIcon color={colors.secondary} name="check" size={14} />
+                ) : null}
+              </View>
+              <Text selectable style={[styles.dayLabel, { color: colors.muted }]}>
                 {index === weeklyScores.length - 1 ? "Today" : item.day}
               </Text>
             </View>
           ))}
         </View>
-      </View>
-    </ScrollView>
+      </AppCard>
+    </Screen>
   );
 }
 
@@ -374,7 +376,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end"
   },
   barFill: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.secondaryStrong,
     borderRadius: 7,
     bottom: 0,
     left: 0,
@@ -389,10 +391,10 @@ const styles = StyleSheet.create({
     zIndex: 1
   },
   barTrack: {
-    backgroundColor: "rgba(108, 99, 255, 0.14)",
+    backgroundColor: "rgba(98, 214, 255, 0.12)",
     borderRadius: 7,
     flex: 1,
-    minHeight: 140,
+    minHeight: 112,
     overflow: "hidden",
     width: "100%"
   },
@@ -402,43 +404,36 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   card: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 16,
-    padding: 18
+    gap: 12,
+    padding: 15
   },
   chartArea: {
     flex: 1,
-    minHeight: 210,
+    minHeight: 172,
     position: "relative"
   },
   chartWrap: {
     alignItems: "center",
     flexDirection: "row",
     gap: 10,
-    minHeight: 210,
+    minHeight: 172,
     overflow: "hidden"
   },
-  container: {
-    backgroundColor: COLORS.background,
-    flex: 1
-  },
   content: {
-    gap: 18,
-    padding: 20,
-    paddingBottom: 36
+    gap: 14,
+    paddingBottom: 108
   },
   dayCircle: {
-    borderColor: COLORS.accent,
+    alignItems: "center",
+    borderColor: "rgba(98, 214, 255, 0.42)",
     borderRadius: 14,
     borderWidth: 2,
     height: 28,
+    justifyContent: "center",
     width: 28
   },
   dayCircleFilled: {
-    backgroundColor: COLORS.accent
+    backgroundColor: COLORS.secondaryStrong
   },
   dayItem: {
     alignItems: "center",
@@ -456,34 +451,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800"
   },
-  cardSubtext: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 19
-  },
-  emptyText: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20,
-    textAlign: "center"
-  },
   emptyPanel: {
-    alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    gap: 6,
     padding: 14
-  },
-  emptyTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-    textAlign: "center"
   },
   gridLineBottom: {
     backgroundColor: COLORS.border,
@@ -511,14 +480,14 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 18,
-    borderWidth: 1,
     flexDirection: "row",
     gap: 14,
     justifyContent: "space-between",
-    padding: 18
+    overflow: "hidden",
+    shadowColor: COLORS.primary,
+    shadowOffset: { height: 16, width: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20
   },
   headerCopy: {
     flex: 1,
@@ -526,56 +495,19 @@ const styles = StyleSheet.create({
   },
   headerScore: {
     alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: "rgba(108, 99, 255, 0.35)",
-    borderRadius: 16,
+    backgroundColor: "rgba(98, 214, 255, 0.08)",
+    borderColor: "rgba(98, 214, 255, 0.24)",
+    borderRadius: 18,
     borderWidth: 1,
-    height: 76,
+    height: 66,
     justifyContent: "center",
-    width: 76
-  },
-  headerScoreLabel: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: "900",
-    textTransform: "uppercase"
-  },
-  headerScoreValue: {
-    color: COLORS.accent,
-    fontSize: 28,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "900",
-    lineHeight: 32
-  },
-  eyebrow: {
-    color: COLORS.accent,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
-  },
-  improvementBadge: {
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    borderColor: "rgba(239, 68, 68, 0.42)"
-  },
-  improvementText: {
-    color: COLORS.danger
+    width: 66
   },
   loadingCard: {
     alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
     gap: 12,
     justifyContent: "center",
-    minHeight: 120,
-    padding: 18
-  },
-  loadingText: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "800",
-    textAlign: "center"
+    minHeight: 96
   },
   loadingSkeletonLine: {
     height: 18,
@@ -588,75 +520,19 @@ const styles = StyleSheet.create({
     height: 24,
     width: "64%"
   },
+  mutedScore: {
+    color: COLORS.muted
+  },
   scoreLabel: {
     color: COLORS.text,
     fontSize: 11,
     fontVariant: ["tabular-nums"],
     fontWeight: "900"
   },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 19,
-    fontWeight: "900"
-  },
-  sectionHeaderRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between"
-  },
-  statCard: {
-    alignItems: "flex-start",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 16,
-    borderWidth: 1,
-    flex: 1,
-    gap: 9,
-    justifyContent: "space-between",
-    minHeight: 98,
-    minWidth: 104,
-    padding: 14
-  },
-  statIcon: {
-    alignItems: "center",
-    backgroundColor: "rgba(108, 99, 255, 0.12)",
-    borderRadius: 999,
-    height: 34,
-    justifyContent: "center",
-    width: 34
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: "800",
-    lineHeight: 15,
-    textAlign: "center"
-  },
   statsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10
-  },
-  statValue: {
-    color: COLORS.text,
-    fontSize: 24,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "900",
-    lineHeight: 30,
-    textAlign: "center"
-  },
-  strongBadge: {
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
-    borderColor: "rgba(34, 197, 94, 0.42)"
-  },
-  strongText: {
-    color: "#86EFAC"
-  },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 15,
-    fontWeight: "700"
   },
   topicCard: {
     alignItems: "flex-start",
@@ -682,33 +558,10 @@ const styles = StyleSheet.create({
     gap: 10
   },
   topicMeta: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 18
-  },
-  topicTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
-  },
-  strongTopicCard: {
-    backgroundColor: "rgba(34, 197, 94, 0.08)",
-    borderColor: "rgba(34, 197, 94, 0.28)"
-  },
-  improvementTopicCard: {
-    backgroundColor: "rgba(250, 204, 21, 0.08)",
-    borderColor: "rgba(250, 204, 21, 0.28)"
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 35
+    gap: 2
   },
   yAxis: {
-    height: 170,
+    height: 142,
     justifyContent: "space-between",
     paddingTop: 1
   }

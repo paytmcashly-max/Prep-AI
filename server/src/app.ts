@@ -27,6 +27,7 @@ import {
 } from "./services/usageService.js";
 import {
   createRazorpayPaymentLink,
+  getLatestRazorpayPaymentForUser,
   getRazorpayPaymentStatus,
   handleRazorpayWebhook,
   RazorpayUnavailableError,
@@ -310,13 +311,15 @@ app.get("/api/resume/latest", requireFirebaseAuth, async (request, response, nex
 app.get("/api/subscription/status", requireFirebaseAuth, async (request, response, next) => {
   try {
     const uid = getAuthenticatedUid(request);
-    const [subscription, paymentStatus] = await Promise.all([
+    const [subscription, paymentStatus, latestPayment] = await Promise.all([
       getUserSubscriptionStatus(uid),
-      Promise.resolve(getRazorpayPaymentStatus())
+      Promise.resolve(getRazorpayPaymentStatus()),
+      getLatestRazorpayPaymentForUser(uid)
     ]);
 
     response.json({
       ...subscription,
+      lastPayment: latestPayment,
       ...paymentStatus
     });
   } catch (error) {

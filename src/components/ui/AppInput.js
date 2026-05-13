@@ -1,20 +1,34 @@
 import { StyleSheet, TextInput, View } from "react-native";
 
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "../../theme";
+import { RADIUS, SPACING, TYPOGRAPHY, useAppTheme } from "../../theme";
 import AppIcon from "./AppIcon";
 import AppText from "./AppText";
 
 export default function AppInput({ error, icon, inputStyle, label, multiline, style, ...props }) {
+  const { colors } = useAppTheme();
+
   return (
     <View style={[styles.field, style]}>
       {label ? <AppText variant="caption">{label}</AppText> : null}
       <View
-        style={[styles.inputShell, multiline && styles.multilineShell, error && styles.errorShell]}
+        style={[
+          styles.inputShell,
+          {
+            backgroundColor: colors.input,
+            borderColor: error ? colors.danger : colors.inputBorder
+          },
+          multiline && styles.multilineShell
+        ]}
       >
-        {icon ? <AppIcon color={COLORS.muted} name={icon} size={18} /> : null}
+        {icon ? <AppIcon color={colors.muted} name={icon} size={18} /> : null}
         <TextInput
-          placeholderTextColor={COLORS.muted}
-          style={[styles.input, multiline && styles.multilineInput, inputStyle]}
+          placeholderTextColor={colors.muted}
+          style={[
+            styles.input,
+            { color: colors.text },
+            multiline && styles.multilineInput,
+            inputStyle
+          ]}
           multiline={multiline}
           textAlignVertical={multiline ? "top" : "center"}
           {...props}
@@ -30,36 +44,30 @@ export default function AppInput({ error, icon, inputStyle, label, multiline, st
 }
 
 const styles = StyleSheet.create({
-  errorShell: {
-    borderColor: "rgba(251, 113, 133, 0.5)"
-  },
   field: {
     gap: SPACING.sm
   },
   input: {
     ...TYPOGRAPHY.bodyStrong,
-    color: COLORS.text,
     flex: 1,
-    minHeight: 54,
+    minHeight: 48,
     paddingVertical: 0
   },
   inputShell: {
     alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
     flexDirection: "row",
     gap: SPACING.sm,
-    minHeight: 56,
+    minHeight: 52,
     paddingHorizontal: SPACING.lg
   },
   multilineInput: {
-    minHeight: 132,
-    paddingTop: SPACING.lg
+    minHeight: 112,
+    paddingTop: SPACING.md
   },
   multilineShell: {
     alignItems: "flex-start",
-    minHeight: 150
+    minHeight: 128
   }
 });

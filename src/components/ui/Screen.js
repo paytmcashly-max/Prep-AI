@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { COLORS, createScreenContentStyle, GRADIENTS } from "../../theme";
+import { createScreenContentStyle, useAppTheme } from "../../theme";
 
 export default function Screen({
   children,
@@ -12,16 +12,17 @@ export default function Screen({
   style
 }) {
   const insets = useSafeAreaInsets();
+  const { colors, gradients } = useAppTheme();
   const contentStyle = [
     styles.content,
-    createScreenContentStyle(insets.bottom),
+    createScreenContentStyle(insets.top, insets.bottom),
     contentContainerStyle
   ];
 
   if (noScroll) {
     return (
-      <View style={[styles.root, style]}>
-        <LinearGradient colors={GRADIENTS.app} style={StyleSheet.absoluteFillObject} />
+      <View style={[styles.root, { backgroundColor: colors.background }, style]}>
+        <LinearGradient colors={gradients.app} style={StyleSheet.absoluteFillObject} />
         <View style={contentStyle}>{children}</View>
       </View>
     );
@@ -29,14 +30,17 @@ export default function Screen({
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled"
       refreshControl={refreshControl}
       showsVerticalScrollIndicator={false}
-      style={[styles.root, style]}
+      style={[styles.root, { backgroundColor: colors.background }, style]}
       contentContainerStyle={contentStyle}
     >
-      <LinearGradient colors={GRADIENTS.hero} style={styles.heroGlow} />
+      <LinearGradient colors={gradients.app} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={gradients.hero} style={styles.heroGlow} />
+      <View style={styles.orbOne} />
+      <View style={styles.orbTwo} />
       {children}
     </ScrollView>
   );
@@ -47,14 +51,31 @@ const styles = StyleSheet.create({
     flexGrow: 1
   },
   heroGlow: {
-    height: 260,
+    height: 240,
     left: 0,
     position: "absolute",
     right: 0,
     top: 0
   },
+  orbOne: {
+    backgroundColor: "rgba(139, 128, 255, 0.08)",
+    borderRadius: 170,
+    height: 340,
+    left: -120,
+    position: "absolute",
+    top: -92,
+    width: 340
+  },
+  orbTwo: {
+    backgroundColor: "rgba(98, 214, 255, 0.055)",
+    borderRadius: 150,
+    height: 300,
+    position: "absolute",
+    right: -130,
+    top: 150,
+    width: 300
+  },
   root: {
-    backgroundColor: COLORS.background,
     flex: 1
   }
 });

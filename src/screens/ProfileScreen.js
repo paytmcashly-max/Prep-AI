@@ -1,21 +1,19 @@
 import { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Switch,
-  Text,
-  View
-} from "react-native";
+import { ActivityIndicator, Alert, Linking, Share, StyleSheet, Switch, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import Constants from "expo-constants";
 
-import HapticPressable from "../components/HapticPressable";
-import SkeletonBox from "../components/SkeletonBox";
+import AppCard from "../components/ui/AppCard";
 import AppIcon from "../components/ui/AppIcon";
+import AppText from "../components/ui/AppText";
+import IconButton from "../components/ui/IconButton";
+import ListRow from "../components/ui/ListRow";
+import MessageCard from "../components/ui/MessageCard";
+import MetricCard from "../components/ui/MetricCard";
+import Screen from "../components/ui/Screen";
+import SectionHeader from "../components/ui/SectionHeader";
+import SkeletonLine from "../components/ui/SkeletonLine";
+import StatusPill from "../components/ui/StatusPill";
 import { getCurrentUser, signOut } from "../services/authService";
 import {
   getDailyPracticeReminderEnabled,
@@ -28,7 +26,7 @@ import {
 } from "../services/sessionService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
-import { COLORS } from "../theme";
+import { COLORS, useAppTheme } from "../theme";
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.prepai.prepai";
 const APP_CONFIG_EXTRA = Constants.expoConfig?.extra || Constants.manifest?.extra || {};
@@ -51,45 +49,8 @@ const getInitials = (name, email) => {
 const isPlaceholderValue = (value) =>
   !value || value.includes("example.com") || value === "support@example.com";
 
-function StatCard({ label, value }) {
-  return (
-    <View style={styles.statCard}>
-      <Text selectable style={styles.statValue}>
-        {value}
-      </Text>
-      <Text selectable style={styles.statLabel}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-function SettingRow({ destructive, detail, icon = "settings", label, onPress, right }) {
-  return (
-    <HapticPressable
-      disabled={!onPress && !right}
-      onPress={onPress}
-      style={({ pressed }) => [styles.settingRow, pressed && onPress && styles.pressed]}
-    >
-      <View style={[styles.settingIcon, destructive && styles.destructiveIcon]}>
-        <AppIcon color={destructive ? COLORS.dangerSoft : COLORS.accent} name={icon} size={20} />
-      </View>
-      <View style={styles.settingTextWrap}>
-        <Text selectable style={[styles.settingLabel, destructive && styles.destructiveText]}>
-          {label}
-        </Text>
-        {detail ? (
-          <Text selectable style={styles.settingDetail}>
-            {detail}
-          </Text>
-        ) : null}
-      </View>
-      {right || (onPress ? <AppIcon color={COLORS.muted} name="next" size={18} /> : null)}
-    </HapticPressable>
-  );
-}
-
 export default function ProfileScreen({ navigation }) {
+  const { colors } = useAppTheme();
   const profile = useUserStore((state) => state.profile);
   const isPremium = useSubscriptionStore((state) => state.isPremium);
   const isSubscriptionLoading = useSubscriptionStore((state) => state.isLoading);
@@ -237,93 +198,73 @@ export default function ProfileScreen({ navigation }) {
   };
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
-      <View style={styles.profileCard}>
+    <Screen contentContainerStyle={styles.content}>
+      <AppCard gradient="calm" style={styles.profileCard}>
+        <View pointerEvents="none" style={styles.profileGlow} />
         <View style={styles.profileTopRow}>
-          <View style={styles.avatar}>
-            <Text selectable style={styles.avatarText}>
-              {initials}
-            </Text>
+          <View style={styles.avatarFrame}>
+            <View style={styles.avatar}>
+              <AppText variant="cardTitle">{initials}</AppText>
+            </View>
           </View>
           <View style={styles.profileText}>
-            <Text selectable numberOfLines={2} style={styles.name}>
+            <AppText numberOfLines={2} variant="sectionTitle">
               {displayName}
-            </Text>
-            <Text selectable numberOfLines={1} style={styles.email}>
+            </AppText>
+            <AppText numberOfLines={1} tone="muted" variant="bodyMuted">
               {email}
-            </Text>
+            </AppText>
           </View>
-          <HapticPressable
-            onPress={editProfile}
-            style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}
-          >
-            <AppIcon color={COLORS.text} name="edit" size={17} />
-          </HapticPressable>
+          <IconButton accessibilityLabel="Edit profile" icon="edit" onPress={editProfile} />
         </View>
+        <View style={styles.profileDivider} />
         <View style={styles.profileMeta}>
           <View style={styles.rolePill}>
-            <Text selectable numberOfLines={2} style={styles.roleText}>
+            <AppIcon color={colors.primary} name="briefcase" size={15} />
+            <AppText numberOfLines={1} tone="muted" variant="caption">
               {profile.jobRole || "Job role not set"} -{" "}
               {profile.experienceLevel || "Experience not set"}
-            </Text>
+            </AppText>
           </View>
-          <View style={[styles.planCard, isPremium ? styles.premiumPlanCard : styles.freePlanCard]}>
-            <View style={styles.planTextWrap}>
-              <Text selectable style={styles.planEyebrow}>
-                Current plan
-              </Text>
-              <Text selectable style={styles.planTitle}>
-                {isSubscriptionLoading
-                  ? "Checking plan..."
-                  : isPremium
-                    ? "Premium Active"
-                    : "Free Plan"}
-              </Text>
-            </View>
-            <View style={[styles.planDot, isPremium ? styles.premiumDot : styles.freeDot]} />
-          </View>
+          <StatusPill
+            icon={isSubscriptionLoading ? "refresh" : isPremium ? "success" : "lock"}
+            label={isSubscriptionLoading ? "Checking" : isPremium ? "Premium" : "Free"}
+            tone={isPremium ? "success" : "default"}
+          />
         </View>
-      </View>
+      </AppCard>
 
       <View style={styles.statsRow}>
         {isStatsLoading ? (
           ["sessions", "score", "streak"].map((item) => (
-            <View key={item} style={styles.statCard}>
-              <SkeletonBox style={styles.statsSkeletonTitle} />
-              <SkeletonBox style={styles.statsSkeletonLine} />
-            </View>
+            <AppCard key={item} style={styles.statCard}>
+              <SkeletonLine height={24} width="84%" />
+              <SkeletonLine height={12} width="70%" />
+            </AppCard>
           ))
         ) : (
           <>
-            <StatCard label="Total Sessions" value={String(stats.totalSessions)} />
-            <StatCard label="Average Score" value={stats.averageScore.toFixed(1)} />
-            <StatCard label="Current Streak" value={String(stats.currentStreak)} />
+            <MetricCard icon="practice" label="Sessions" value={String(stats.totalSessions)} />
+            <MetricCard icon="star" label="Average" value={stats.averageScore.toFixed(1)} />
+            <MetricCard icon="calendar" label="Streak" value={String(stats.currentStreak)} />
           </>
         )}
       </View>
 
       {statsError ? (
-        <Text selectable style={styles.errorText}>
-          {statsError}
-        </Text>
+        <MessageCard message={statsError} title="Profile stats unavailable" tone="error" />
       ) : null}
 
       <View style={styles.section}>
-        <Text selectable style={styles.sectionTitle}>
-          Practice
-        </Text>
-        <View style={styles.sectionCard}>
-          <SettingRow
+        <SectionHeader title="Practice" />
+        <AppCard style={styles.sectionCard}>
+          <ListRow
             icon="notification"
             label="Notification Settings"
             detail="Daily reminder at 9:00 AM"
             right={
               isReminderSaving ? (
-                <ActivityIndicator color={COLORS.accent} />
+                <ActivityIndicator color={COLORS.secondaryStrong} />
               ) : (
                 <Switch
                   onValueChange={toggleDailyReminder}
@@ -334,320 +275,163 @@ export default function ProfileScreen({ navigation }) {
               )
             }
           />
-          <SettingRow
+          <ListRow
             icon="premium"
             label={isPremium ? "Manage Premium" : "Upgrade to Premium"}
-            detail={isPremium ? "Server-verified premium is active" : "Unlock unlimited practice"}
+            detail={isPremium ? "Premium is active" : "Unlock unlimited practice"}
             onPress={() => navigation.navigate("Paywall")}
           />
-          {isPremium ? (
-            <SettingRow
-              icon="refresh"
-              label="Refresh Premium Status"
-              detail="Check your latest Razorpay verification status"
-              onPress={() => refreshSubscriptionStatus().catch(() => {})}
-            />
-          ) : null}
-        </View>
+        </AppCard>
       </View>
 
       <View style={styles.section}>
-        <Text selectable style={styles.sectionTitle}>
-          Account
-        </Text>
-        <View style={styles.sectionCard}>
-          <SettingRow icon="badge" label="Rate the App" onPress={rateApp} />
-          <SettingRow icon="share" label="Share App" onPress={shareApp} />
-          <SettingRow
+        <SectionHeader title="Account" />
+        <AppCard style={styles.sectionCard}>
+          <ListRow icon="badge" label="Rate the App" onPress={rateApp} />
+          <ListRow icon="share" label="Share App" onPress={shareApp} />
+          <ListRow
             destructive
             icon="logout"
             label={isSigningOut ? "Logging out..." : "Logout"}
             onPress={handleLogout}
             right={isSigningOut ? <ActivityIndicator color={COLORS.danger} /> : null}
           />
-        </View>
+        </AppCard>
       </View>
 
       <View style={styles.section}>
-        <Text selectable style={styles.sectionTitle}>
-          Legal
-        </Text>
-        <View style={styles.sectionCard}>
-          <SettingRow
+        <SectionHeader title="Legal" />
+        <AppCard style={styles.sectionCard}>
+          <ListRow
             icon="document"
             label="Privacy Policy"
-            detail={
-              isPlaceholderValue(PRIVACY_POLICY_URL) ? "Not configured yet" : PRIVACY_POLICY_URL
-            }
+            detail={isPlaceholderValue(PRIVACY_POLICY_URL) ? "Not configured yet" : "View details"}
             onPress={() => openLegalUrl("Privacy Policy", PRIVACY_POLICY_URL)}
           />
-          <SettingRow
+          <ListRow
             icon="document"
             label="Terms of Service"
-            detail={isPlaceholderValue(TERMS_URL) ? "Not configured yet" : TERMS_URL}
+            detail={isPlaceholderValue(TERMS_URL) ? "Not configured yet" : "View details"}
             onPress={() => openLegalUrl("Terms of Service", TERMS_URL)}
           />
-          <SettingRow
+          <ListRow
             icon="mail"
-            label="Support Email"
-            detail={isPlaceholderValue(SUPPORT_EMAIL) ? "Not configured yet" : SUPPORT_EMAIL}
+            label="Contact Us"
+            detail={
+              isPlaceholderValue(SUPPORT_EMAIL) ? "Not configured yet" : "Get help from support"
+            }
             onPress={contactSupport}
           />
-        </View>
+        </AppCard>
       </View>
 
-      <Text selectable style={styles.version}>
+      <AppText style={styles.version} tone="muted" variant="bodyMuted">
         IntervueAI v1.0.0
-      </Text>
-    </ScrollView>
+      </AppText>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   avatar: {
     alignItems: "center",
-    backgroundColor: COLORS.accent,
-    borderRadius: 34,
-    height: 68,
+    backgroundColor: "rgba(98, 214, 255, 0.14)",
+    borderRadius: 24,
+    height: 48,
     justifyContent: "center",
-    width: 68
+    width: 48
   },
-  avatarText: {
-    color: COLORS.text,
-    fontSize: 22,
-    fontWeight: "900"
-  },
-  cardText: {
-    color: COLORS.text
-  },
-  container: {
-    backgroundColor: COLORS.background,
-    flex: 1
+  avatarFrame: {
+    alignItems: "center",
+    backgroundColor: "rgba(98, 214, 255, 0.08)",
+    borderColor: "rgba(98, 214, 255, 0.22)",
+    borderRadius: 30,
+    borderWidth: 1,
+    height: 58,
+    justifyContent: "center",
+    shadowColor: COLORS.primary,
+    shadowOffset: { height: 10, width: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    width: 58
   },
   content: {
-    gap: 22,
-    padding: 20,
-    paddingBottom: 44
-  },
-  destructiveText: {
-    color: COLORS.danger
-  },
-  destructiveIcon: {
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    borderColor: "rgba(239, 68, 68, 0.35)"
-  },
-  email: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "700",
-    maxWidth: "100%"
-  },
-  editButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 42,
-    justifyContent: "center",
-    width: 42
-  },
-  errorText: {
-    backgroundColor: COLORS.dangerSoft,
-    borderColor: COLORS.danger,
-    borderRadius: 8,
-    borderWidth: 1,
-    color: COLORS.danger,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20,
-    padding: 14
-  },
-  loadingText: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "800"
-  },
-  statsSkeletonLine: {
-    height: 12,
-    width: "70%"
-  },
-  statsSkeletonTitle: {
-    height: 24,
-    width: "84%"
-  },
-  name: {
-    color: COLORS.text,
-    fontSize: 24,
-    fontWeight: "900",
-    lineHeight: 30
-  },
-  pressed: {
-    opacity: 0.75
-  },
-  freeDot: {
-    backgroundColor: COLORS.muted
-  },
-  freePlanCard: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border
-  },
-  planCard: {
-    alignItems: "center",
-    alignSelf: "stretch",
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingVertical: 10
-  },
-  planDot: {
-    borderRadius: 5,
-    height: 10,
-    width: 10
-  },
-  planEyebrow: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: "900",
-    textTransform: "uppercase"
-  },
-  planTextWrap: {
-    flex: 1,
-    gap: 2
-  },
-  planTitle: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "900"
-  },
-  premiumDot: {
-    backgroundColor: COLORS.success
-  },
-  premiumPlanCard: {
-    backgroundColor: "rgba(34, 197, 94, 0.14)",
-    borderColor: "rgba(34, 197, 94, 0.45)"
+    gap: 14,
+    paddingBottom: 108
   },
   profileCard: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 16,
-    padding: 18
+    gap: 10,
+    overflow: "hidden",
+    shadowColor: COLORS.primary,
+    shadowOffset: { height: 18, width: 0 },
+    shadowOpacity: 0.14,
+    shadowRadius: 24
+  },
+  profileDivider: {
+    backgroundColor: "rgba(255, 255, 255, 0.09)",
+    height: 1
+  },
+  profileGlow: {
+    backgroundColor: "rgba(98, 214, 255, 0.16)",
+    borderRadius: 120,
+    height: 132,
+    position: "absolute",
+    right: -64,
+    top: -70,
+    width: 132
   },
   profileMeta: {
-    gap: 10
-  },
-  profileTopRow: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 16,
+    flexWrap: "wrap",
+    gap: 8
+  },
+  profileTopRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 12,
     minWidth: 0
   },
   profileText: {
     flex: 1,
-    gap: 8
+    gap: 5
   },
   rolePill: {
+    alignItems: "center",
     alignSelf: "flex-start",
-    borderColor: COLORS.accent,
-    borderRadius: 14,
+    backgroundColor: "rgba(98, 214, 255, 0.11)",
+    borderColor: "rgba(98, 214, 255, 0.14)",
+    borderRadius: 999,
     borderWidth: 1,
+    flexDirection: "row",
+    gap: 8,
     maxWidth: "100%",
-    paddingHorizontal: 12,
-    paddingVertical: 7
-  },
-  roleText: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: "800"
+    paddingHorizontal: 10,
+    paddingVertical: 6
   },
   section: {
     gap: 10
   },
   sectionCard: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: "hidden"
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900"
-  },
-  settingDetail: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 18
-  },
-  settingLabel: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "800"
-  },
-  settingIcon: {
-    alignItems: "center",
-    backgroundColor: "rgba(108, 99, 255, 0.12)",
-    borderColor: "rgba(108, 99, 255, 0.28)",
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 36,
-    justifyContent: "center",
-    width: 36
-  },
-  settingRow: {
-    alignItems: "center",
-    borderBottomColor: COLORS.border,
-    borderBottomWidth: 1,
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-    minHeight: 64,
-    paddingHorizontal: 16,
-    paddingVertical: 14
-  },
-  settingTextWrap: {
-    flex: 1,
-    gap: 4
+    borderRadius: 18,
+    gap: 8,
+    padding: 8
   },
   statCard: {
     alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 18,
     flex: 1,
-    gap: 6,
+    gap: 4,
     justifyContent: "center",
-    minHeight: 94,
-    padding: 10
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: "800",
-    textAlign: "center"
+    minHeight: 74,
+    padding: 9
   },
   statsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10
   },
-  statValue: {
-    color: COLORS.text,
-    fontSize: 22,
-    fontWeight: "900"
-  },
   version: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "800",
     textAlign: "center"
   }
 });

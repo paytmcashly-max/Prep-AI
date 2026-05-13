@@ -6,31 +6,33 @@ import HapticPressable from "../components/HapticPressable";
 import AppButton from "../components/ui/AppButton";
 import AppIcon from "../components/ui/AppIcon";
 import AppText from "../components/ui/AppText";
+import BrandMark from "../components/ui/BrandMark";
 import Screen from "../components/ui/Screen";
-import { COLORS, GRADIENTS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
+import { COLORS, PRESSED_STYLE, RADIUS, SPACING, useAppTheme } from "../theme";
 
 const SLIDES = [
   {
-    body: "Answer realistic interview questions, review your score, and improve one response at a time.",
-    icon: "practice",
+    body: "Practice realistic rounds, get clear feedback, and build confidence before the real interview.",
+    icon: "target",
     metric: "5 Qs/day",
-    title: "Practice with a calmer interview coach"
+    title: "Practice smarter. Interview better."
   },
   {
-    body: "See what worked, what to tighten, and how to say the same answer with more confidence.",
+    body: "See what worked, what to tighten, and how to make each answer sharper.",
     icon: "target",
     metric: "Clear feedback",
-    title: "Turn every answer into a sharper one"
+    title: "Turn answers into coaching notes"
   },
   {
-    body: "Upload or paste your resume to get ATS feedback, missing keywords, and lines you can adapt.",
+    body: "Upload your resume for ATS readiness, missing keywords, and practical rewrite suggestions.",
     icon: "resume",
     metric: "Resume scan",
-    title: "Prepare your profile before you apply"
+    title: "Prepare your profile before applying"
   }
 ];
 
 export default function OnboardingScreen({ navigation }) {
+  const { colorScheme, colors, gradients } = useAppTheme();
   const [activeIndex, setActiveIndex] = useState(0);
   const slide = SLIDES[activeIndex];
   const isLast = activeIndex === SLIDES.length - 1;
@@ -48,9 +50,7 @@ export default function OnboardingScreen({ navigation }) {
     <Screen contentContainerStyle={styles.content}>
       <View style={styles.topBar}>
         <View style={styles.brand}>
-          <View style={styles.brandMark}>
-            <AppIcon color={COLORS.primary} name="target" size={18} />
-          </View>
+          <BrandMark size="sm" />
           <AppText variant="cardTitle">IntervueAI</AppText>
         </View>
         <HapticPressable
@@ -65,23 +65,49 @@ export default function OnboardingScreen({ navigation }) {
       </View>
 
       <View style={styles.heroWrap}>
-        <LinearGradient colors={GRADIENTS.calm} style={styles.heroCard}>
+        <LinearGradient colors={gradients.calm} style={styles.heroCard}>
           <View style={styles.heroHeader}>
-            <View style={styles.heroIcon}>
-              <AppIcon color={COLORS.text} name={slide.icon} size={34} />
+            <View
+              style={[
+                styles.heroIcon,
+                { backgroundColor: colors.secondarySoft, borderColor: colors.border }
+              ]}
+            >
+              <AppIcon color={colors.secondary} name={slide.icon} size={32} />
             </View>
-            <View style={styles.metricPill}>
-              <AppText color="#FFFFFF" variant="caption">
+            <View style={[styles.metricPill, { backgroundColor: colors.primarySoft }]}>
+              <AppText color={colors.primary} variant="caption">
                 {slide.metric}
               </AppText>
             </View>
           </View>
 
           <View style={styles.previewStack}>
-            <View style={styles.previewLineLong} />
-            <View style={styles.previewLine} />
-            <View style={styles.feedbackMini}>
-              <AppIcon color={COLORS.success} name="success" size={18} />
+            <View
+              style={[
+                styles.previewLineLong,
+                {
+                  backgroundColor:
+                    colorScheme === "light" ? colors.borderStrong : "rgba(255, 255, 255, 0.28)"
+                }
+              ]}
+            />
+            <View
+              style={[
+                styles.previewLine,
+                {
+                  backgroundColor:
+                    colorScheme === "light" ? colors.border : "rgba(255, 255, 255, 0.16)"
+                }
+              ]}
+            />
+            <View
+              style={[
+                styles.feedbackMini,
+                { backgroundColor: colors.card, borderColor: colors.border }
+              ]}
+            >
+              <AppIcon color={colors.success} name="success" size={18} />
               <AppText variant="caption">Actionable feedback</AppText>
             </View>
           </View>
@@ -135,6 +161,7 @@ const styles = StyleSheet.create({
     gap: SPACING.md
   },
   body: {
+    maxWidth: 390,
     textAlign: "center"
   },
   brand: {
@@ -142,17 +169,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: SPACING.sm
   },
-  brandMark: {
-    alignItems: "center",
-    backgroundColor: COLORS.primarySoft,
-    borderColor: "rgba(124, 109, 255, 0.35)",
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    height: 40,
-    justifyContent: "center",
-    width: 40
-  },
   content: {
+    gap: SPACING.xxl,
     justifyContent: "space-between"
   },
   copy: {
@@ -164,7 +182,7 @@ const styles = StyleSheet.create({
     height: 8
   },
   dotActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.secondaryStrong,
     width: 34
   },
   dotIdle: {
@@ -193,7 +211,6 @@ const styles = StyleSheet.create({
     gap: SPACING.xl
   },
   heroCard: {
-    borderColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: RADIUS.xl,
     borderWidth: 1,
     gap: SPACING.xxl,
@@ -206,8 +223,8 @@ const styles = StyleSheet.create({
   },
   heroIcon: {
     alignItems: "center",
-    backgroundColor: "rgba(124, 109, 255, 0.32)",
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
     height: 66,
     justifyContent: "center",
     width: 66
@@ -216,7 +233,6 @@ const styles = StyleSheet.create({
     gap: SPACING.lg
   },
   metricPill: {
-    backgroundColor: COLORS.primary,
     borderRadius: RADIUS.pill,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm

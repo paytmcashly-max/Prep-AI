@@ -1,23 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Easing,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
-} from "react-native";
-import Svg, { Circle } from "react-native-svg";
+import { Alert, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
 
 import FreeLimitCard from "../components/FreeLimitCard";
-import HapticPressable from "../components/HapticPressable";
 import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
-import SkeletonBox from "../components/SkeletonBox";
+import AppButton from "../components/ui/AppButton";
+import AppCard from "../components/ui/AppCard";
 import AppIcon from "../components/ui/AppIcon";
+import AppText from "../components/ui/AppText";
+import IconButton from "../components/ui/IconButton";
+import InsightCard from "../components/ui/InsightCard";
+import MessageCard from "../components/ui/MessageCard";
+import SkeletonLine from "../components/ui/SkeletonLine";
+import TimerPill from "../components/ui/TimerPill";
 import "../services/firebaseConfig";
 import { trackEvent } from "../services/analyticsService";
 import { evaluateAnswer, generateQuestion } from "../services/aiService";
@@ -26,17 +20,11 @@ import { saveMockInterviewSession } from "../services/sessionService";
 import { useProgressStore } from "../store/progressStore";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
-import { DARK_COLORS as COLORS } from "../theme";
+import { useAppTheme } from "../theme";
 
 const DEFAULT_QUESTION_COUNT = 5;
 const MAX_PREMIUM_QUESTION_COUNT = 20;
 const QUESTION_TIME_SECONDS = 60;
-const TIMER_SIZE = 62;
-const TIMER_STROKE_WIDTH = 5;
-const TIMER_RADIUS = (TIMER_SIZE - TIMER_STROKE_WIDTH) / 2;
-const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const formatDifficulty = (difficulty) => {
   if (difficulty === "hard") {
@@ -93,88 +81,7 @@ const getAverageScore = (scores) => {
   return (total / scores.length).toFixed(1);
 };
 
-const isInterviewUsageLimitError = (error) =>
-  error?.status === 429 &&
-  String(error?.message || "")
-    .toLowerCase()
-    .includes("free interview questions");
-
-function CircularTimer({ secondsLeft }) {
-  const progress = useRef(new Animated.Value(1)).current;
-  const colorProgress = useRef(new Animated.Value(0)).current;
-  const animatedTimerColor = colorProgress.interpolate({
-    inputRange: [0, 1, 2],
-    outputRange: [COLORS.green, COLORS.yellow, COLORS.red]
-  });
-  const strokeDashoffset = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [TIMER_CIRCUMFERENCE, 0]
-  });
-
-  useEffect(() => {
-    Animated.timing(progress, {
-      duration: 450,
-      easing: Easing.out(Easing.quad),
-      toValue: secondsLeft / QUESTION_TIME_SECONDS,
-      useNativeDriver: false
-    }).start();
-
-    Animated.timing(colorProgress, {
-      duration: 350,
-      easing: Easing.out(Easing.quad),
-      toValue: secondsLeft < 15 ? 2 : secondsLeft <= 30 ? 1 : 0,
-      useNativeDriver: false
-    }).start();
-  }, [colorProgress, progress, secondsLeft]);
-
-  return (
-    <View style={styles.timerRingWrap}>
-      <Svg height={TIMER_SIZE} width={TIMER_SIZE} style={styles.timerSvg}>
-        <Circle
-          cx={TIMER_SIZE / 2}
-          cy={TIMER_SIZE / 2}
-          fill="transparent"
-          r={TIMER_RADIUS}
-          stroke={COLORS.border}
-          strokeWidth={TIMER_STROKE_WIDTH}
-        />
-        <AnimatedCircle
-          cx={TIMER_SIZE / 2}
-          cy={TIMER_SIZE / 2}
-          fill="transparent"
-          r={TIMER_RADIUS}
-          stroke={animatedTimerColor}
-          strokeDasharray={`${TIMER_CIRCUMFERENCE} ${TIMER_CIRCUMFERENCE}`}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          strokeWidth={TIMER_STROKE_WIDTH}
-          transform={`rotate(-90 ${TIMER_SIZE / 2} ${TIMER_SIZE / 2})`}
-        />
-      </Svg>
-      <View style={styles.timerCenter}>
-        <Animated.Text selectable style={[styles.timerText, { color: animatedTimerColor }]}>
-          {secondsLeft}s
-        </Animated.Text>
-        <Text selectable style={styles.timerLabel}>
-          left
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function ErrorState({ message, title = "Something went wrong" }) {
-  return (
-    <View style={styles.errorState}>
-      <Text selectable style={styles.errorTitle}>
-        {title}
-      </Text>
-      <Text selectable style={styles.errorText}>
-        {message}
-      </Text>
-    </View>
-  );
-}
+const isInterviewUsageLimitError = (error) => error?.status === 429;
 
 const saveSession = async (avgScore, category, jobRole, questionsAttempted) => {
   await saveMockInterviewSession({
@@ -188,6 +95,7 @@ const saveSession = async (avgScore, category, jobRole, questionsAttempted) => {
 };
 
 export default function MockInterviewScreen({ navigation, route }) {
+  const { colors } = useAppTheme();
   const category = route?.params?.category || "HR";
   const difficulty = route?.params?.difficulty || "easy";
   const categoryName = useMemo(() => formatCategory(category), [category]);
@@ -222,6 +130,16 @@ export default function MockInterviewScreen({ navigation, route }) {
 
   const finalScores = scoresRef.current.length ? scoresRef.current : scores;
   const averageScore = getAverageScore(finalScores);
+  const hasTimedOut = Boolean(
+    question &&
+    !feedback &&
+    !isCheckingUsage &&
+    !isQuestionLoading &&
+    !isEvaluating &&
+    !isSessionComplete &&
+    !isLimitReached &&
+    secondsLeft <= 0
+  );
 
   const blockForDailyLimit = useCallback(() => {
     setIsLimitReached(true);
@@ -447,6 +365,23 @@ export default function MockInterviewScreen({ navigation, route }) {
     completeOrLoadNext();
   };
 
+  const continueAfterTimeout = () => {
+    if (
+      questionRequestInFlightRef.current ||
+      isCheckingUsage ||
+      isEvaluating ||
+      isQuestionLoading ||
+      isSavingSession ||
+      !question
+    ) {
+      return;
+    }
+
+    trackEvent("question_timed_out", { category, questionNumber });
+    recordQuestionScore(0);
+    completeOrLoadNext();
+  };
+
   const backToHome = () => {
     navigation.navigate("MainTabs", {
       screen: "Home",
@@ -468,73 +403,88 @@ export default function MockInterviewScreen({ navigation, route }) {
     return (
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.content, styles.summaryContent]}
       >
-        <View style={styles.summaryCard}>
+        <AppCard style={styles.summaryCard}>
           <View style={styles.summaryIconBubble}>
-            <AppIcon color={COLORS.success} name="success" size={40} />
+            <AppIcon color={colors.success} name="success" size={40} />
           </View>
-          <Text selectable style={styles.summaryTitle}>
+          <AppText style={styles.centerText} variant="screenTitle">
             Session Complete
-          </Text>
-          <Text selectable style={styles.summarySubtitle}>
+          </AppText>
+          <AppText style={styles.centerText} tone="muted" variant="body">
             You completed {totalQuestions} interview questions for {jobRole || "your role"}.
-          </Text>
-          <View style={styles.averageScoreBox}>
-            <Text selectable style={styles.averageScoreText}>
+          </AppText>
+          <View
+            style={[
+              styles.averageScoreBox,
+              {
+                backgroundColor: colors.cardAlt,
+                borderColor: colors.primary
+              }
+            ]}
+          >
+            <AppText color={colors.primary} variant="statNumber">
               {averageScore}/10
-            </Text>
-            <Text selectable style={styles.averageScoreLabel}>
+            </AppText>
+            <AppText tone="muted" variant="caption">
               Average Score
-            </Text>
+            </AppText>
           </View>
           {sessionSaveError ? (
-            <ErrorState title="Progress not saved" message={sessionSaveError} />
+            <MessageCard title="Progress not saved" message={sessionSaveError} tone="error" />
           ) : null}
-          <View style={styles.shareCard}>
-            <Text selectable style={styles.shareLogo}>
+          <View
+            style={[
+              styles.shareCard,
+              {
+                backgroundColor: colors.cardAlt,
+                borderColor: colors.border
+              }
+            ]}
+          >
+            <AppText tone="secondary" variant="caption">
               IntervueAI
-            </Text>
-            <Text selectable style={styles.shareHeadline}>
-              I just completed a mock interview
-            </Text>
-            <View style={styles.shareMetricRow}>
-              <Text selectable style={styles.shareMetricLabel}>
+            </AppText>
+            <AppText variant="cardTitle">I just completed a mock interview</AppText>
+            <View
+              style={[
+                styles.shareMetricRow,
+                {
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <AppText tone="muted" variant="caption">
                 Category
-              </Text>
-              <Text selectable style={styles.shareMetricValue}>
-                {categoryName}
-              </Text>
+              </AppText>
+              <AppText variant="bodyStrong">{categoryName}</AppText>
             </View>
-            <View style={styles.shareMetricRow}>
-              <Text selectable style={styles.shareMetricLabel}>
+            <View
+              style={[
+                styles.shareMetricRow,
+                {
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <AppText tone="muted" variant="caption">
                 Score
-              </Text>
-              <Text selectable style={styles.shareScore}>
+              </AppText>
+              <AppText color={colors.primary} variant="statNumber">
                 {averageScore}/10
-              </Text>
+              </AppText>
             </View>
-            <Text selectable style={styles.shareFooter}>
+            <AppText tone="muted" variant="bodyMuted">
               Practice with IntervueAI - Practice smarter. Interview better.
-            </Text>
+            </AppText>
           </View>
-          <HapticPressable
-            onPress={shareResult}
-            style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
-          >
-            <View style={styles.shareButtonContent}>
-              <AppIcon color={COLORS.text} name="share" size={18} />
-              <Text style={styles.shareButtonText}>Share Result</Text>
-            </View>
-          </HapticPressable>
-          <HapticPressable
-            onPress={backToHome}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.primaryButtonText}>Back to Home</Text>
-          </HapticPressable>
-        </View>
+          <AppButton icon="share" onPress={shareResult} tone="secondary">
+            Share Result
+          </AppButton>
+          <AppButton onPress={backToHome}>Back to Home</AppButton>
+        </AppCard>
       </ScrollView>
     );
   }
@@ -543,10 +493,12 @@ export default function MockInterviewScreen({ navigation, route }) {
     return (
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.content, styles.summaryContent]}
       >
         <FreeLimitCard
+          countdownLabel="Available again"
+          message="You've used today's free interview questions. Your free practice resets soon, or you can upgrade for more rounds."
           onBack={() =>
             navigation.navigate("MainTabs", {
               screen: "Practice",
@@ -555,218 +507,270 @@ export default function MockInterviewScreen({ navigation, route }) {
           }
           onUpgrade={() => navigation.navigate("Paywall")}
           resetCountdown={resetCountdown}
+          secondaryLabel="Back to Practice"
+          title="Daily free limit reached"
         />
       </ScrollView>
     );
   }
 
   return (
-    <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAwareScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
       <View style={styles.topBar}>
-        <HapticPressable
+        <IconButton
+          accessibilityLabel="Go back"
+          icon="back"
           onPress={() => navigation.goBack()}
-          style={({ pressed }) => [styles.topBackButton, pressed && styles.pressed]}
-        >
-          <AppIcon color={COLORS.text} name="back" size={18} />
-        </HapticPressable>
+          size={42}
+        />
         <View style={styles.topMeta}>
-          <Text selectable style={styles.categoryText} numberOfLines={1}>
+          <AppText numberOfLines={1} variant="bodyStrong">
             {categoryName}
-          </Text>
-          <Text selectable style={styles.counterText}>
+          </AppText>
+          <AppText tone="muted" variant="bodyMuted">
             {difficultyName} - {questionNumber} of {totalQuestions}
-          </Text>
+          </AppText>
         </View>
-        <CircularTimer secondsLeft={secondsLeft} />
+        <TimerPill label={`${secondsLeft}s left`} />
       </View>
 
-      <View style={styles.questionCard}>
+      <AppCard
+        style={[styles.questionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+      >
         <View style={styles.cardHeaderRow}>
-          <AppIcon color={COLORS.accent} name="message" size={18} />
-          <Text selectable style={styles.questionLabel}>
+          <AppIcon color={colors.primary} name="message" size={18} />
+          <AppText tone="primary" variant="caption">
             Interview prompt
-          </Text>
+          </AppText>
         </View>
         {isCheckingUsage ? (
           <View style={styles.loadingBox}>
-            <SkeletonBox style={styles.questionSkeletonLine} />
-            <SkeletonBox style={[styles.questionSkeletonLine, styles.questionSkeletonShort]} />
-            <Text selectable style={styles.loadingText}>
+            <SkeletonLine height={16} />
+            <SkeletonLine height={16} width="70%" />
+            <AppText tone="muted" variant="bodyMuted">
               Checking your practice limit...
-            </Text>
+            </AppText>
           </View>
         ) : isQuestionLoading ? (
           <View style={styles.loadingBox}>
-            <SkeletonBox style={styles.questionSkeletonLine} />
-            <SkeletonBox style={[styles.questionSkeletonLine, styles.questionSkeletonShort]} />
-            <Text selectable style={styles.loadingText}>
+            <SkeletonLine height={16} />
+            <SkeletonLine height={16} width="70%" />
+            <AppText tone="muted" variant="bodyMuted">
               Preparing your question...
-            </Text>
+            </AppText>
           </View>
         ) : !question ? (
           <View style={styles.emptyQuestionState}>
-            <Text selectable style={styles.emptyQuestionTitle}>
+            <AppText style={styles.centerText} variant="cardTitle">
               No question loaded
-            </Text>
-            <Text selectable style={styles.emptyQuestionText}>
+            </AppText>
+            <AppText style={styles.centerText} tone="muted" variant="bodyMuted">
               The interview will continue once a question is available.
-            </Text>
+            </AppText>
           </View>
         ) : (
-          <Text selectable style={styles.questionText}>
+          <AppText style={styles.questionText} variant="sectionTitle">
             {question}
-          </Text>
+          </AppText>
         )}
-      </View>
+      </AppCard>
 
-      <View style={styles.answerSection}>
+      <AppCard
+        style={[styles.answerSection, { backgroundColor: colors.card, borderColor: colors.border }]}
+      >
         <View style={styles.cardHeaderRow}>
-          <AppIcon color={COLORS.accent} name="send" size={18} />
-          <Text selectable style={styles.sectionTitle}>
-            Your answer
-          </Text>
+          <AppIcon color={colors.primary} name="send" size={18} />
+          <AppText variant="sectionTitle">Your answer</AppText>
         </View>
         <TextInput
-          editable={!isCheckingUsage && !isQuestionLoading && !isEvaluating && !feedback}
+          editable={
+            !isCheckingUsage && !isQuestionLoading && !isEvaluating && !feedback && !hasTimedOut
+          }
           multiline
           onChangeText={setAnswer}
           placeholder="Answer naturally. Focus on one clear example and your impact."
-          placeholderTextColor={COLORS.muted}
-          style={styles.answerInput}
+          placeholderTextColor={colors.muted}
+          style={[
+            styles.answerInput,
+            { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }
+          ]}
           textAlignVertical="top"
           value={answer}
         />
-      </View>
+      </AppCard>
 
-      {errorMessage ? <ErrorState message={errorMessage} /> : null}
+      {errorMessage ? <MessageCard message={errorMessage} tone="error" /> : null}
 
-      {!feedback ? (
-        <View style={styles.buttonRow}>
-          <HapticPressable
-            disabled={isCheckingUsage || isQuestionLoading || isEvaluating || !question}
-            onPress={submitAnswer}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              (pressed || isEvaluating) && styles.pressed,
-              (isCheckingUsage || isQuestionLoading || isEvaluating || !question) &&
-                styles.disabledButton
-            ]}
+      {hasTimedOut ? (
+        <AppCard
+          style={[
+            styles.timeoutCard,
+            { backgroundColor: colors.warningSoft, borderColor: colors.warning }
+          ]}
+        >
+          <View style={styles.timeoutHeader}>
+            <View
+              style={[
+                styles.timeoutIconWrap,
+                { backgroundColor: colors.card, borderColor: colors.warning }
+              ]}
+            >
+              <AppIcon color={colors.warning} name="timer" size={18} />
+            </View>
+            <View style={styles.timeoutCopy}>
+              <AppText variant="cardTitle">Time is up</AppText>
+              <AppText tone="muted" variant="bodyMuted">
+                This response will count as skipped. Move on when you are ready.
+              </AppText>
+            </View>
+          </View>
+          <View style={styles.timeoutMetaRow}>
+            <View
+              style={[
+                styles.timeoutMetaPill,
+                { backgroundColor: colors.card, borderColor: colors.border }
+              ]}
+            >
+              <AppText tone="muted" variant="caption">
+                Score
+              </AppText>
+              <AppText variant="bodyStrong">0/10</AppText>
+            </View>
+            <View
+              style={[
+                styles.timeoutMetaPill,
+                { backgroundColor: colors.card, borderColor: colors.border }
+              ]}
+            >
+              <AppText tone="muted" variant="caption">
+                Next
+              </AppText>
+              <AppText variant="bodyStrong">
+                {questionNumber >= totalQuestions ? "Summary" : "Question"}
+              </AppText>
+            </View>
+          </View>
+          <AppButton
+            disabled={isSavingSession}
+            loading={isSavingSession}
+            onPress={continueAfterTimeout}
           >
-            {isEvaluating ? (
-              <ActivityIndicator color={COLORS.text} />
-            ) : (
-              <Text style={styles.primaryButtonText}>Submit Answer</Text>
-            )}
-          </HapticPressable>
-
-          <HapticPressable
+            {questionNumber >= totalQuestions ? "View Summary" : "Continue"}
+          </AppButton>
+        </AppCard>
+      ) : !feedback ? (
+        <View style={styles.buttonRow}>
+          <AppButton
             disabled={
               isCheckingUsage || isQuestionLoading || isEvaluating || isSavingSession || !question
             }
             onPress={skipQuestion}
-            style={({ pressed }) => [
-              styles.secondaryButton,
-              pressed && styles.pressed,
-              (isCheckingUsage ||
-                isQuestionLoading ||
-                isEvaluating ||
-                isSavingSession ||
-                !question) &&
-                styles.disabledButton
-            ]}
+            style={styles.actionButton}
+            tone="secondary"
           >
-            <Text style={styles.secondaryButtonText}>Skip Question</Text>
-          </HapticPressable>
+            Skip Question
+          </AppButton>
+
+          <AppButton
+            disabled={isCheckingUsage || isQuestionLoading || isEvaluating || !question}
+            loading={isEvaluating}
+            onPress={submitAnswer}
+            style={styles.actionButton}
+          >
+            Submit Answer
+          </AppButton>
         </View>
       ) : null}
 
       {feedback ? (
-        <View style={styles.feedbackCard}>
+        <AppCard
+          style={[
+            styles.feedbackCard,
+            { backgroundColor: colors.card, borderColor: colors.primary }
+          ]}
+          tone="accent"
+        >
           <View style={styles.feedbackHeader}>
             <View style={styles.feedbackTitleGroup}>
-              <Text selectable style={styles.feedbackTitle}>
-                Answer Feedback
-              </Text>
-              <Text selectable style={styles.feedbackSubtitle}>
+              <AppText variant="sectionTitle">Answer feedback</AppText>
+              <AppText tone="muted" variant="bodyMuted">
                 Review the score, then improve one part at a time.
-              </Text>
-            </View>
-            <View style={styles.scorePill}>
-              <Text selectable style={styles.scoreLabel}>
-                Score
-              </Text>
-              <Text selectable style={styles.scoreText}>
-                {feedback.score}/10
-              </Text>
+              </AppText>
             </View>
           </View>
 
-          <View style={styles.feedbackSection}>
-            <Text selectable style={styles.feedbackSectionTitle}>
-              What worked
-            </Text>
-            {(feedback.strengths || []).map((strength) => (
-              <View key={strength} style={styles.feedbackBullet}>
-                <AppIcon color={COLORS.green} name="check" size={16} />
-                <Text selectable style={styles.feedbackBulletText}>
-                  {strength}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.feedbackSection}>
-            <Text selectable style={styles.feedbackSectionTitle}>
-              What to improve
-            </Text>
-            {(feedback.improvements || []).map((improvement) => (
-              <View key={improvement} style={styles.feedbackBullet}>
-                <AppIcon color={COLORS.warning} name="target" size={16} />
-                <Text selectable style={styles.feedbackBulletText}>
-                  {improvement}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <HapticPressable
-            onPress={() => setShowIdealAnswer((current) => !current)}
-            style={({ pressed }) => [styles.collapsibleButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.collapsibleButtonText}>
-              {showIdealAnswer ? "Hide Ideal Answer" : "Try saying it like this"}
-            </Text>
-          </HapticPressable>
-
-          {showIdealAnswer ? (
-            <View style={styles.idealAnswerBox}>
-              <Text selectable style={styles.idealAnswerLabel}>
-                Ideal answer
-              </Text>
-              <Text selectable style={styles.idealAnswerText}>
-                {feedback.idealAnswer}
-              </Text>
-            </View>
-          ) : null}
-
-          <HapticPressable
-            disabled={isSavingSession}
-            onPress={completeOrLoadNext}
-            style={({ pressed }) => [
-              styles.nextButton,
-              pressed && styles.pressed,
-              isSavingSession && styles.disabledButton
+          <View
+            style={[
+              styles.feedbackScorePanel,
+              { backgroundColor: colors.card, borderColor: colors.border }
             ]}
           >
-            {isSavingSession ? (
-              <ActivityIndicator color={COLORS.text} />
-            ) : (
-              <Text style={styles.nextButtonText}>
-                {questionNumber >= totalQuestions ? "View Summary" : "Next Question"}
-              </Text>
-            )}
-          </HapticPressable>
-        </View>
+            <View
+              style={[
+                styles.feedbackScoreIcon,
+                { backgroundColor: colors.primarySoft, borderColor: colors.border }
+              ]}
+            >
+              <AppIcon color={colors.primary} name="star" size={20} />
+            </View>
+            <View style={styles.feedbackScoreCopy}>
+              <AppText tone="muted" variant="caption">
+                Coaching score
+              </AppText>
+              <AppText variant="sectionTitle">{feedback.score}/10</AppText>
+            </View>
+            <AppText style={styles.feedbackScoreHint} tone="muted" variant="bodyMuted">
+              Focus on the highest-impact improvement first.
+            </AppText>
+          </View>
+
+          <InsightCard icon="success" title="What worked" tone="success">
+            {(feedback.strengths || []).map((strength) => (
+              <View key={strength} style={styles.feedbackBullet}>
+                <AppIcon color={colors.success} name="check" size={16} />
+                <AppText style={styles.feedbackBulletText} tone="muted" variant="bodyMuted">
+                  {strength}
+                </AppText>
+              </View>
+            ))}
+          </InsightCard>
+
+          <InsightCard icon="target" title="What to improve" tone="warning">
+            {(feedback.improvements || []).map((improvement) => (
+              <View key={improvement} style={styles.feedbackBullet}>
+                <AppIcon color={colors.warning} name="target" size={16} />
+                <AppText style={styles.feedbackBulletText} tone="muted" variant="bodyMuted">
+                  {improvement}
+                </AppText>
+              </View>
+            ))}
+          </InsightCard>
+
+          <AppButton
+            onPress={() => setShowIdealAnswer((current) => !current)}
+            rightIcon={showIdealAnswer ? "up" : "down"}
+            tone="secondary"
+          >
+            {showIdealAnswer ? "Hide Ideal Answer" : "Try saying it like this"}
+          </AppButton>
+
+          {showIdealAnswer ? (
+            <InsightCard icon="sparkles" title="Ideal answer" tone="default">
+              <AppText variant="body">{feedback.idealAnswer}</AppText>
+            </InsightCard>
+          ) : null}
+
+          <AppButton
+            disabled={isSavingSession}
+            loading={isSavingSession}
+            onPress={completeOrLoadNext}
+          >
+            {questionNumber >= totalQuestions ? "View Summary" : "Next Question"}
+          </AppButton>
+        </AppCard>
       ) : null}
     </KeyboardAwareScrollView>
   );
@@ -774,141 +778,52 @@ export default function MockInterviewScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   answerInput: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
     borderRadius: 12,
     borderWidth: 1,
-    color: COLORS.text,
-    fontSize: 16,
-    lineHeight: 23,
-    minHeight: 132,
-    padding: 16
+    fontSize: 15,
+    lineHeight: 22,
+    minHeight: 112,
+    padding: 13
   },
   answerSection: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
     borderRadius: 14,
     borderWidth: 1,
     gap: 12,
-    padding: 16
+    padding: 14
   },
   averageScoreBox: {
     alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.accent,
     borderRadius: 8,
     borderWidth: 1,
     gap: 4,
-    padding: 20
-  },
-  averageScoreLabel: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "800"
-  },
-  averageScoreText: {
-    color: COLORS.accent,
-    fontSize: 38,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "900",
-    lineHeight: 52
+    padding: 15
   },
   buttonRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12
   },
-  categoryPill: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.accent,
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8
-  },
-  categoryText: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "900"
-  },
-  collapsibleButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 48,
-    paddingHorizontal: 16
-  },
-  collapsibleButtonText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
+  actionButton: {
+    flex: 1,
+    minWidth: 150
   },
   container: {
-    backgroundColor: COLORS.background,
     flex: 1
   },
   content: {
-    gap: 16,
-    padding: 20,
-    paddingBottom: 36
-  },
-  counterText: {
-    color: COLORS.muted,
-    fontSize: 15,
-    fontWeight: "800"
-  },
-  disabledButton: {
-    opacity: 0.5
-  },
-  errorText: {
-    color: COLORS.danger,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20,
-    textAlign: "center"
-  },
-  errorState: {
-    alignItems: "center",
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    borderColor: "rgba(239, 68, 68, 0.35)",
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 6,
-    padding: 14
-  },
-  errorTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-    textAlign: "center"
+    gap: 13,
+    padding: 16,
+    paddingBottom: 108
   },
   emptyQuestionState: {
     alignItems: "center",
     gap: 8
   },
-  emptyQuestionText: {
-    color: COLORS.muted,
-    fontSize: 15,
-    fontWeight: "700",
-    lineHeight: 22,
-    textAlign: "center"
-  },
-  emptyQuestionTitle: {
-    color: COLORS.text,
-    fontSize: 22,
-    fontWeight: "900",
-    textAlign: "center"
-  },
   feedbackCard: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.accent,
     borderRadius: 14,
     borderWidth: 1,
-    gap: 16,
-    padding: 18
+    gap: 13,
+    padding: 15
   },
   feedbackHeader: {
     alignItems: "flex-start",
@@ -916,51 +831,36 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: "space-between"
   },
-  feedbackSection: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: 12,
+  feedbackScoreCopy: {
+    gap: 2
+  },
+  feedbackScoreHint: {
+    flex: 1,
+    minWidth: 0
+  },
+  feedbackScoreIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(139, 128, 255, 0.12)",
+    borderColor: "rgba(139, 128, 255, 0.24)",
+    borderRadius: 999,
     borderWidth: 1,
-    gap: 10,
-    padding: 14
+    height: 40,
+    justifyContent: "center",
+    width: 40
   },
-  feedbackSectionTitle: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "900"
-  },
-  feedbackTitle: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: "900"
-  },
-  feedbackSubtitle: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 19
+  feedbackScorePanel: {
+    alignItems: "center",
+    backgroundColor: "rgba(10, 10, 12, 0.22)",
+    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    padding: 12
   },
   feedbackTitleGroup: {
     flex: 1,
     gap: 4
-  },
-  idealAnswerBox: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
-    padding: 14
-  },
-  idealAnswerLabel: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "900"
-  },
-  idealAnswerText: {
-    color: COLORS.muted,
-    fontSize: 15,
-    lineHeight: 23
   },
   feedbackBullet: {
     alignItems: "flex-start",
@@ -968,7 +868,6 @@ const styles = StyleSheet.create({
     gap: 8
   },
   feedbackBulletText: {
-    color: COLORS.text,
     flex: 1,
     fontSize: 15,
     lineHeight: 22
@@ -977,187 +876,30 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     gap: 12
   },
-  loadingText: {
-    color: COLORS.muted,
-    fontSize: 15,
-    fontWeight: "800",
-    marginTop: 2
-  },
-  loadingSubText: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 19,
-    textAlign: "center"
-  },
-  nextButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.accent,
-    borderRadius: 8,
-    justifyContent: "center",
-    minHeight: 52,
-    paddingHorizontal: 16
-  },
-  nextButtonText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
-  },
-  pressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.99 }]
-  },
-  primaryButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.accent,
-    borderRadius: 12,
-    flex: 1,
-    justifyContent: "center",
-    minHeight: 56,
-    minWidth: 160,
-    paddingHorizontal: 18
-  },
-  primaryButtonText: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "900"
-  },
   questionCard: {
     alignItems: "flex-start",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
     borderRadius: 16,
     borderWidth: 1,
-    gap: 14,
+    gap: 11,
     justifyContent: "flex-start",
-    minHeight: 150,
-    padding: 18
-  },
-  questionLabel: {
-    color: COLORS.accent,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
+    minHeight: 118,
+    padding: 15
   },
   questionText: {
-    color: COLORS.text,
-    fontSize: 19,
-    fontWeight: "900",
+    fontSize: 17,
+    fontWeight: "800",
     letterSpacing: 0,
-    lineHeight: 28,
+    lineHeight: 26,
     textAlign: "left"
   },
-  questionSkeletonLine: {
-    height: 16,
-    width: "100%"
-  },
-  questionSkeletonShort: {
-    width: "70%"
-  },
-  scoreText: {
-    color: COLORS.accent,
-    fontSize: 20,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "900"
-  },
-  scoreLabel: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: "900",
-    textTransform: "uppercase"
-  },
-  scorePill: {
-    alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.accent,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 2,
-    minWidth: 82,
-    paddingHorizontal: 10,
-    paddingVertical: 8
-  },
-  secondaryButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    borderWidth: 1,
-    flex: 1,
-    justifyContent: "center",
-    minHeight: 56,
-    minWidth: 130,
-    paddingHorizontal: 18
-  },
-  secondaryButtonText: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "900"
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900"
-  },
-  shareButton: {
-    alignItems: "center",
-    backgroundColor: "#26215F",
-    borderColor: COLORS.accent,
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 56,
-    paddingHorizontal: 18
-  },
-  shareButtonContent: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "center"
-  },
-  shareButtonText: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "900"
-  },
   shareCard: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
     gap: 12,
     padding: 18
   },
-  shareFooter: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "800",
-    lineHeight: 20,
-    textAlign: "center"
-  },
-  shareHeadline: {
-    color: COLORS.text,
-    fontSize: 19,
-    fontWeight: "900",
-    lineHeight: 26,
-    textAlign: "center"
-  },
-  shareLogo: {
-    color: COLORS.accent,
-    fontSize: 16,
-    fontWeight: "900",
-    letterSpacing: 0,
-    textAlign: "center",
-    textTransform: "uppercase"
-  },
-  shareMetricLabel: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "800"
-  },
   shareMetricRow: {
     alignItems: "center",
-    borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
@@ -1165,23 +907,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12
   },
-  shareMetricValue: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "900"
-  },
-  shareScore: {
-    color: COLORS.yellow,
-    fontSize: 16,
-    fontWeight: "900"
-  },
   summaryCard: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
     borderRadius: 18,
     borderWidth: 1,
-    gap: 18,
-    padding: 22
+    gap: 14,
+    padding: 16
   },
   summaryIconBubble: {
     alignItems: "center",
@@ -1190,83 +920,50 @@ const styles = StyleSheet.create({
     borderColor: "rgba(34, 197, 94, 0.35)",
     borderRadius: 999,
     borderWidth: 1,
-    height: 64,
+    height: 54,
     justifyContent: "center",
-    width: 64
+    width: 54
   },
   summaryContent: {
     flexGrow: 1,
     justifyContent: "center"
   },
-  summarySubtitle: {
-    color: COLORS.muted,
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: "center"
-  },
-  summaryTitle: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: "900",
-    lineHeight: 35,
-    textAlign: "center"
-  },
-  timerCard: {
-    alignItems: "center",
-    alignSelf: "center",
-    backgroundColor: COLORS.card,
-    borderRadius: 8,
+  timeoutCard: {
+    borderRadius: 14,
     borderWidth: 1,
-    minWidth: 132,
-    paddingHorizontal: 18,
-    paddingVertical: 14
+    gap: 12,
+    padding: 14
   },
-  timerLabel: {
-    color: COLORS.muted,
-    fontSize: 9,
-    fontWeight: "900",
-    lineHeight: 11,
-    textTransform: "uppercase"
+  timeoutCopy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0
   },
-  timerCenter: {
+  timeoutHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 12
+  },
+  timeoutIconWrap: {
     alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 38,
+    justifyContent: "center",
+    width: 38
+  },
+  timeoutMetaPill: {
+    borderRadius: 999,
+    borderWidth: 1,
     gap: 2,
-    justifyContent: "center",
-    position: "absolute"
+    minWidth: 92,
+    paddingHorizontal: 12,
+    paddingVertical: 8
   },
-  timerRingWrap: {
-    alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 70,
-    justifyContent: "center",
-    width: 70
-  },
-  timerSvg: {
-    transform: [{ rotate: "0deg" }]
-  },
-  timerText: {
-    fontSize: 16,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "900",
-    lineHeight: 19
-  },
-  topBackButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 42,
-    justifyContent: "center",
-    width: 42
-  },
-  topBackButtonText: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: "900"
+  timeoutMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
   },
   topBar: {
     alignItems: "center",
@@ -1284,5 +981,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 8
+  },
+  centerText: {
+    textAlign: "center"
   }
 });

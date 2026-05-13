@@ -1,4 +1,5 @@
-import { Platform } from "react-native";
+import { createContext, useContext, useMemo } from "react";
+import { Platform, useColorScheme } from "react-native";
 
 export const FONT_FAMILY = {
   regular: "Inter_400Regular",
@@ -20,24 +21,26 @@ export const FONT_FAMILY = {
 };
 
 export const COLORS = {
-  background: "#080A10",
-  surface: "#0D1018",
-  elevated: "#111622",
-  card: "#151B28",
-  cardAlt: "#101522",
-  cardPressed: "#1A2231",
-  border: "rgba(255, 255, 255, 0.1)",
-  borderStrong: "rgba(255, 255, 255, 0.16)",
-  text: "#EEF3FF",
-  textSoft: "#D4DCEC",
-  muted: "#A8B3C7",
+  background: "#070A13",
+  surface: "#0B101B",
+  elevated: "#101827",
+  card: "rgba(17, 24, 39, 0.9)",
+  cardAlt: "rgba(12, 18, 30, 0.92)",
+  cardPressed: "rgba(28, 39, 58, 0.94)",
+  border: "rgba(169, 190, 255, 0.1)",
+  borderStrong: "rgba(169, 190, 255, 0.18)",
+  text: "#F3F6FF",
+  textSoft: "#D8DFEE",
+  muted: "#A7B1C7",
   mutedStrong: "#C0C9D8",
-  primary: "#7C6DFF",
-  accent: "#7C6DFF",
-  primaryDark: "#5A4CF0",
-  primarySoft: "rgba(124, 109, 255, 0.15)",
-  secondary: "#38BDF8",
-  secondarySoft: "rgba(56, 189, 248, 0.13)",
+  primary: "#8B80FF",
+  primaryStrong: "#A8A0FF",
+  accent: "#8B80FF",
+  primaryDark: "#5B5BF4",
+  primarySoft: "rgba(139, 128, 255, 0.15)",
+  secondary: "#62D6FF",
+  secondaryStrong: "#7FFFE7",
+  secondarySoft: "rgba(98, 214, 255, 0.13)",
   success: "#34D399",
   successSoft: "rgba(52, 211, 153, 0.13)",
   warning: "#FBBF24",
@@ -101,13 +104,46 @@ export const COLOR_SCHEMES = {
   }
 };
 
+const addThemeAliases = (colors) => ({
+  ...colors,
+  accent: colors.primary,
+  destructive: colors.danger,
+  destructiveSoft: colors.dangerSoft,
+  focusRing: colors.secondarySoft || colors.primarySoft,
+  input: colors.cardAlt,
+  inputBorder: colors.border,
+  primaryTextOnAccent: colors.background,
+  row: colors.cardAlt,
+  separator: colors.border,
+  shadow: "#000000"
+});
+
+export const APP_COLOR_SCHEMES = {
+  dark: addThemeAliases(COLOR_SCHEMES.dark),
+  light: addThemeAliases(COLOR_SCHEMES.light)
+};
+
 export const GRADIENTS = {
-  app: ["#080A10", "#0D1020", "#080A10"],
-  hero: ["rgba(124,109,255,0.26)", "rgba(56,189,248,0.09)", "rgba(8,10,16,0)"],
-  primary: ["#8B7CFF", "#635BFF"],
-  calm: ["rgba(124,109,255,0.18)", "rgba(52,211,153,0.09)"],
-  premium: ["rgba(124,109,255,0.28)", "rgba(251,191,36,0.1)"],
-  score: ["#34D399", "#7C6DFF"]
+  app: ["#070A13", "#0B1020", "#070A13"],
+  hero: ["rgba(139,128,255,0.22)", "rgba(98,214,255,0.1)", "rgba(7,10,19,0)"],
+  primary: ["#8B80FF", "#62D6FF"],
+  primaryDeep: ["#5B5BF4", "#62D6FF"],
+  calm: ["rgba(139,128,255,0.18)", "rgba(98,214,255,0.08)"],
+  premium: ["rgba(139,128,255,0.28)", "rgba(127,255,231,0.1)"],
+  score: ["#7FFFE7", "#8B80FF"]
+};
+
+export const APP_GRADIENTS = {
+  dark: GRADIENTS,
+  light: {
+    app: ["#F6F7FB", "#EEF4FF", "#F6F7FB"],
+    hero: ["rgba(98,88,246,0.12)", "rgba(14,165,233,0.08)", "rgba(246,247,251,0)"],
+    primary: ["#6258F6", "#0EA5E9"],
+    primaryDeep: ["#4338CA", "#0EA5E9"],
+    calm: ["rgba(98,88,246,0.12)", "rgba(14,165,233,0.08)"],
+    premium: ["rgba(98,88,246,0.16)", "rgba(14,165,233,0.09)"],
+    score: ["#0EA5E9", "#6258F6"]
+  }
 };
 
 export const SPACING = {
@@ -115,108 +151,108 @@ export const SPACING = {
   xs: 4,
   sm: 8,
   md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
-  xxxl: 32,
-  screen: 20,
-  card: 20,
-  section: 26
+  lg: 14,
+  xl: 18,
+  xxl: 22,
+  xxxl: 28,
+  screen: 16,
+  card: 16,
+  section: 20
 };
 
 export const RADIUS = {
   xs: 8,
-  sm: 12,
-  md: 16,
-  lg: 22,
-  xl: 28,
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 24,
   pill: 999
 };
 
 export const TYPOGRAPHY = {
   display: {
     fontFamily: FONT_FAMILY.black,
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: "900",
     letterSpacing: -0.4,
-    lineHeight: 41
+    lineHeight: 38
   },
   heroTitle: {
     fontFamily: FONT_FAMILY.black,
-    fontSize: 31,
+    fontSize: 28,
     fontWeight: "900",
     letterSpacing: -0.3,
-    lineHeight: 38
+    lineHeight: 35
   },
   screenTitle: {
     fontFamily: FONT_FAMILY.extraBold,
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "800",
     letterSpacing: -0.2,
-    lineHeight: 35
+    lineHeight: 31
   },
   sectionTitle: {
-    fontFamily: FONT_FAMILY.bold,
-    fontSize: 19,
-    fontWeight: "700",
-    lineHeight: 25
-  },
-  cardTitle: {
     fontFamily: FONT_FAMILY.bold,
     fontSize: 17,
     fontWeight: "700",
     lineHeight: 23
   },
+  cardTitle: {
+    fontFamily: FONT_FAMILY.bold,
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 21
+  },
   body: {
-    fontFamily: FONT_FAMILY.regular,
-    fontSize: 15,
-    fontWeight: "400",
-    lineHeight: 22
-  },
-  bodyStrong: {
-    fontFamily: FONT_FAMILY.semiBold,
-    fontSize: 15,
-    fontWeight: "600",
-    lineHeight: 22
-  },
-  bodyMuted: {
     fontFamily: FONT_FAMILY.regular,
     fontSize: 14,
     fontWeight: "400",
-    lineHeight: 21
+    lineHeight: 20
+  },
+  bodyStrong: {
+    fontFamily: FONT_FAMILY.semiBold,
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 20
+  },
+  bodyMuted: {
+    fontFamily: FONT_FAMILY.regular,
+    fontSize: 13,
+    fontWeight: "400",
+    lineHeight: 19
   },
   caption: {
     fontFamily: FONT_FAMILY.bold,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0,
-    lineHeight: 16
+    lineHeight: 15
   },
   button: {
     fontFamily: FONT_FAMILY.bold,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
-    lineHeight: 20
+    lineHeight: 19
   },
   statNumber: {
     fontFamily: FONT_FAMILY.black,
-    fontSize: 30,
+    fontSize: 24,
     fontVariant: ["tabular-nums"],
     fontWeight: "900",
-    lineHeight: 36
+    lineHeight: 31
   },
   monoNumber: {
     fontFamily: FONT_FAMILY.bold,
-    fontSize: 16,
+    fontSize: 15,
     fontVariant: ["tabular-nums"],
     fontWeight: "700",
-    lineHeight: 22
+    lineHeight: 20
   },
   title: {
     fontFamily: FONT_FAMILY.extraBold,
-    fontSize: 30,
+    fontSize: 27,
     fontWeight: "800",
-    lineHeight: 38
+    lineHeight: 34
   }
 };
 
@@ -229,11 +265,18 @@ export const ICON_SIZES = {
 
 export const SHADOWS = {
   card: {
-    elevation: 3,
+    elevation: 4,
     shadowColor: "#000000",
-    shadowOffset: { height: 10, width: 0 },
-    shadowOpacity: 0.22,
-    shadowRadius: 18
+    shadowOffset: { height: 12, width: 0 },
+    shadowOpacity: 0.24,
+    shadowRadius: 22
+  },
+  glow: {
+    elevation: 6,
+    shadowColor: "#62D6FF",
+    shadowOffset: { height: 16, width: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: 28
   },
   none: {
     elevation: 0,
@@ -246,11 +289,35 @@ export const PRESSED_STYLE = {
   transform: [{ scale: 0.985 }]
 };
 
-export const createScreenContentStyle = (bottomInset = 0) => ({
-  gap: SPACING.section,
-  padding: SPACING.screen,
-  paddingBottom: Math.max(bottomInset + SPACING.xxl, 40)
+const ThemeContext = createContext({
+  colorScheme: "dark",
+  colors: APP_COLOR_SCHEMES.dark,
+  gradients: APP_GRADIENTS.dark
+});
+
+export function AppThemeProvider({ children }) {
+  const deviceScheme = useColorScheme();
+  const colorScheme = deviceScheme === "light" ? "light" : "dark";
+  const value = useMemo(
+    () => ({
+      colorScheme,
+      colors: APP_COLOR_SCHEMES[colorScheme],
+      gradients: APP_GRADIENTS[colorScheme]
+    }),
+    [colorScheme]
+  );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export const useAppTheme = () => useContext(ThemeContext);
+
+export const createScreenContentStyle = (topInset = 0, bottomInset = 0) => ({
+  gap: SPACING.xl,
+  paddingHorizontal: SPACING.screen,
+  paddingTop: Math.max(topInset + 6, 12),
+  paddingBottom: Math.max(bottomInset + 88, 100)
 });
 
 export const getThemeColors = (colorScheme) =>
-  colorScheme === "light" ? COLOR_SCHEMES.light : COLOR_SCHEMES.dark;
+  colorScheme === "light" ? APP_COLOR_SCHEMES.light : APP_COLOR_SCHEMES.dark;

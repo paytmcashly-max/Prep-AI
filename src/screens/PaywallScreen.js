@@ -1,18 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, StyleSheet, View } from "react-native";
 
-import HapticPressable from "../components/HapticPressable";
 import AppButton from "../components/ui/AppButton";
 import AppCard from "../components/ui/AppCard";
 import AppIcon from "../components/ui/AppIcon";
 import AppText from "../components/ui/AppText";
 import BetaNoticeCard from "../components/ui/BetaNoticeCard";
 import FeatureRow from "../components/ui/FeatureRow";
+import LoadingState from "../components/ui/LoadingState";
+import MessageCard from "../components/ui/MessageCard";
+import PlanCard from "../components/ui/PlanCard";
+import ScreenHero from "../components/ui/ScreenHero";
 import Screen from "../components/ui/Screen";
 import SectionHeader from "../components/ui/SectionHeader";
 import { createRazorpayOrder, openRazorpayPayment } from "../services/subscriptionService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
-import { COLORS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
+import { COLORS, SPACING } from "../theme";
 
 const FREE_FEATURES = [
   { available: true, label: "5 interview questions per day" },
@@ -30,12 +33,149 @@ const PREMIUM_FEATURES = [
   "Voice and video practice when available"
 ];
 
-const betaPaymentsUnavailableMessage =
-  "Premium payments are not available in this beta build yet. You can continue using the free practice limits.";
+const PREMIUM_HIGHLIGHTS = [
+  {
+    icon: "practice",
+    subtitle: "Longer rounds and no daily cap when server-verified premium is active.",
+    title: "Practice with fewer limits"
+  },
+  {
+    icon: "resume",
+    subtitle: "More resume scans and cleaner review loops while you are actively applying.",
+    title: "Keep your resume moving"
+  },
+  {
+    icon: "sparkles",
+    subtitle: "Sharper answer review and premium features as they go live.",
+    title: "Get deeper coaching"
+  }
+];
 
 const FALLBACK_PLAN_LABELS = {
   monthly: "Monthly",
   yearly: "Yearly"
+};
+
+const PLAN_BENEFITS = {
+  monthly: ["30 days of Premium access", "Unlimited interview questions", "More resume scans"],
+  yearly: ["365 days of Premium access", "Unlimited interview questions", "More resume scans"]
+};
+
+const formatPrice = (amount, currency = "INR") => {
+  if (!Number.isFinite(Number(amount))) {
+    return null;
+  }
+
+  return new Intl.NumberFormat("en-IN", {
+    currency,
+    maximumFractionDigits: 0,
+    style: "currency"
+  }).format(Number(amount) / 100);
+};
+
+const getPlanPrice = (plan) =>
+  formatPrice(plan?.amount, plan?.currency) || plan?.displayPrice || null;
+
+const getPlanDurationLabel = (planId) =>
+  planId === "yearly" ? "365 days access" : "30 days access";
+
+const getPlanDecisionCopy = (planId) =>
+  planId === "yearly"
+    ? {
+        meta: "Lower long-term cost if you are preparing consistently.",
+        subtitle: "Best for ongoing interview prep"
+      }
+    : {
+        meta: "Shorter commitment if you only need Premium for a focused sprint.",
+        subtitle: "Best for short preparation cycles"
+      };
+
+const getSavingsCopy = (plans) => {
+  const monthlyPlan = plans.find((plan) => (plan.plan || "monthly") === "monthly");
+  const yearlyPlan = plans.find((plan) => (plan.plan || "monthly") === "yearly");
+  const monthlyAmount = Number(monthlyPlan?.amount);
+  const yearlyAmount = Number(yearlyPlan?.amount);
+
+  if (!Number.isFinite(monthlyAmount) || !Number.isFinite(yearlyAmount) || monthlyAmount <= 0) {
+    return null;
+  }
+
+  const yearlyIfMonthly = monthlyAmount * 12;
+  const savings = yearlyIfMonthly - yearlyAmount;
+
+  if (savings <= 0) {
+    return null;
+  }
+
+  return `${formatPrice(savings) || "Savings available"} less than paying monthly for a full year.`;
+};
+
+const getPaymentNoticeFromStatus = (status, { pendingPaymentCheck = false } = {}) => {
+  if (status?.isPremium) {
+    return {
+      message: "Your Premium plan is active on this account.",
+      title: "Payment verified",
+      tone: "success"
+    };
+  }
+
+  if (!status?.paymentAvailable) {
+    return {
+      message: "You can continue using the free practice limits.",
+      title: "Premium payments are not available in this beta build yet.",
+      tone: "warning"
+    };
+  }
+
+  const lastPaymentStatus = status?.lastPayment?.status;
+
+  if (
+    lastPaymentStatus === "reconciled_paid" ||
+    lastPaymentStatus === "verified" ||
+    lastPaymentStatus === "webhook_verified"
+  ) {
+    return {
+      message: "Your payment was confirmed and Premium is now active.",
+      title: "Payment verified",
+      tone: "success"
+    };
+  }
+
+  if (lastPaymentStatus === "cancelled") {
+    return {
+      message: "The payment was cancelled, so premium was not activated.",
+      title: "Payment cancelled",
+      tone: "warning"
+    };
+  }
+
+  if (lastPaymentStatus === "expired") {
+    return {
+      message:
+        "This payment link expired before completion. Please start again if you still want Premium.",
+      title: "Payment expired",
+      tone: "warning"
+    };
+  }
+
+  if (lastPaymentStatus === "failed") {
+    return {
+      message: "The payment did not complete, so premium was not activated.",
+      title: "Payment failed",
+      tone: "error"
+    };
+  }
+
+  if (pendingPaymentCheck || ["created", "issued", "partially_paid"].includes(lastPaymentStatus)) {
+    return {
+      message:
+        "We are still confirming your payment. If the amount was deducted, wait a moment and check again.",
+      title: "Checking payment status",
+      tone: "warning"
+    };
+  }
+
+  return null;
 };
 
 export default function PaywallScreen({ navigation }) {
@@ -46,10 +186,10 @@ export default function PaywallScreen({ navigation }) {
   const refreshSubscriptionStatus = useSubscriptionStore(
     (state) => state.refreshSubscriptionStatus
   );
-  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [activePurchasePlan, setActivePurchasePlan] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState("monthly");
-  const [statusMessage, setStatusMessage] = useState("");
+  const [paymentNotice, setPaymentNotice] = useState(null);
+  const hasPendingPaymentCheckRef = useRef(false);
   const plans = useMemo(
     () =>
       availablePlans.length
@@ -61,6 +201,7 @@ export default function PaywallScreen({ navigation }) {
     [availablePlans]
   );
   const canPurchase = !isSubscriptionLoading && !isPremium && paymentAvailable;
+  const yearlySavingsCopy = useMemo(() => getSavingsCopy(plans), [plans]);
 
   useEffect(() => {
     let isMounted = true;
@@ -71,13 +212,15 @@ export default function PaywallScreen({ navigation }) {
           return;
         }
 
-        if (!status.isPremium && !status.paymentAvailable) {
-          setStatusMessage(betaPaymentsUnavailableMessage);
-        }
+        setPaymentNotice(getPaymentNoticeFromStatus(status) || null);
       })
       .catch(() => {
         if (isMounted) {
-          setStatusMessage(betaPaymentsUnavailableMessage);
+          setPaymentNotice({
+            message: "You can continue using the free practice limits.",
+            title: "Premium payments are not available in this beta build yet.",
+            tone: "warning"
+          });
         }
       });
 
@@ -86,173 +229,292 @@ export default function PaywallScreen({ navigation }) {
     };
   }, [refreshSubscriptionStatus]);
 
-  const refreshPlan = async () => {
+  const refreshPlan = useCallback(async () => {
     try {
       setIsRefreshing(true);
-      setStatusMessage("");
+      setPaymentNotice(null);
       const status = await refreshSubscriptionStatus();
-
-      if (status.isPremium) {
-        Alert.alert("Premium active", "Your premium access is active on this account.");
-      } else if (!status.paymentAvailable) {
-        setStatusMessage(betaPaymentsUnavailableMessage);
-      } else {
-        setStatusMessage("Premium is not active yet. If you just paid, please wait a moment.");
+      if (
+        status.isPremium ||
+        ["cancelled", "expired", "failed"].includes(status?.lastPayment?.status || "")
+      ) {
+        hasPendingPaymentCheckRef.current = false;
       }
+      setPaymentNotice(
+        getPaymentNoticeFromStatus(status, {
+          pendingPaymentCheck: hasPendingPaymentCheckRef.current
+        }) || null
+      );
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [refreshSubscriptionStatus]);
 
-  const startPayment = async () => {
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active" && hasPendingPaymentCheckRef.current) {
+        refreshPlan();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [refreshPlan]);
+
+  useEffect(() => {
+    if (!hasPendingPaymentCheckRef.current) {
+      return undefined;
+    }
+
+    let attempts = 0;
+    const timer = setInterval(() => {
+      if (!hasPendingPaymentCheckRef.current) {
+        clearInterval(timer);
+        return;
+      }
+
+      attempts += 1;
+      refreshPlan();
+
+      if (attempts >= 8 || useSubscriptionStore.getState().isPremium) {
+        clearInterval(timer);
+      }
+    }, 4000);
+
+    return () => clearInterval(timer);
+  }, [refreshPlan, activePurchasePlan]);
+
+  const startPayment = async (planId) => {
     if (!canPurchase) {
-      Alert.alert("Payments unavailable", betaPaymentsUnavailableMessage);
+      setPaymentNotice({
+        message: "You can continue using the free practice limits.",
+        title: "Premium payments are not available in this beta build yet.",
+        tone: "warning"
+      });
       return;
     }
 
     try {
-      setIsPurchasing(true);
-      setStatusMessage("");
-      const order = await createRazorpayOrder(selectedPlan);
+      setActivePurchasePlan(planId);
+      setPaymentNotice({
+        message: "Opening the secure payment page. Return to IntervueAI after payment.",
+        title: "Starting payment",
+        tone: "default"
+      });
+      const order = await createRazorpayOrder(planId);
+      hasPendingPaymentCheckRef.current = true;
       await openRazorpayPayment(order);
-      setStatusMessage("Complete payment in Razorpay, then tap Refresh premium status.");
+      setPaymentNotice({
+        message:
+          "After payment, return to IntervueAI. We will check your plan automatically, or you can check it again here.",
+        title: "Waiting for payment confirmation",
+        tone: "warning"
+      });
     } catch {
-      setStatusMessage(betaPaymentsUnavailableMessage);
+      hasPendingPaymentCheckRef.current = false;
+      setPaymentNotice({
+        message:
+          "We could not open the payment page. Your account was not charged and premium was not activated. Please try again.",
+        title: "Payment could not start",
+        tone: "error"
+      });
     } finally {
-      setIsPurchasing(false);
+      setActivePurchasePlan(null);
     }
   };
 
   return (
     <Screen>
-      <AppCard gradient="premium" style={styles.hero}>
-        <View style={styles.heroTop}>
-          <View style={styles.premiumIcon}>
-            <AppIcon color={COLORS.warning} name="premium" size={30} />
-          </View>
-          <View style={styles.heroCopy}>
-            <AppText tone="primary" variant="caption">
-              IntervueAI Premium
-            </AppText>
-            <AppText variant="screenTitle">
-              {isPremium ? "Premium is active" : "Practice without daily friction"}
-            </AppText>
-            <AppText tone="muted" variant="body">
-              {isPremium
-                ? "Your account has server-verified premium access."
-                : "Premium unlocks longer practice and more resume scans when payments are ready."}
-            </AppText>
-          </View>
-        </View>
-      </AppCard>
-
-      <View style={styles.grid}>
-        <AppCard style={styles.planCard}>
-          <SectionHeader title="Free" subtitle="Available during beta" />
-          {FREE_FEATURES.map((feature) => (
-            <FeatureRow key={feature.label} available={feature.available} label={feature.label} />
-          ))}
-        </AppCard>
-        <AppCard style={styles.planCard} tone="accent">
-          <SectionHeader title="Premium" subtitle="Powered by Razorpay verification" />
-          {PREMIUM_FEATURES.map((feature) => (
-            <FeatureRow key={feature} label={feature} />
-          ))}
-        </AppCard>
-      </View>
+      <ScreenHero
+        badge="IntervueAI Premium"
+        badgeIcon="premium"
+        logo
+        title={isPremium ? "Premium is active" : "Practice with fewer interruptions"}
+        subtitle={
+          isPremium
+            ? "Your plan is active and ready to use across the app."
+            : "Unlock longer interview practice, more resume scans, and a smoother prep routine."
+        }
+      />
 
       {isSubscriptionLoading ? (
-        <AppCard style={styles.loadingCard}>
-          <ActivityIndicator color={COLORS.primary} />
-          <AppText tone="muted" variant="body">
-            Checking premium status...
-          </AppText>
-        </AppCard>
+        <LoadingState message="Checking your verified premium status." title="Plan loading" />
       ) : isPremium ? (
-        <AppCard tone="accent">
+        <AppCard gradient="calm" style={styles.activeCard} tone="accent">
           <View style={styles.activeRow}>
             <AppIcon color={COLORS.success} name="success" size={26} />
             <View style={styles.activeCopy}>
               <AppText variant="cardTitle">Premium is active on this account</AppText>
               <AppText tone="muted" variant="bodyMuted">
-                You can return to Practice whenever you are ready.
+                Your payment has been verified. You can go back and continue practicing.
               </AppText>
             </View>
           </View>
         </AppCard>
-      ) : paymentAvailable ? (
-        <View style={styles.packageStack}>
-          {plans.map((plan) => {
-            const planId = plan.plan || "monthly";
-            const isSelected = selectedPlan === planId;
-            const isYearly = planId === "yearly";
+      ) : null}
 
-            return (
-              <HapticPressable
-                key={planId}
-                onPress={() => setSelectedPlan(planId)}
-                style={({ pressed }) => [
-                  styles.packageCard,
-                  isSelected && styles.packageCardSelected,
-                  pressed && PRESSED_STYLE
-                ]}
-              >
-                <View style={styles.packageHeader}>
-                  <AppText variant="cardTitle">
-                    {plan.label || FALLBACK_PLAN_LABELS[planId]}
-                  </AppText>
-                  {isYearly ? (
-                    <View style={styles.badge}>
-                      <AppText color="#FFFFFF" variant="caption">
-                        Best value
-                      </AppText>
-                    </View>
-                  ) : null}
-                </View>
-                <AppText variant="statNumber">{plan.displayPrice || "Price from Razorpay"}</AppText>
-              </HapticPressable>
-            );
-          })}
-        </View>
-      ) : (
-        <BetaNoticeCard
-          message="You can continue using the free practice limits."
-          title="Premium payments are not available in this beta build yet."
+      {paymentNotice && !isPremium ? (
+        <MessageCard
+          message={paymentNotice.message}
+          title={paymentNotice.title}
+          tone={paymentNotice.tone}
         />
-      )}
+      ) : null}
 
-      {statusMessage ? (
-        <AppText style={styles.statusText} tone="muted" variant="bodyMuted">
-          {statusMessage}
-        </AppText>
+      {!isPremium ? (
+        <>
+          {paymentAvailable ? (
+            <AppCard style={styles.selectionCard}>
+              <SectionHeader
+                title="Choose your Premium plan"
+                subtitle="Both plans unlock the same Premium features. The difference is how long access stays active."
+              />
+              <AppCard style={styles.selectionGuide} tone="subtle">
+                <View style={styles.selectionGuideRow}>
+                  <View style={styles.selectionGuideIcon}>
+                    <AppIcon color={COLORS.secondary} name="info" size={16} />
+                  </View>
+                  <View style={styles.selectionGuideCopy}>
+                    <AppText variant="bodyStrong">Same benefits, different duration</AppText>
+                    <AppText tone="muted" variant="bodyMuted">
+                      Choose monthly if you need a short Premium sprint. Choose yearly if you want
+                      the better long-term value.
+                    </AppText>
+                  </View>
+                </View>
+              </AppCard>
+              <View style={styles.packageStack}>
+                {plans.map((plan) => {
+                  const planId = plan.plan || "monthly";
+                  const isYearly = planId === "yearly";
+                  const planCopy = getPlanDecisionCopy(planId);
+                  const basePrice = getPlanPrice(plan);
+                  const priceLabel = basePrice
+                    ? `${basePrice} ${planId === "yearly" ? "/ year" : "/ month"}`
+                    : "Pricing unavailable";
+                  const metaParts = [getPlanDurationLabel(planId), planCopy.meta];
+
+                  if (isYearly && yearlySavingsCopy) {
+                    metaParts.push(yearlySavingsCopy);
+                  }
+
+                  return (
+                    <PlanCard
+                      badge={isYearly ? "Best value" : undefined}
+                      cta={
+                        canPurchase
+                          ? isYearly
+                            ? "Pay yearly"
+                            : "Pay monthly"
+                          : "Payments unavailable"
+                      }
+                      disabled={!canPurchase || Boolean(activePurchasePlan)}
+                      features={PLAN_BENEFITS[planId] || PLAN_BENEFITS.monthly}
+                      icon={isYearly ? "calendar" : "premium"}
+                      key={planId}
+                      loading={activePurchasePlan === planId}
+                      meta={metaParts.join(" ")}
+                      onPress={() => startPayment(planId)}
+                      price={priceLabel}
+                      subtitle={planCopy.subtitle}
+                      title={`${plan.label || FALLBACK_PLAN_LABELS[planId]} plan`}
+                    />
+                  );
+                })}
+              </View>
+            </AppCard>
+          ) : (
+            <BetaNoticeCard
+              message="You can continue using the free practice limits."
+              title="Premium payments are not available in this beta build yet."
+            />
+          )}
+
+          <AppCard style={styles.comparisonCard}>
+            <SectionHeader
+              title="What changes with Premium"
+              subtitle="A calmer, less interrupted practice flow."
+            />
+            <View style={styles.highlightStack}>
+              {PREMIUM_HIGHLIGHTS.map((highlight) => (
+                <View key={highlight.title} style={styles.highlightRow}>
+                  <View style={styles.highlightIcon}>
+                    <AppIcon color={COLORS.secondary} name={highlight.icon} size={18} />
+                  </View>
+                  <View style={styles.highlightCopy}>
+                    <AppText variant="bodyStrong">{highlight.title}</AppText>
+                    <AppText tone="muted" variant="bodyMuted">
+                      {highlight.subtitle}
+                    </AppText>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </AppCard>
+
+          <AppCard style={styles.comparisonCard}>
+            <SectionHeader
+              title="Free vs Premium"
+              subtitle="Free beta remains available while Premium stays optional."
+            />
+            <View style={styles.featureColumns}>
+              <View style={styles.featureColumn}>
+                <AppText variant="cardTitle">Free</AppText>
+                {FREE_FEATURES.map((feature) => (
+                  <FeatureRow
+                    key={`free-${feature.label}`}
+                    available={feature.available}
+                    label={feature.label}
+                  />
+                ))}
+              </View>
+              <View style={styles.featureColumn}>
+                <AppText variant="cardTitle">Premium</AppText>
+                {PREMIUM_FEATURES.map((feature) => (
+                  <FeatureRow key={`premium-${feature}`} label={feature} />
+                ))}
+              </View>
+            </View>
+          </AppCard>
+        </>
+      ) : null}
+
+      {!isPremium ? (
+        <AppCard style={styles.helpCard} tone="subtle">
+          <View style={styles.helpRow}>
+            <View style={styles.helpIcon}>
+              <AppIcon color={COLORS.secondary} name="lock" size={18} />
+            </View>
+            <View style={styles.helpCopy}>
+              <AppText variant="bodyStrong">Secure payment and verified activation</AppText>
+              <AppText tone="muted" variant="bodyMuted">
+                Premium starts only after your payment is verified by the backend.
+              </AppText>
+            </View>
+          </View>
+        </AppCard>
       ) : null}
 
       {!isPremium ? (
         <AppButton
-          disabled={!canPurchase || isPurchasing}
-          loading={isPurchasing}
-          onPress={startPayment}
+          disabled={isRefreshing}
+          loading={isRefreshing}
+          onPress={refreshPlan}
+          tone="secondary"
         >
-          {canPurchase ? "Continue to payment" : "Payments unavailable in beta"}
+          Check premium status
         </AppButton>
       ) : null}
-
-      <AppButton
-        disabled={isRefreshing}
-        loading={isRefreshing}
-        onPress={refreshPlan}
-        tone="secondary"
-      >
-        Refresh premium status
-      </AppButton>
       <AppButton onPress={() => navigation.goBack()} tone="ghost">
-        Maybe Later
+        Not now
       </AppButton>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  activeCard: {
+    gap: SPACING.md
+  },
   activeCopy: {
     flex: 1,
     gap: SPACING.xs
@@ -262,66 +524,88 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: SPACING.md
   },
-  badge: {
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs
-  },
-  grid: {
+  comparisonCard: {
     gap: SPACING.md
   },
-  hero: {
-    gap: SPACING.xl
-  },
-  heroCopy: {
-    flex: 1,
+  helpCard: {
     gap: SPACING.sm
   },
-  heroTop: {
+  helpCopy: {
+    flex: 1,
+    gap: SPACING.xs
+  },
+  helpIcon: {
+    alignItems: "center",
+    backgroundColor: COLORS.secondarySoft,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: "center",
+    width: 36
+  },
+  helpRow: {
     alignItems: "flex-start",
     flexDirection: "row",
     gap: SPACING.md
   },
-  loadingCard: {
-    alignItems: "center",
-    flexDirection: "row"
+  featureColumn: {
+    gap: SPACING.sm
   },
-  packageCard: {
-    backgroundColor: COLORS.card,
+  featureColumns: {
+    gap: SPACING.lg
+  },
+  grid: {
+    gap: SPACING.md
+  },
+  highlightCopy: {
+    flex: 1,
+    gap: 2
+  },
+  highlightIcon: {
+    alignItems: "center",
+    backgroundColor: COLORS.secondarySoft,
     borderColor: COLORS.border,
-    borderRadius: RADIUS.lg,
+    borderRadius: 14,
     borderWidth: 1,
-    gap: SPACING.sm,
-    padding: SPACING.card
+    height: 38,
+    justifyContent: "center",
+    width: 38
   },
-  packageCardSelected: {
-    backgroundColor: COLORS.primarySoft,
-    borderColor: COLORS.primary
-  },
-  packageHeader: {
-    alignItems: "center",
+  highlightRow: {
+    alignItems: "flex-start",
     flexDirection: "row",
-    gap: SPACING.md,
-    justifyContent: "space-between"
+    gap: SPACING.md
+  },
+  highlightStack: {
+    gap: SPACING.md
   },
   packageStack: {
     gap: SPACING.md
   },
-  planCard: {
+  selectionGuide: {
+    gap: SPACING.sm
+  },
+  selectionGuideCopy: {
+    flex: 1,
+    gap: SPACING.xs
+  },
+  selectionGuideIcon: {
+    alignItems: "center",
+    backgroundColor: COLORS.secondarySoft,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 28,
+    justifyContent: "center",
+    width: 28
+  },
+  selectionGuideRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
     gap: SPACING.md
   },
-  premiumIcon: {
-    alignItems: "center",
-    backgroundColor: "rgba(251, 191, 36, 0.14)",
-    borderColor: "rgba(251, 191, 36, 0.34)",
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    height: 58,
-    justifyContent: "center",
-    width: 58
-  },
-  statusText: {
-    textAlign: "center"
+  selectionCard: {
+    gap: SPACING.md
   }
 });

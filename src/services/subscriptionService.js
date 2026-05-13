@@ -17,6 +17,7 @@ const DEFAULT_SUBSCRIPTION_STATUS = {
   availablePlans: [],
   expirationDate: null,
   isPremium: false,
+  lastPayment: null,
   paymentAvailable: false,
   plan: null,
   provider: "razorpay",
@@ -42,6 +43,8 @@ const normalizeSubscriptionStatus = (status = {}) => ({
     status.provider === "razorpay" &&
     status.verificationStatus === "server_verified"
   ),
+  lastPayment:
+    status.lastPayment && typeof status.lastPayment === "object" ? status.lastPayment : null,
   provider: "razorpay",
   source: "razorpay"
 });

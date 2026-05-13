@@ -8,16 +8,18 @@ import AppIcon from "../components/ui/AppIcon";
 import AppText from "../components/ui/AppText";
 import ErrorState from "../components/ui/ErrorState";
 import LimitCard from "../components/ui/LimitCard";
+import LoadingState from "../components/ui/LoadingState";
+import ScreenHero from "../components/ui/ScreenHero";
 import Screen from "../components/ui/Screen";
 import SectionHeader from "../components/ui/SectionHeader";
 import { getUsageStatus } from "../services/apiClient";
 import { formatCountdown } from "../services/quotaService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
-import { COLORS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
+import { COLORS, PRESSED_STYLE, RADIUS, SPACING, useAppTheme } from "../theme";
 
 const PRACTICE_CATEGORIES = [
   {
-    icon: "message",
+    icon: "user",
     routeCategory: "HR",
     subtitle: "Intro, motivation, strengths, and career story.",
     title: "HR Round"
@@ -57,12 +59,25 @@ const LIMIT_BENEFITS = [
   "Priority feedback as premium features launch"
 ];
 
+const getQuotaSummary = (quota, premium) => {
+  if (premium || quota?.isPremium) {
+    return "Premium access active";
+  }
+
+  if (!quota) {
+    return "Free practice limit will be checked before you start.";
+  }
+
+  return `${Math.max(Number(quota.remaining || 0), 0)} of ${quota.limit || FREE_QUESTION_COUNT} free questions left today`;
+};
+
 const getCountdownUntil = (resetAt) => {
   const resetTime = new Date(resetAt || 0).getTime();
   return Number.isFinite(resetTime) ? formatCountdown(resetTime - Date.now()) : "--:--:--";
 };
 
 export default function PracticeScreen({ navigation }) {
+  const { colors } = useAppTheme();
   const [startingCategory, setStartingCategory] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState("easy");
   const [selectedQuestionCount, setSelectedQuestionCount] = useState(FREE_QUESTION_COUNT);
@@ -82,6 +97,7 @@ export default function PracticeScreen({ navigation }) {
     Number(interviewQuota.remaining || 0) <= 0;
   const isInterviewLimitReached =
     !isPremium && !hasPremiumAccess && interviewQuota && Number(interviewQuota.remaining || 0) <= 0;
+  const quotaSummary = getQuotaSummary(interviewQuota, hasPremiumAccess);
 
   const loadUsageStatus = useCallback(async () => {
     try {
@@ -172,12 +188,7 @@ export default function PracticeScreen({ navigation }) {
   if (isLoadingUsage) {
     return (
       <Screen>
-        <AppCard style={styles.loadingCard}>
-          <ActivityIndicator color={COLORS.primary} />
-          <AppText tone="muted" variant="body">
-            Checking your practice limit...
-          </AppText>
-        </AppCard>
+        <LoadingState message="Checking today's free practice limit." title="Practice loading" />
       </Screen>
     );
   }
@@ -227,15 +238,39 @@ export default function PracticeScreen({ navigation }) {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <AppText tone="primary" variant="caption">
-          Practice room
-        </AppText>
-        <AppText variant="screenTitle">Choose your interview round</AppText>
-        <AppText tone="muted" variant="body">
-          Set the difficulty and length first. Then choose a round to start.
-        </AppText>
-      </View>
+      <ScreenHero
+        badge="Practice room"
+        badgeIcon="practice"
+        icon="practice"
+        title="Pick a round and start sharp"
+        subtitle="Choose a round, set the pace, and practice answers that sound ready for the real interview."
+      />
+
+      <AppCard style={styles.quotaCard} tone={hasPremiumAccess ? "accent" : "subtle"}>
+        <View
+          style={[
+            styles.quotaIcon,
+            {
+              backgroundColor: hasPremiumAccess ? colors.successSoft : colors.primarySoft,
+              borderColor: hasPremiumAccess ? colors.success : colors.border
+            }
+          ]}
+        >
+          <AppIcon
+            color={hasPremiumAccess ? colors.success : colors.primary}
+            name={hasPremiumAccess ? "premium" : "timer"}
+            size={19}
+          />
+        </View>
+        <View style={styles.quotaCopy}>
+          <AppText variant="cardTitle">
+            {hasPremiumAccess ? "Premium practice unlocked" : "Today's free practice"}
+          </AppText>
+          <AppText tone="muted" variant="bodyMuted">
+            {quotaSummary}
+          </AppText>
+        </View>
+      </AppCard>
 
       <AppCard style={styles.setupCard}>
         <SectionHeader title="Difficulty" subtitle="Start easy if you want warmer questions." />
@@ -249,12 +284,15 @@ export default function PracticeScreen({ navigation }) {
                 onPress={() => setSelectedDifficulty(option.value)}
                 style={({ pressed }) => [
                   styles.segment,
-                  isSelected && styles.segmentSelected,
+                  {
+                    backgroundColor: isSelected ? colors.primarySoft : colors.cardAlt,
+                    borderColor: isSelected ? colors.primary : colors.border
+                  },
                   pressed && PRESSED_STYLE
                 ]}
               >
                 <AppText
-                  color={isSelected ? COLORS.text : COLORS.muted}
+                  color={isSelected ? colors.primary : colors.muted}
                   selectable={false}
                   variant="button"
                 >
@@ -288,13 +326,18 @@ export default function PracticeScreen({ navigation }) {
                 onPress={() => setSelectedQuestionCount(count)}
                 style={({ pressed }) => [
                   styles.countChip,
-                  isSelected && styles.countChipSelected,
+                  {
+                    backgroundColor: isSelected ? colors.primarySoft : colors.cardAlt,
+                    borderColor: isSelected ? colors.primary : colors.border
+                  },
                   isLocked && styles.locked,
                   pressed && !isLocked && PRESSED_STYLE
                 ]}
               >
                 <AppText
-                  color={isLocked ? COLORS.disabledText : isSelected ? COLORS.text : COLORS.muted}
+                  color={
+                    isLocked ? COLORS.disabledText : isSelected ? colors.primary : colors.muted
+                  }
                   selectable={false}
                   variant="button"
                 >
@@ -321,23 +364,33 @@ export default function PracticeScreen({ navigation }) {
               onPress={() => startCategory(category.routeCategory)}
               style={({ pressed }) => [
                 styles.categoryCard,
+                { backgroundColor: colors.elevated, borderColor: colors.border },
                 startingCategory && startingCategory !== category.routeCategory && styles.locked,
                 pressed && !startingCategory && PRESSED_STYLE
               ]}
             >
               <View style={styles.categoryTop}>
-                <View style={styles.categoryIcon}>
+                <View
+                  style={[
+                    styles.categoryIcon,
+                    { backgroundColor: colors.secondarySoft, borderColor: colors.border }
+                  ]}
+                >
                   {startingCategory === category.routeCategory ? (
-                    <ActivityIndicator color={COLORS.primary} />
+                    <ActivityIndicator color={colors.secondary} />
                   ) : (
-                    <AppIcon color={COLORS.primary} name={category.icon} size={24} />
+                    <AppIcon color={colors.secondary} name={category.icon} size={24} />
                   )}
                 </View>
-                <AppIcon color={COLORS.muted} name="next" size={18} />
+                <View style={[styles.categoryArrow, { backgroundColor: colors.cardAlt }]}>
+                  <AppIcon color={colors.muted} name="next" size={16} />
+                </View>
               </View>
               <View style={styles.categoryCopy}>
-                <AppText variant="cardTitle">{category.title}</AppText>
-                <AppText tone="muted" variant="bodyMuted">
+                <AppText color={colors.text} variant="cardTitle">
+                  {category.title}
+                </AppText>
+                <AppText color={colors.muted} variant="bodyMuted">
                   {category.subtitle}
                 </AppText>
               </View>
@@ -349,18 +402,26 @@ export default function PracticeScreen({ navigation }) {
       <AppCard style={styles.modeCard} tone="subtle">
         <SectionHeader title="Modes" subtitle="Text mode is live. Voice and video are planned." />
         <View style={styles.modeRow}>
-          <View style={styles.modePill}>
-            <AppIcon color={COLORS.success} name="check" size={16} />
+          <View
+            style={[styles.modePill, { backgroundColor: colors.card, borderColor: colors.border }]}
+          >
+            <AppIcon color={colors.success} name="check" size={16} />
             <AppText variant="caption">Text mode</AppText>
           </View>
-          <HapticPressable onPress={() => handleLockedMode("Voice mode")} style={styles.modePill}>
-            <AppIcon color={COLORS.muted} name="lock" size={16} />
+          <HapticPressable
+            onPress={() => handleLockedMode("Voice mode")}
+            style={[styles.modePill, { backgroundColor: colors.card, borderColor: colors.border }]}
+          >
+            <AppIcon color={colors.muted} name="lock" size={16} />
             <AppText tone="muted" variant="caption">
               Voice soon
             </AppText>
           </HapticPressable>
-          <HapticPressable onPress={() => handleLockedMode("Video mode")} style={styles.modePill}>
-            <AppIcon color={COLORS.muted} name="lock" size={16} />
+          <HapticPressable
+            onPress={() => handleLockedMode("Video mode")}
+            style={[styles.modePill, { backgroundColor: colors.card, borderColor: colors.border }]}
+          >
+            <AppIcon color={colors.muted} name="lock" size={16} />
             <AppText tone="muted" variant="caption">
               Video soon
             </AppText>
@@ -372,16 +433,28 @@ export default function PracticeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  categoryArrow: {
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: RADIUS.pill,
+    height: 28,
+    justifyContent: "center",
+    width: 28
+  },
   categoryCard: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.lg,
+    backgroundColor: "rgba(13, 19, 32, 0.94)",
+    borderColor: "rgba(169, 190, 255, 0.14)",
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
     flexBasis: "47%",
     flexGrow: 1,
-    gap: SPACING.lg,
-    minHeight: 172,
-    padding: SPACING.lg
+    gap: SPACING.md,
+    minHeight: 150,
+    padding: SPACING.lg,
+    shadowColor: COLORS.primary,
+    shadowOffset: { height: 14, width: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18
   },
   categoryCopy: {
     gap: SPACING.xs
@@ -393,11 +466,13 @@ const styles = StyleSheet.create({
   },
   categoryIcon: {
     alignItems: "center",
-    backgroundColor: COLORS.primarySoft,
-    borderRadius: RADIUS.md,
-    height: 48,
+    backgroundColor: "rgba(98, 214, 255, 0.1)",
+    borderColor: "rgba(98, 214, 255, 0.2)",
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    height: 44,
     justifyContent: "center",
-    width: 48
+    width: 44
   },
   categoryTop: {
     alignItems: "center",
@@ -412,22 +487,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",
-    minHeight: 48
+    minHeight: 42
   },
   countChipSelected: {
-    backgroundColor: COLORS.primarySoft,
-    borderColor: COLORS.primary
+    backgroundColor: "rgba(98, 214, 255, 0.12)",
+    borderColor: COLORS.secondaryStrong
   },
   countRow: {
     flexDirection: "row",
     gap: SPACING.sm
-  },
-  header: {
-    gap: SPACING.sm
-  },
-  loadingCard: {
-    alignItems: "center",
-    flexDirection: "row"
   },
   locked: {
     opacity: 0.48
@@ -443,13 +511,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: "row",
     gap: SPACING.xs,
-    minHeight: 40,
+    minHeight: 36,
     paddingHorizontal: SPACING.md
   },
   modeRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: SPACING.sm
+  },
+  quotaCard: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: SPACING.md
+  },
+  quotaCopy: {
+    flex: 1,
+    gap: SPACING.xs,
+    minWidth: 0
+  },
+  quotaIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(98, 214, 255, 0.1)",
+    borderColor: "rgba(127, 255, 231, 0.18)",
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    height: 42,
+    justifyContent: "center",
+    width: 42
   },
   section: {
     gap: SPACING.md
@@ -470,10 +558,10 @@ const styles = StyleSheet.create({
     gap: SPACING.sm
   },
   segmentSelected: {
-    backgroundColor: COLORS.primarySoft,
-    borderColor: COLORS.primary
+    backgroundColor: "rgba(98, 214, 255, 0.12)",
+    borderColor: COLORS.secondaryStrong
   },
   setupCard: {
-    gap: SPACING.lg
+    gap: SPACING.md
   }
 });

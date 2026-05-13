@@ -1,6 +1,6 @@
 import { Text } from "react-native";
 
-import { COLORS, TYPOGRAPHY } from "../../theme";
+import { COLORS, TYPOGRAPHY, useAppTheme } from "../../theme";
 
 const VARIANTS = {
   body: TYPOGRAPHY.body,
@@ -36,13 +36,24 @@ export default function AppText({
   tone = "default",
   variant = "body"
 }) {
+  const { colors } = useAppTheme();
+  const toneColors = {
+    default: colors.text,
+    danger: colors.danger,
+    muted: colors.muted,
+    primary: colors.primary,
+    secondary: colors.secondary,
+    success: colors.success,
+    warning: colors.warning
+  };
+
   return (
     <Text
       numberOfLines={numberOfLines}
       selectable={selectable}
       style={[
         VARIANTS[variant] || TYPOGRAPHY.body,
-        { color: color || COLORS_BY_TONE[tone] },
+        { color: color || toneColors[tone] || COLORS_BY_TONE[tone] },
         style
       ]}
     >

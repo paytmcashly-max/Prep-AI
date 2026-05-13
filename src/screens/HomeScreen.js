@@ -3,23 +3,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
-import HapticPressable from "../components/HapticPressable";
 import AppButton from "../components/ui/AppButton";
 import AppCard from "../components/ui/AppCard";
 import AppIcon from "../components/ui/AppIcon";
 import AppText from "../components/ui/AppText";
 import EmptyState from "../components/ui/EmptyState";
 import ErrorState from "../components/ui/ErrorState";
+import LoadingState from "../components/ui/LoadingState";
 import Screen from "../components/ui/Screen";
+import ScreenHero from "../components/ui/ScreenHero";
 import SectionHeader from "../components/ui/SectionHeader";
-import StatCard from "../components/ui/StatCard";
 import { trackEvent } from "../services/analyticsService";
 import { getCurrentUser } from "../services/authService";
 import { generateDailyTip } from "../services/aiService";
 import { showSessionCompleteNotification } from "../services/notificationService";
 import { calculateCurrentStreak, fetchUserSessions } from "../services/sessionService";
 import { useUserStore } from "../store/userStore";
-import { COLORS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
+import { COLORS, RADIUS, SPACING, useAppTheme } from "../theme";
 
 const getDisplayName = (profileName) => {
   if (profileName?.trim()) {
@@ -43,7 +43,22 @@ const getTodayDateKey = () => {
   ).padStart(2, "0")}`;
 };
 
+const getGreeting = () => {
+  const hour = new Date().getHours();
+
+  if (hour < 12) {
+    return "Good morning";
+  }
+
+  if (hour < 17) {
+    return "Good afternoon";
+  }
+
+  return "Good evening";
+};
+
 export default function HomeScreen({ navigation, route }) {
+  const { colors } = useAppTheme();
   const profileName = useUserStore((state) => state.profile.fullName || state.profile.name);
   const [userName, setUserName] = useState("there");
   const [dailyTip, setDailyTip] = useState("");
@@ -167,21 +182,41 @@ export default function HomeScreen({ navigation, route }) {
 
   return (
     <Screen>
-      <AppCard gradient="calm" style={styles.hero}>
-        <View style={styles.heroTop}>
-          <View style={styles.heroCopy}>
-            <AppText tone="primary" variant="caption">
-              {"Today's prep"}
-            </AppText>
-            <AppText variant="screenTitle">Good morning, {userName}</AppText>
-            <AppText tone="muted" variant="body">
-              Start with one focused round, then review the one improvement that matters most.
+      <ScreenHero
+        badge="Interview coach"
+        badgeIcon="sparkles"
+        logo
+        title={`${getGreeting()}, ${userName}`}
+        subtitle="Take one focused round, review the feedback, and make your next answer sharper."
+      >
+        <View
+          style={[
+            styles.heroMetrics,
+            { backgroundColor: colors.cardAlt, borderColor: colors.border }
+          ]}
+        >
+          <View style={styles.heroMetric}>
+            <AppText variant="monoNumber">{streak}d</AppText>
+            <AppText tone="muted" variant="caption">
+              Streak
             </AppText>
           </View>
-          <View style={styles.heroIcon}>
-            <AppIcon color={COLORS.text} name="message" size={28} />
+          <View style={[styles.metricDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.heroMetric}>
+            <AppText variant="monoNumber">{averageScore}</AppText>
+            <AppText tone="muted" variant="caption">
+              Average
+            </AppText>
+          </View>
+          <View style={[styles.metricDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.heroMetric}>
+            <AppText variant="monoNumber">{sessions.length}</AppText>
+            <AppText tone="muted" variant="caption">
+              Sessions
+            </AppText>
           </View>
         </View>
+
         <AppButton
           loading={isStartingInterview}
           onPress={startPractice}
@@ -190,13 +225,7 @@ export default function HomeScreen({ navigation, route }) {
         >
           Start practice
         </AppButton>
-      </AppCard>
-
-      <View style={styles.statsRow}>
-        <StatCard icon="calendar" label="Streak" tone="warning" value={`${streak}d`} />
-        <StatCard icon="gauge" label="Average" value={averageScore} />
-        <StatCard icon="practice" label="Sessions" tone="success" value={String(sessions.length)} />
-      </View>
+      </ScreenHero>
 
       <AppCard style={styles.tipCard}>
         <SectionHeader
@@ -224,12 +253,7 @@ export default function HomeScreen({ navigation, route }) {
         <SectionHeader title="Recent sessions" subtitle="Only real saved practice appears here." />
 
         {isSessionsLoading ? (
-          <AppCard style={styles.loadingCard}>
-            <ActivityIndicator color={COLORS.primary} />
-            <AppText tone="muted" variant="bodyMuted">
-              Loading recent practice...
-            </AppText>
-          </AppCard>
+          <LoadingState message="Loading recent practice." title="Recent sessions loading" />
         ) : null}
 
         {sessionsError ? <ErrorState message={sessionsError} title="Sessions unavailable" /> : null}
@@ -244,27 +268,48 @@ export default function HomeScreen({ navigation, route }) {
 
         {!isSessionsLoading && !sessionsError
           ? recentSessions.map((session) => (
-              <HapticPressable
-                key={session.id}
-                style={({ pressed }) => [styles.sessionCard, pressed && PRESSED_STYLE]}
-              >
+              <AppCard key={session.id} style={styles.sessionCard}>
                 <View style={styles.sessionTop}>
-                  <View style={styles.sessionIcon}>
-                    <AppIcon color={COLORS.primary} name="message" size={19} />
+                  <View
+                    style={[
+                      styles.sessionIcon,
+                      { backgroundColor: colors.secondarySoft, borderColor: colors.border }
+                    ]}
+                  >
+                    <AppIcon color={colors.primary} name="message" size={19} />
                   </View>
                   <View style={styles.sessionCopy}>
                     <AppText numberOfLines={1} variant="cardTitle">
                       {session.category || "Mock Interview"}
                     </AppText>
-                    <AppText numberOfLines={1} tone="muted" variant="bodyMuted">
-                      {session.jobRole || "Role not set"} - {formatSessionDate(session.date)}
+                    <View style={styles.sessionMetaRow}>
+                      <AppIcon color={colors.muted} name="briefcase" size={14} />
+                      <AppText numberOfLines={1} tone="muted" variant="bodyMuted">
+                        {session.jobRole || "Role not set"}
+                      </AppText>
+                    </View>
+                    <View style={styles.sessionMetaRow}>
+                      <AppIcon color={colors.muted} name="calendar" size={14} />
+                      <AppText numberOfLines={1} tone="muted" variant="bodyMuted">
+                        {formatSessionDate(session.date)}
+                      </AppText>
+                    </View>
+                  </View>
+                  <View
+                    style={[
+                      styles.sessionScorePill,
+                      { backgroundColor: colors.primarySoft, borderColor: colors.border }
+                    ]}
+                  >
+                    <AppText tone="muted" variant="caption">
+                      Score
+                    </AppText>
+                    <AppText color={colors.primary} variant="monoNumber">
+                      {Number(session.score || 0).toFixed(1)}
                     </AppText>
                   </View>
-                  <AppText color={COLORS.primary} variant="monoNumber">
-                    {Number(session.score || 0).toFixed(1)}
-                  </AppText>
                 </View>
-              </HapticPressable>
+              </AppCard>
             ))
           : null}
       </View>
@@ -274,7 +319,14 @@ export default function HomeScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   hero: {
-    gap: SPACING.xl
+    gap: SPACING.lg,
+    overflow: "hidden"
+  },
+  heroAccent: {
+    backgroundColor: COLORS.secondaryStrong,
+    borderRadius: RADIUS.pill,
+    height: 4,
+    width: 72
   },
   heroButton: {
     alignSelf: "stretch"
@@ -283,13 +335,21 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: SPACING.sm
   },
-  heroIcon: {
+  heroMetric: {
     alignItems: "center",
-    backgroundColor: "rgba(124, 109, 255, 0.24)",
+    flex: 1,
+    gap: 2
+  },
+  heroMetrics: {
+    alignItems: "center",
     borderRadius: RADIUS.lg,
-    height: 56,
-    justifyContent: "center",
-    width: 56
+    borderWidth: 1,
+    flexDirection: "row",
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm
+  },
+  heroTitle: {
+    letterSpacing: -0.25
   },
   heroTop: {
     alignItems: "flex-start",
@@ -301,16 +361,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: SPACING.md
   },
-  loadingCard: {
-    alignItems: "center",
-    flexDirection: "row"
-  },
   section: {
     gap: SPACING.md
   },
   sessionCard: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     padding: SPACING.lg
@@ -321,21 +375,37 @@ const styles = StyleSheet.create({
   },
   sessionIcon: {
     alignItems: "center",
-    backgroundColor: COLORS.primarySoft,
+    backgroundColor: COLORS.secondarySoft,
+    borderColor: COLORS.border,
+    borderWidth: 1,
     borderRadius: RADIUS.pill,
     height: 40,
     justifyContent: "center",
     width: 40
+  },
+  sessionMetaRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: SPACING.xs,
+    minWidth: 0
+  },
+  sessionScorePill: {
+    alignItems: "center",
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    gap: 1,
+    minWidth: 66,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs
   },
   sessionTop: {
     alignItems: "center",
     flexDirection: "row",
     gap: SPACING.md
   },
-  statsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: SPACING.md
+  metricDivider: {
+    height: 32,
+    width: 1
   },
   tipCard: {
     gap: SPACING.md

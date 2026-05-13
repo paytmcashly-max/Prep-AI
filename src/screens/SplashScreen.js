@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { Animated, Image, StyleSheet, Text, View } from "react-native";
 
 import { APP_NAME, COLORS } from "../utils/constants";
+
+const LOGO_MARK = require("../../assets/logo-mark.png");
 
 export default function SplashScreen({ navigation }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -40,9 +42,7 @@ export default function SplashScreen({ navigation }) {
         ]}
       >
         <View style={styles.logoMark}>
-          <Text selectable style={styles.logoInitial}>
-            P
-          </Text>
+          <Image accessibilityIgnoresInvertColors source={LOGO_MARK} style={styles.logoImage} />
         </View>
         <Text selectable style={styles.logoText}>
           {APP_NAME}
@@ -65,31 +65,39 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: "center",
-    gap: 14
+    gap: 12
   },
   logoMark: {
     alignItems: "center",
-    backgroundColor: COLORS.primary,
-    borderRadius: 26,
-    height: 76,
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    borderColor: "rgba(255, 255, 255, 0.09)",
+    borderRadius: 30,
+    borderWidth: 1,
+    height: 88,
     justifyContent: "center",
-    width: 76
+    shadowColor: COLORS.primary,
+    shadowOffset: { height: 12, width: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    width: 88
   },
-  logoInitial: {
-    color: COLORS.surface,
-    fontSize: 38,
-    fontWeight: "900"
+  logoImage: {
+    height: 72,
+    width: 72
   },
   logoText: {
     color: COLORS.text,
-    fontSize: 42,
-    fontWeight: "900",
-    letterSpacing: 0
+    fontFamily: "Inter_800ExtraBold",
+    fontSize: 38,
+    fontWeight: "800",
+    letterSpacing: -0.2
   },
   tagline: {
     color: COLORS.muted,
-    fontSize: 17,
-    fontWeight: "600",
+    fontFamily: "Inter_500Medium",
+    fontSize: 16,
+    fontWeight: "500",
+    lineHeight: 22,
     textAlign: "center"
   }
 });

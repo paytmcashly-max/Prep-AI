@@ -1,5 +1,7 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import * as Haptics from "expo-haptics";
+import { Platform, View, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppIcon from "../components/ui/AppIcon";
 import HomeScreen from "../screens/HomeScreen";
@@ -7,7 +9,7 @@ import PracticeScreen from "../screens/PracticeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import ProgressScreen from "../screens/ProgressScreen";
 import ResumeScreen from "../screens/ResumeScreen";
-import { COLORS, ICON_SIZES, RADIUS, SPACING } from "../theme";
+import { ICON_SIZES, RADIUS, SPACING, useAppTheme } from "../theme";
 
 const Tab = createBottomTabNavigator();
 
@@ -15,14 +17,23 @@ const TAB_ICONS = {
   Home: "home",
   Practice: "practice",
   Profile: "profile",
-  Progress: "progress",
+  Progress: "chart",
   Resume: "resume"
 };
 
 export default function TabNavigator() {
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const { colors } = useAppTheme();
+  const floatingBottom = Math.max(insets.bottom + 6, 10);
+  const tabBarWidth = Math.min(width - SPACING.lg * 2, 430);
+
   return (
     <Tab.Navigator
       initialRouteName="Home"
+      sceneContainerStyle={{
+        backgroundColor: "transparent"
+      }}
       screenListeners={{
         tabPress: () => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -30,45 +41,69 @@ export default function TabNavigator() {
       }}
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveBackgroundColor: "rgba(124, 109, 255, 0.14)",
-        tabBarActiveTintColor: COLORS.text,
+        tabBarActiveBackgroundColor: "transparent",
+        tabBarActiveTintColor: colors.secondary,
         tabBarHideOnKeyboard: true,
         tabBarInactiveBackgroundColor: "transparent",
-        tabBarInactiveTintColor: COLORS.muted,
-        tabBarIcon: ({ color, focused, size }) => (
-          <AppIcon
-            color={focused ? COLORS.primary : color}
-            name={TAB_ICONS[route.name] || "info"}
-            size={Math.min(size || ICON_SIZES.tab, focused ? 24 : 23)}
-            strokeWidth={focused ? 2.55 : 2.15}
-          />
-        ),
+        tabBarInactiveTintColor: colors.muted,
+        tabBarIcon: ({ color, focused, size }) => {
+          const iconColor = focused ? colors.secondary : color;
+
+          return (
+            <View style={[styles.iconPill, focused && styles.iconPillActive]}>
+              <AppIcon
+                color={iconColor}
+                name={TAB_ICONS[route.name] || "info"}
+                size={Math.min(size || ICON_SIZES.tab, focused ? 22 : 21)}
+                strokeWidth={focused ? 2.6 : 2.15}
+              />
+            </View>
+          );
+        },
         tabBarIconStyle: {
-          marginTop: 3
+          alignItems: "center",
+          height: 32,
+          justifyContent: "center",
+          marginTop: 0,
+          width: 46
         },
         tabBarItemStyle: {
-          borderRadius: RADIUS.lg,
-          marginHorizontal: 2,
-          marginVertical: 7,
-          minHeight: 54
+          alignItems: "center",
+          borderRadius: RADIUS.pill,
+          justifyContent: "center",
+          marginHorizontal: 1,
+          marginVertical: 6,
+          minHeight: 50,
+          paddingTop: 0
         },
         tabBarLabelStyle: {
-          fontSize: 10.5,
+          fontSize: 10,
           fontWeight: "800",
-          lineHeight: 14,
-          paddingBottom: 2
+          lineHeight: 13,
+          paddingBottom: 3
         },
         tabBarStyle: {
-          backgroundColor: "rgba(13, 16, 24, 0.98)",
-          borderColor: COLORS.border,
-          borderRadius: RADIUS.xl,
-          borderTopColor: COLORS.border,
+          position: "absolute",
+          bottom: floatingBottom,
+          left: Math.max((width - tabBarWidth) / 2, SPACING.lg),
+          alignSelf: "center",
+          backgroundColor: colors.overlay,
+          borderColor: colors.border,
+          borderRadius: 32,
+          borderTopColor: colors.border,
           borderWidth: 1,
-          height: 78,
-          marginHorizontal: SPACING.md,
-          paddingBottom: 9,
+          borderTopWidth: 1,
+          height: 62,
+          paddingBottom: 5,
           paddingHorizontal: 7,
-          paddingTop: 7
+          paddingTop: 5,
+          shadowColor: "#000000",
+          shadowOffset: { height: 14, width: 0 },
+          shadowOpacity: 0.32,
+          shadowRadius: 22,
+          elevation: Platform.OS === "android" ? 12 : 0,
+          overflow: Platform.OS === "android" ? "hidden" : "visible",
+          width: tabBarWidth
         }
       })}
     >
@@ -80,3 +115,22 @@ export default function TabNavigator() {
     </Tab.Navigator>
   );
 }
+
+const styles = {
+  iconPill: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 36,
+    height: 28,
+    borderRadius: RADIUS.pill
+  },
+  iconPillActive: {
+    backgroundColor: "rgba(98, 214, 255, 0.12)",
+    borderColor: "rgba(98, 214, 255, 0.22)",
+    borderWidth: 1,
+    shadowColor: "#62D6FF",
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.14,
+    shadowRadius: 12
+  }
+};

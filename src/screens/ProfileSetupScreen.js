@@ -1,85 +1,32 @@
-import { useMemo, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, StyleSheet, View } from "react-native";
 import { doc, serverTimestamp, writeBatch } from "firebase/firestore";
 
 import HapticPressable from "../components/HapticPressable";
 import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
 import AppButton from "../components/ui/AppButton";
 import AppCard from "../components/ui/AppCard";
-import AppIcon from "../components/ui/AppIcon";
 import AppInput from "../components/ui/AppInput";
 import AppText from "../components/ui/AppText";
+import IconButton from "../components/ui/IconButton";
+import JobRolePicker from "../components/ui/JobRolePicker";
+import ScreenHero from "../components/ui/ScreenHero";
 import { getCurrentUser } from "../services/authService";
 import { firestore } from "../services/firebaseConfig";
 import { useUserStore } from "../store/userStore";
-import { COLORS, PRESSED_STYLE, RADIUS, SPACING } from "../theme";
-
-const JOB_ROLES = [
-  "Full Stack Developer",
-  "Frontend Developer",
-  "Backend Developer",
-  "Android Developer",
-  "Data Scientist",
-  "MBA/Management"
-];
+import { COLORS, PRESSED_STYLE, RADIUS, SPACING, useAppTheme } from "../theme";
 
 const EXPERIENCE_LEVELS = ["Fresher", "1-2 Years", "3-5 Years"];
 
-function JobRolePicker({ selectedValue, onSelect }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <View style={styles.field}>
-      <Text selectable style={styles.label}>
-        Job Role
-      </Text>
-      <HapticPressable
-        onPress={() => setIsOpen((current) => !current)}
-        style={({ pressed }) => [styles.selectButton, pressed && styles.pressed]}
-      >
-        <Text style={[styles.selectText, !selectedValue && styles.placeholderText]}>
-          {selectedValue || "Select your job role"}
-        </Text>
-        <AppIcon color={COLORS.accent} name={isOpen ? "up" : "down"} size={20} />
-      </HapticPressable>
-
-      {isOpen ? (
-        <View style={styles.optionsPanel}>
-          <ScrollView nestedScrollEnabled style={styles.optionsScroll}>
-            {JOB_ROLES.map((role) => {
-              const selected = role === selectedValue;
-
-              return (
-                <HapticPressable
-                  key={role}
-                  onPress={() => {
-                    onSelect(role);
-                    setIsOpen(false);
-                  }}
-                  style={({ pressed }) => [
-                    styles.optionRow,
-                    selected && styles.optionRowSelected,
-                    pressed && styles.pressed
-                  ]}
-                >
-                  <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-                    {role}
-                  </Text>
-                </HapticPressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
 export default function ProfileSetupScreen({ navigation, route, onProfileCompleted }) {
+  const { colors } = useAppTheme();
   const currentUser = getCurrentUser();
   const profile = useUserStore((state) => state.profile);
   const updateProfile = useUserStore((state) => state.updateProfile);
-  const [fullName, setFullName] = useState(() => currentUser?.displayName || profile.name || "");
+  const suggestedFullName =
+    profile.fullName?.trim() || profile.name?.trim() || currentUser?.displayName?.trim() || "";
+  const [fullName, setFullName] = useState(suggestedFullName);
+  const [hasEditedName, setHasEditedName] = useState(false);
   const [jobRole, setJobRole] = useState(profile.jobRole || "");
   const [experienceLevel, setExperienceLevel] = useState(profile.experienceLevel || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -89,6 +36,12 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
     () => Boolean(fullName.trim() && jobRole && experienceLevel && !isSaving),
     [experienceLevel, fullName, isSaving, jobRole]
   );
+
+  useEffect(() => {
+    if (!hasEditedName && !fullName.trim() && suggestedFullName) {
+      setFullName(suggestedFullName);
+    }
+  }, [fullName, hasEditedName, suggestedFullName]);
 
   const saveProfile = async () => {
     if (!canSubmit) {
@@ -164,31 +117,29 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
   };
 
   return (
-    <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAwareScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      <View pointerEvents="none" style={styles.orbTop} />
+      <View pointerEvents="none" style={styles.orbBottom} />
       {isEditMode ? (
-        <HapticPressable
+        <IconButton
+          accessibilityLabel="Go back"
+          icon="back"
           onPress={() => navigation.goBack()}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-        >
-          <AppIcon color={COLORS.text} name="back" size={18} />
-          <AppText selectable={false} variant="button">
-            Back
-          </AppText>
-        </HapticPressable>
+          size={44}
+          style={styles.backButton}
+        />
       ) : null}
 
-      <View style={styles.header}>
-        <View style={styles.heroIcon}>
-          <AppIcon color={COLORS.accent} name="target" size={34} />
-        </View>
-        <AppText tone="primary" variant="caption">
-          Profile setup
-        </AppText>
-        <AppText variant="screenTitle">Personalize your practice</AppText>
-        <AppText tone="muted" variant="body">
-          Your role and experience help IntervueAI generate better interview questions.
-        </AppText>
-      </View>
+      <ScreenHero
+        badge="Profile setup"
+        badgeIcon="user"
+        logo
+        title="Personalize your practice"
+        subtitle="Your role and experience help IntervueAI generate better interview questions."
+      />
 
       <AppCard style={styles.card}>
         <View style={styles.field}>
@@ -197,7 +148,10 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
             autoComplete="name"
             icon="user"
             label="Full name"
-            onChangeText={setFullName}
+            onChangeText={(value) => {
+              setHasEditedName(true);
+              setFullName(value);
+            }}
             placeholder="Enter your full name"
             value={fullName}
           />
@@ -206,9 +160,7 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
         <JobRolePicker selectedValue={jobRole} onSelect={setJobRole} />
 
         <View style={styles.field}>
-          <Text selectable style={styles.label}>
-            Experience Level
-          </Text>
+          <AppText variant="bodyStrong">Experience Level</AppText>
           <View style={styles.segmentRow}>
             {EXPERIENCE_LEVELS.map((level) => {
               const selected = experienceLevel === level;
@@ -223,9 +175,13 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
                     pressed && styles.pressed
                   ]}
                 >
-                  <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>
+                  <AppText
+                    color={selected ? COLORS.background : COLORS.text}
+                    selectable={false}
+                    variant="bodyStrong"
+                  >
                     {level}
-                  </Text>
+                  </AppText>
                 </HapticPressable>
               );
             })}
@@ -242,17 +198,8 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
 
 const styles = StyleSheet.create({
   backButton: {
-    alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.pill,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: SPACING.xs,
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: SPACING.lg
+    marginBottom: -SPACING.md
   },
   card: {
     gap: SPACING.xl
@@ -270,57 +217,26 @@ const styles = StyleSheet.create({
   field: {
     gap: SPACING.sm
   },
-  header: {
-    gap: SPACING.sm,
-    paddingTop: 8
-  },
-  heroIcon: {
-    alignItems: "center",
-    backgroundColor: COLORS.primarySoft,
-    borderColor: "rgba(124, 109, 255, 0.35)",
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    height: 64,
-    justifyContent: "center",
-    width: 64
-  },
-  label: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
-  },
-  optionRow: {
-    paddingHorizontal: 14,
-    paddingVertical: 14
-  },
-  optionRowSelected: {
-    backgroundColor: "rgba(108, 99, 255, 0.18)"
-  },
-  optionText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "800"
-  },
-  optionTextSelected: {
-    color: COLORS.accent,
-    fontWeight: "900"
-  },
-  optionsPanel: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    overflow: "hidden"
-  },
-  optionsScroll: {
-    maxHeight: 230
-  },
-  placeholderText: {
-    color: COLORS.muted,
-    fontWeight: "700"
-  },
   pressed: {
     ...PRESSED_STYLE
+  },
+  orbBottom: {
+    backgroundColor: "rgba(98, 214, 255, 0.055)",
+    borderRadius: 150,
+    height: 300,
+    position: "absolute",
+    right: -130,
+    top: 260,
+    width: 300
+  },
+  orbTop: {
+    backgroundColor: "rgba(139, 128, 255, 0.08)",
+    borderRadius: 160,
+    height: 320,
+    left: -150,
+    position: "absolute",
+    top: -90,
+    width: 320
   },
   segmentButton: {
     alignItems: "center",
@@ -334,38 +250,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10
   },
   segmentButtonSelected: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent
+    backgroundColor: "rgba(98, 214, 255, 0.12)",
+    borderColor: "rgba(127, 255, 231, 0.34)"
   },
   segmentRow: {
     flexDirection: "row",
     gap: 10
-  },
-  segmentText: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: "900",
-    textAlign: "center"
-  },
-  segmentTextSelected: {
-    color: COLORS.text
-  },
-  selectButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-    minHeight: 56,
-    paddingHorizontal: 16
-  },
-  selectText: {
-    color: COLORS.text,
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "800"
   }
 });

@@ -1,15 +1,17 @@
 import { StyleSheet, View } from "react-native";
 
-import { COLORS, SPACING } from "../../theme";
+import { SPACING, useAppTheme } from "../../theme";
 import AppIcon from "./AppIcon";
 import AppText from "./AppText";
 
 export default function FeatureRow({ available = true, label, note }) {
+  const { colors } = useAppTheme();
+
   return (
     <View style={styles.row}>
       <View style={[styles.icon, !available && styles.iconMuted]}>
         <AppIcon
-          color={available ? COLORS.success : COLORS.muted}
+          color={available ? colors.success : colors.muted}
           name={available ? "check" : "lock"}
           size={16}
           strokeWidth={2.7}

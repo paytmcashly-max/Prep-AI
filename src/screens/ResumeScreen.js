@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, StyleSheet, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import { useFocusEffect } from "@react-navigation/native";
@@ -7,7 +7,17 @@ import { useFocusEffect } from "@react-navigation/native";
 import FreeLimitCard from "../components/FreeLimitCard";
 import HapticPressable from "../components/HapticPressable";
 import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
+import AppButton from "../components/ui/AppButton";
+import AppCard from "../components/ui/AppCard";
+import AppText from "../components/ui/AppText";
+import ExpandableSection from "../components/ui/ExpandableSection";
 import AppIcon from "../components/ui/AppIcon";
+import JobRolePicker from "../components/ui/JobRolePicker";
+import LoadingState from "../components/ui/LoadingState";
+import MessageCard from "../components/ui/MessageCard";
+import ScoreRing from "../components/ui/ScoreRing";
+import ScreenHero from "../components/ui/ScreenHero";
+import UploadCard from "../components/ui/UploadCard";
 import { trackEvent } from "../services/analyticsService";
 import { ApiClientError, getLatestResumeAnalysis, getUsageStatus } from "../services/apiClient";
 import { auth } from "../services/firebaseConfig";
@@ -16,18 +26,7 @@ import { formatCountdown, getMsUntilNextResumeReset } from "../services/quotaSer
 import { validateResumePdfAsset } from "../services/resumeService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
-import { DARK_COLORS } from "../theme";
-
-const JOB_ROLES = [
-  "Full Stack Developer",
-  "Frontend Developer",
-  "Backend Developer",
-  "Android Developer",
-  "Data Scientist",
-  "MBA/Management"
-];
-
-const COLORS = DARK_COLORS;
+import { useAppTheme } from "../theme";
 
 const SECTION_LABELS = {
   summary: "Summary",
@@ -39,7 +38,7 @@ const SECTION_LABELS = {
 const RESUME_LIMIT_BENEFITS = [
   "Previous resume check stays saved",
   "Premium unlocks more resume scans",
-  "Suggested lines and ATS feedback remain visible"
+  "ATS feedback and suggested lines stay visible"
 ];
 
 const getLastResumeAnalysisStorageKey = () => {
@@ -83,137 +82,103 @@ const isPdfExtractionError = (error) => {
   );
 };
 
-function JobRolePicker({ selectedValue, onSelect }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <View style={styles.field}>
-      <Text selectable style={styles.label}>
-        Job Role
-      </Text>
-      <HapticPressable
-        onPress={() => setIsOpen((current) => !current)}
-        style={({ pressed }) => [styles.selectButton, pressed && styles.pressed]}
-      >
-        <Text style={[styles.selectText, !selectedValue && styles.placeholderText]}>
-          {selectedValue || "Select target role"}
-        </Text>
-        <AppIcon color={COLORS.accent} name={isOpen ? "up" : "down"} size={20} />
-      </HapticPressable>
-
-      {isOpen ? (
-        <View style={styles.optionsPanel}>
-          {JOB_ROLES.map((role) => {
-            const selected = selectedValue === role;
-
-            return (
-              <HapticPressable
-                key={role}
-                onPress={() => {
-                  onSelect(role);
-                  setIsOpen(false);
-                }}
-                style={({ pressed }) => [
-                  styles.optionRow,
-                  selected && styles.optionRowSelected,
-                  pressed && styles.pressed
-                ]}
-              >
-                <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-                  {role}
-                </Text>
-              </HapticPressable>
-            );
-          })}
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
 function KeywordBadge({ label }) {
+  const { colors } = useAppTheme();
+
   return (
-    <View style={styles.keywordBadge}>
-      <Text selectable style={styles.keywordBadgeText}>
+    <View
+      style={[
+        styles.keywordBadge,
+        { backgroundColor: colors.dangerSoft, borderColor: colors.danger }
+      ]}
+    >
+      <AppText color={colors.danger} variant="caption">
         {label}
-      </Text>
+      </AppText>
     </View>
   );
 }
 
 function SectionFeedbackCard({ title, value }) {
-  const [isOpen, setIsOpen] = useState(false);
-
   return (
-    <View style={styles.feedbackItem}>
-      <HapticPressable
-        onPress={() => setIsOpen((current) => !current)}
-        style={({ pressed }) => [styles.feedbackHeader, pressed && styles.pressed]}
-      >
-        <Text selectable style={styles.feedbackTitle}>
-          {title}
-        </Text>
-        <Text style={styles.chevron}>{isOpen ? "Hide" : "Show"}</Text>
-      </HapticPressable>
-      {isOpen ? (
-        <Text selectable style={styles.feedbackText}>
-          {value || "No feedback available yet."}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-function MessageCard({ message, title, tone = "default" }) {
-  return (
-    <View style={[styles.messageCard, tone === "error" && styles.errorMessageCard]}>
-      <Text selectable style={styles.messageTitle}>
-        {title}
-      </Text>
-      <Text selectable style={[styles.messageText, tone === "error" && styles.errorText]}>
-        {message}
-      </Text>
-    </View>
+    <ExpandableSection subtitle="Section-level guidance" title={title}>
+      <AppText tone="muted" variant="body">
+        {value || "No feedback available yet."}
+      </AppText>
+    </ExpandableSection>
   );
 }
 
 function PreviousResumeCheckCard({ analysis, isOpen, onPress }) {
+  const { colors } = useAppTheme();
+
   if (!analysis) {
     return null;
   }
 
+  const createdDate = analysis.createdAt
+    ? new Date(analysis.createdAt).toLocaleDateString()
+    : "Recent check";
+  const missingCount = (analysis.missingKeywords || []).length;
+  const suggestionCount = (analysis.rewriteSuggestions || []).length;
+
   return (
     <HapticPressable
       onPress={onPress}
-      style={({ pressed }) => [styles.previousCheckCard, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.previousCheckCard,
+        { backgroundColor: colors.card, borderColor: colors.border },
+        pressed && styles.pressed
+      ]}
     >
-      <View style={styles.previousCheckCopy}>
-        <Text selectable style={styles.previousCheckLabel}>
-          Previous resume check
-        </Text>
-        <Text selectable style={styles.previousCheckTitle}>
-          ATS Score {analysis.atsScore}/100
-        </Text>
-        <Text selectable style={styles.previousCheckMeta}>
-          {analysis.jobRole || "Target role"} -{" "}
-          {analysis.createdAt ? new Date(analysis.createdAt).toLocaleDateString() : "Recent check"}
-        </Text>
-        <Text selectable style={styles.previousCheckMeta}>
-          {(analysis.missingKeywords || []).length} missing keywords found
-        </Text>
-        <Text selectable style={styles.previousCheckHint}>
-          {isOpen ? "Hide full details" : "Tap to view full details"}
-        </Text>
+      <View
+        style={[
+          styles.previousScoreBlock,
+          { backgroundColor: colors.primarySoft, borderColor: colors.border }
+        ]}
+      >
+        <AppText color={colors.primary} variant="statNumber">
+          {analysis.atsScore}
+        </AppText>
+        <AppText tone="muted" variant="caption">
+          ATS
+        </AppText>
       </View>
-      <View style={styles.previousCheckAction}>
-        <Text style={styles.chevron}>{isOpen ? "Hide" : "Show"}</Text>
-        <AppIcon color={COLORS.accent} name={isOpen ? "up" : "down"} size={18} />
+      <View style={styles.previousCheckCopy}>
+        <AppText tone="secondary" variant="caption">
+          Latest resume check
+        </AppText>
+        <AppText variant="cardTitle">{analysis.jobRole || "Target role"}</AppText>
+        <View style={styles.previousStatsRow}>
+          <View style={styles.previousStatItem}>
+            <AppIcon color={colors.muted} name="calendar" size={14} />
+            <AppText tone="muted" variant="bodyMuted">
+              {createdDate}
+            </AppText>
+          </View>
+          <View style={styles.previousStatItem}>
+            <AppIcon color={colors.danger} name="target" size={14} />
+            <AppText tone="muted" variant="bodyMuted">
+              {missingCount} missing
+            </AppText>
+          </View>
+          <View style={styles.previousStatItem}>
+            <AppIcon color={colors.secondary} name="edit" size={14} />
+            <AppText tone="muted" variant="bodyMuted">
+              {suggestionCount} suggestions
+            </AppText>
+          </View>
+        </View>
+      </View>
+      <View style={[styles.previousCheckAction, { backgroundColor: colors.cardAlt }]}>
+        <AppIcon color={colors.secondary} name={isOpen ? "up" : "down"} size={18} />
       </View>
     </HapticPressable>
   );
 }
 
 export default function ResumeScreen({ navigation }) {
+  const { colors } = useAppTheme();
   const savedJobRole = useUserStore((state) => state.profile.jobRole);
   const isPremium = useSubscriptionStore((state) => state.isPremium);
   const refreshSubscriptionStatus = useSubscriptionStore(
@@ -224,7 +189,7 @@ export default function ResumeScreen({ navigation }) {
   const [jobRole, setJobRole] = useState(savedJobRole || "Full Stack Developer");
   const [isPickingPdf, setIsPickingPdf] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isLoadingOverview, setIsLoadingOverview] = useState(false);
+  const [isLoadingOverview, setIsLoadingOverview] = useState(true);
   const [overviewError, setOverviewError] = useState("");
   const [usageStatus, setUsageStatus] = useState(null);
   const [analysis, setAnalysis] = useState(null);
@@ -245,22 +210,25 @@ export default function ResumeScreen({ navigation }) {
     !isPremium && !hasPremiumAccess && resumeQuota && Number(resumeQuota.remaining || 0) <= 0;
   const isBlockedByResumeLimit =
     (isResumeLimitReached || isServerResumeLimitReached) && !hasPremiumAccess;
+  const shouldShowResumeLimit = !isLoadingOverview && isBlockedByResumeLimit;
+  const hasResumeInput = Boolean(selectedFile || (showPasteFallback && resumeText.trim()));
+  const canAnalyzeResume = Boolean(jobRole && hasResumeInput && !isAnalyzing && !isLoadingOverview);
   const shouldShowAnalysisDetails = Boolean(
-    analysis && (!isBlockedByResumeLimit || showPreviousAnalysisDetails)
+    analysis && (!shouldShowResumeLimit || showPreviousAnalysisDetails)
   );
   const atsColor = useMemo(() => {
     const score = Number(analysis?.atsScore || 0);
 
     if (score > 70) {
-      return COLORS.green;
+      return colors.success;
     }
 
     if (score >= 50) {
-      return COLORS.yellow;
+      return colors.warning;
     }
 
-    return COLORS.red;
-  }, [analysis?.atsScore]);
+    return colors.danger;
+  }, [analysis?.atsScore, colors.danger, colors.success, colors.warning]);
   const atsToneLabel = useMemo(
     () => getAtsToneLabel(Number(analysis?.atsScore || 0)),
     [analysis?.atsScore]
@@ -319,6 +287,8 @@ export default function ResumeScreen({ navigation }) {
       }
     } catch (error) {
       setOverviewError(error.message || "Could not load resume usage status.");
+      setUsageStatus(null);
+      setIsResumeLimitReached(false);
       await loadLastAnalysis();
     } finally {
       setIsLoadingOverview(false);
@@ -327,10 +297,21 @@ export default function ResumeScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      let isActive = true;
+
       loadResumeOverview();
-      if (!useSubscriptionStore.getState().isPremium) {
-        refreshSubscriptionStatus().catch(() => null);
-      }
+
+      refreshSubscriptionStatus()
+        .then(() => {
+          if (isActive) {
+            loadResumeOverview();
+          }
+        })
+        .catch(() => null);
+
+      return () => {
+        isActive = false;
+      };
     }, [loadResumeOverview, refreshSubscriptionStatus])
   );
 
@@ -506,50 +487,56 @@ export default function ResumeScreen({ navigation }) {
     setShowPasteFallback(false);
   };
 
-  return (
-    <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {!isBlockedByResumeLimit ? (
-        <View style={styles.header}>
-          <Text selectable style={styles.title}>
-            Resume Analyzer
-          </Text>
-          <Text selectable style={styles.subtitle}>
-            Upload a text-based PDF under 5MB. If the PDF cannot be read, we will offer a manual
-            paste fallback.
-          </Text>
-        </View>
-      ) : null}
+  if (isLoadingOverview) {
+    return (
+      <KeyboardAwareScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.content}
+      >
+        <LoadingState
+          message="Checking your scan availability and latest resume result."
+          title="Preparing resume analyzer"
+        />
+      </KeyboardAwareScrollView>
+    );
+  }
 
-      {isLoadingOverview ? (
-        <MessageCard
-          title="Checking resume quota"
-          message="Loading your latest resume analysis and free scan status."
+  return (
+    <KeyboardAwareScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      {!shouldShowResumeLimit ? (
+        <ScreenHero
+          badge="Resume intelligence"
+          badgeIcon="document"
+          logo
+          title="Resume Analyzer"
+          subtitle="Upload a text-based PDF under 5MB for ATS feedback, missing keywords, and cleaner resume lines."
         />
       ) : null}
 
-      {!isLoadingOverview && overviewError ? (
+      {overviewError ? (
         <View style={styles.retryCard}>
           <MessageCard title="Could not load resume status" message={overviewError} tone="error" />
-          <HapticPressable
-            onPress={loadResumeOverview}
-            style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </HapticPressable>
+          <AppButton onPress={loadResumeOverview} tone="secondary">
+            Retry
+          </AppButton>
         </View>
       ) : null}
 
-      {isBlockedByResumeLimit ? (
+      {isLoadingOverview ? null : shouldShowResumeLimit ? (
         <FreeLimitCard
           benefits={RESUME_LIMIT_BENEFITS}
           countdownLabel="Next free scan in"
           message={
             analysis
-              ? "Your previous resume check is saved below. Upgrade to Premium for more scans or wait for the next free scan."
-              : "Upgrade to Premium for more scans or wait for the next free scan."
+              ? "Your previous resume check is saved below. Upgrade for more scans or wait for the next free scan."
+              : "Upgrade for more scans or wait for the next free scan."
           }
           onUpgrade={() => navigation.navigate("Paywall")}
           resetCountdown={resumeResetCountdown}
+          style={styles.resumeLimitCard}
           title="Free resume scan limit reached"
         />
       ) : isLocalPremiumPendingServerSync ? (
@@ -560,70 +547,62 @@ export default function ResumeScreen({ navigation }) {
           onUpgrade={() => refreshSubscriptionStatus().finally(loadResumeOverview)}
           primaryLabel="Refresh Plan"
           secondaryLabel="Retry"
+          style={styles.resumeLimitCard}
           title="Premium sync pending"
         />
       ) : (
-        <View style={styles.card}>
-          <HapticPressable
+        <AppCard style={styles.inputCard}>
+          <UploadCard
             disabled={isPickingPdf}
+            helper="Text-based PDF only. Max file size 5MB."
             onPress={pickPdf}
-            style={({ pressed }) => [
-              styles.uploadButton,
-              isPickingPdf && styles.disabledButton,
-              pressed && !isPickingPdf && styles.pressed
-            ]}
-          >
-            {isPickingPdf ? (
-              <ActivityIndicator color={COLORS.text} />
-            ) : (
-              <View style={styles.uploadButtonContent}>
-                <AppIcon color={COLORS.text} name="upload" size={20} />
-                <Text style={styles.uploadButtonText}>
-                  {selectedFile ? "Replace PDF" : "Upload PDF"}
-                </Text>
-              </View>
-            )}
-          </HapticPressable>
+            title={
+              isPickingPdf ? "Opening file picker..." : selectedFile ? "Replace PDF" : "Choose PDF"
+            }
+          />
 
           {selectedFile ? (
             <View style={styles.fileBox}>
-              <Text selectable style={styles.fileLabel}>
+              <AppText tone="secondary" variant="caption">
                 PDF selected
-              </Text>
-              <Text selectable numberOfLines={2} style={styles.fileName}>
+              </AppText>
+              <AppText numberOfLines={2} variant="bodyStrong">
                 {selectedFile.name}
-              </Text>
+              </AppText>
             </View>
           ) : (
             <MessageCard
               title="PDF-first analysis"
-              message="Choose a text-based PDF under 5MB. Manual paste appears only if the PDF cannot be read."
+              message="Choose a text-based PDF under 5MB. If extraction fails, a manual paste fallback will appear here."
             />
           )}
 
           {showPasteFallback ? (
             <View style={styles.fallbackCard}>
               <View style={styles.fallbackHeader}>
-                <AppIcon color={COLORS.warning} name="warning" size={20} />
+                <AppIcon color={colors.warning} name="warning" size={20} />
                 <View style={styles.fallbackCopy}>
-                  <Text selectable style={styles.fallbackTitle}>
-                    We could not read this PDF
-                  </Text>
-                  <Text selectable style={styles.helperText}>
+                  <AppText variant="cardTitle">We could not read this PDF</AppText>
+                  <AppText tone="muted" variant="bodyMuted">
                     Paste your resume text below so IntervueAI can still analyze the content.
-                  </Text>
+                  </AppText>
                 </View>
               </View>
-              <Text selectable style={styles.label}>
-                Resume text
-              </Text>
+              <AppText variant="bodyStrong">Resume text</AppText>
               <TextInput
                 multiline
                 numberOfLines={8}
                 onChangeText={setResumeText}
                 placeholder="Paste your resume content..."
-                placeholderTextColor={COLORS.muted}
-                style={styles.resumeInput}
+                placeholderTextColor={colors.muted}
+                style={[
+                  styles.resumeInput,
+                  {
+                    backgroundColor: colors.cardAlt,
+                    borderColor: colors.border,
+                    color: colors.text
+                  }
+                ]}
                 textAlignVertical="top"
                 value={resumeText}
               />
@@ -636,27 +615,18 @@ export default function ResumeScreen({ navigation }) {
             <MessageCard title="Resume check stopped" message={errorMessage} tone="error" />
           ) : null}
 
-          <HapticPressable
-            disabled={!jobRole || isAnalyzing || isLoadingOverview}
+          <AppButton
+            disabled={!canAnalyzeResume}
+            loading={isAnalyzing}
             onPress={analyzeSelectedResume}
-            style={({ pressed }) => [
-              styles.analyzeButton,
-              (!jobRole || isAnalyzing || isLoadingOverview) && styles.disabledButton,
-              pressed && !isAnalyzing && styles.pressed
-            ]}
           >
-            {isAnalyzing ? (
-              <View style={styles.buttonLoadingRow}>
-                <ActivityIndicator color={COLORS.text} />
-                <Text style={styles.analyzeButtonText}>Analyzing...</Text>
-              </View>
-            ) : (
-              <Text style={styles.analyzeButtonText}>
-                {selectedFile ? "Analyze PDF" : "Analyze Resume"}
-              </Text>
-            )}
-          </HapticPressable>
-        </View>
+            {selectedFile
+              ? "Analyze PDF"
+              : showPasteFallback
+                ? "Analyze Pasted Text"
+                : "Choose PDF to Analyze"}
+          </AppButton>
+        </AppCard>
       )}
 
       {analysis ? (
@@ -668,78 +638,112 @@ export default function ResumeScreen({ navigation }) {
       ) : null}
 
       {shouldShowAnalysisDetails ? (
-        <View style={styles.resultsCard}>
-          <View style={styles.scoreBox}>
-            <Text selectable style={[styles.atsScore, { color: atsColor }]}>
-              {analysis.atsScore}
-            </Text>
-            <Text selectable style={styles.atsLabel}>
-              ATS Score
-            </Text>
-            <Text selectable style={styles.atsToneText}>
-              {atsToneLabel}
-            </Text>
-          </View>
-
-          <View style={styles.resultSection}>
-            <Text selectable style={styles.sectionTitle}>
-              Missing Keywords
-            </Text>
-            <View style={styles.badgeRow}>
-              {(analysis.missingKeywords || []).map((keyword) => (
-                <KeywordBadge key={keyword} label={keyword} />
-              ))}
+        <AppCard style={styles.resultsCard}>
+          <View style={styles.scoreHero}>
+            <ScoreRing label="ATS" score={analysis.atsScore} size={92} />
+            <View style={styles.scoreHeroCopy}>
+              <AppText variant="sectionTitle">Resume readiness</AppText>
+              <AppText color={atsColor} variant="bodyStrong">
+                {atsToneLabel}
+              </AppText>
+              <AppText tone="muted" variant="bodyMuted">
+                Score is based on role fit, keywords, clarity, and section strength.
+              </AppText>
             </View>
           </View>
 
-          <View style={styles.resultSection}>
-            <Text selectable style={styles.sectionTitle}>
-              Grammar Issues
-            </Text>
-            {(analysis.grammarIssues || []).length ? (
-              (analysis.grammarIssues || []).map((issue) => (
-                <Text key={issue} selectable style={styles.grammarIssue}>
-                  - {issue}
-                </Text>
-              ))
+          <View
+            style={[
+              styles.resultSection,
+              { backgroundColor: colors.cardAlt, borderColor: colors.border }
+            ]}
+          >
+            <AppText variant="sectionTitle">Missing Keywords</AppText>
+            {(analysis.missingKeywords || []).length ? (
+              <View style={styles.badgeRow}>
+                {(analysis.missingKeywords || []).map((keyword) => (
+                  <KeywordBadge key={keyword} label={keyword} />
+                ))}
+              </View>
             ) : (
-              <Text selectable style={styles.emptyResultText}>
-                No obvious grammar issues found.
-              </Text>
+              <View style={styles.cleanStateRow}>
+                <AppIcon color={colors.success} name="success" size={17} />
+                <AppText style={styles.flexText} tone="muted" variant="bodyMuted">
+                  No major missing keywords were returned.
+                </AppText>
+              </View>
             )}
           </View>
 
-          <View style={styles.resultSection}>
-            <View style={styles.resultSectionHeader}>
-              <Text selectable style={styles.sectionTitle}>
-                Suggested Lines to Add
-              </Text>
-              <Text selectable style={styles.sectionHint}>
-                Copy the strongest lines into the right resume section.
-              </Text>
-            </View>
-            {(analysis.rewriteSuggestions || []).length ? (
-              (analysis.rewriteSuggestions || []).map((suggestion, index) => (
-                <View key={`${suggestion}-${index}`} style={styles.rewriteCard}>
-                  <Text selectable style={styles.rewriteIndex}>
-                    {String(index + 1).padStart(2, "0")}
-                  </Text>
-                  <Text selectable style={styles.rewriteSuggestion}>
-                    {suggestion}
-                  </Text>
+          <View
+            style={[
+              styles.resultSection,
+              { backgroundColor: colors.cardAlt, borderColor: colors.border }
+            ]}
+          >
+            <AppText variant="sectionTitle">Grammar Issues</AppText>
+            {(analysis.grammarIssues || []).length ? (
+              (analysis.grammarIssues || []).map((issue) => (
+                <View key={issue} style={styles.issueRow}>
+                  <AppIcon color={colors.warning} name="warning" size={16} />
+                  <AppText style={styles.flexText} variant="bodyMuted">
+                    {issue}
+                  </AppText>
                 </View>
               ))
             ) : (
-              <Text selectable style={styles.emptyResultText}>
-                No suggested lines were returned for this resume.
-              </Text>
+              <View style={styles.cleanStateRow}>
+                <AppIcon color={colors.success} name="success" size={17} />
+                <AppText style={styles.flexText} tone="muted" variant="bodyMuted">
+                  No obvious grammar issues found.
+                </AppText>
+              </View>
             )}
           </View>
 
-          <View style={styles.resultSection}>
-            <Text selectable style={styles.sectionTitle}>
-              Section Feedback
-            </Text>
+          <View
+            style={[
+              styles.resultSection,
+              { backgroundColor: colors.cardAlt, borderColor: colors.border }
+            ]}
+          >
+            <View style={styles.resultSectionHeader}>
+              <AppText variant="sectionTitle">Suggested Lines to Add</AppText>
+              <AppText tone="muted" variant="bodyMuted">
+                Copy the strongest lines into the right resume section.
+              </AppText>
+            </View>
+            {(analysis.rewriteSuggestions || []).length ? (
+              (analysis.rewriteSuggestions || []).map((suggestion, index) => (
+                <View
+                  key={`${suggestion}-${index}`}
+                  style={[
+                    styles.rewriteCard,
+                    { backgroundColor: colors.secondarySoft, borderColor: colors.border }
+                  ]}
+                >
+                  <AppText color={colors.secondary} variant="caption">
+                    {String(index + 1).padStart(2, "0")}
+                  </AppText>
+                  <AppText style={styles.flexText} variant="body">
+                    {suggestion}
+                  </AppText>
+                </View>
+              ))
+            ) : (
+              <AppText tone="muted" variant="bodyMuted">
+                No suggested lines were returned for this resume.
+              </AppText>
+            )}
+          </View>
+
+          <View
+            style={[
+              styles.resultSection,
+              { backgroundColor: colors.cardAlt, borderColor: colors.border }
+            ]}
+          >
+            <AppText variant="sectionTitle">Section Feedback</AppText>
             {Object.entries(SECTION_LABELS).map(([key, label]) => (
               <SectionFeedbackCard
                 key={key}
@@ -749,99 +753,35 @@ export default function ResumeScreen({ navigation }) {
             ))}
           </View>
 
-          {!isBlockedByResumeLimit ? (
-            <HapticPressable
-              onPress={resetScreen}
-              style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
-            >
-              <Text style={styles.secondaryButtonText}>Analyze Another</Text>
-            </HapticPressable>
+          {!shouldShowResumeLimit ? (
+            <AppButton onPress={resetScreen} tone="secondary">
+              Analyze Another
+            </AppButton>
           ) : null}
-        </View>
+        </AppCard>
       ) : null}
     </KeyboardAwareScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  analyzeButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.accent,
-    borderRadius: 8,
-    justifyContent: "center",
-    minHeight: 56,
-    paddingHorizontal: 18
-  },
-  analyzeButtonText: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "900"
-  },
-  atsLabel: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "800"
-  },
-  atsScore: {
-    fontSize: 46,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "900",
-    lineHeight: 54
-  },
-  atsToneText: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "800"
-  },
   badgeRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10
   },
-  card: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 18,
-    padding: 18
-  },
-  chevron: {
-    color: COLORS.accent,
-    fontSize: 13,
-    fontWeight: "900"
+  cleanStateRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8
   },
   container: {
-    backgroundColor: COLORS.background,
     flex: 1
   },
   content: {
-    gap: 22,
-    padding: 20,
-    paddingBottom: 36
-  },
-  disabledButton: {
-    opacity: 0.45
-  },
-  buttonLoadingRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10
-  },
-  errorText: {
-    color: COLORS.danger,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20
-  },
-  errorMessageCard: {
-    borderColor: "rgba(239, 68, 68, 0.35)"
-  },
-  emptyResultText: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20
+    gap: 16,
+    padding: 16,
+    paddingBottom: 108
   },
   fallbackCard: {
     backgroundColor: "rgba(250, 204, 21, 0.08)",
@@ -860,134 +800,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10
   },
-  fallbackTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
-  },
-  feedbackHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between"
-  },
-  feedbackItem: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 12,
-    padding: 14
-  },
-  feedbackText: {
-    color: COLORS.muted,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  feedbackTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
-  },
-  field: {
-    gap: 10
-  },
   fileBox: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
     borderRadius: 12,
     borderWidth: 1,
     gap: 5,
     padding: 14
   },
-  fileLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
+  flexText: {
+    flex: 1
   },
-  fileName: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "800"
-  },
-  grammarIssue: {
-    color: COLORS.yellow,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  header: {
-    gap: 8,
-    paddingTop: 8
-  },
-  helperText: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 19
+  issueRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 8
   },
   keywordBadge: {
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    borderColor: "rgba(239, 68, 68, 0.42)",
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 13,
     paddingVertical: 9
-  },
-  keywordBadgeText: {
-    color: COLORS.danger,
-    fontSize: 13,
-    fontWeight: "900"
-  },
-  label: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
-  },
-  messageCard: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 6,
-    padding: 14
-  },
-  messageText: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20
-  },
-  messageTitle: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "900"
-  },
-  optionRow: {
-    paddingHorizontal: 14,
-    paddingVertical: 14
-  },
-  optionRowSelected: {
-    backgroundColor: "rgba(108, 99, 255, 0.18)"
-  },
-  optionText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "800"
-  },
-  optionTextSelected: {
-    color: COLORS.accent,
-    fontWeight: "900"
-  },
-  optionsPanel: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    overflow: "hidden"
-  },
-  placeholderText: {
-    color: COLORS.muted,
-    fontWeight: "700"
   },
   pressed: {
     opacity: 0.82,
@@ -995,14 +826,12 @@ const styles = StyleSheet.create({
   },
   previousCheckCard: {
     alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: "rgba(108, 99, 255, 0.35)",
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: "row",
     gap: 12,
     justifyContent: "space-between",
-    padding: 16
+    padding: 14
   },
   previousCheckCopy: {
     flex: 1,
@@ -1010,184 +839,81 @@ const styles = StyleSheet.create({
   },
   previousCheckAction: {
     alignItems: "center",
+    borderRadius: 999,
+    height: 34,
+    justifyContent: "center",
+    width: 34
+  },
+  previousScoreBlock: {
+    alignItems: "center",
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 1,
+    justifyContent: "center",
+    minHeight: 64,
+    width: 64
+  },
+  previousStatItem: {
+    alignItems: "center",
     flexDirection: "row",
     gap: 4
   },
-  previousCheckHint: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "700"
-  },
-  previousCheckLabel: {
-    color: COLORS.accent,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
-  },
-  previousCheckMeta: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 18
-  },
-  previousCheckTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900"
+  previousStatsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
   },
   resultSection: {
-    gap: 12
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 10,
+    padding: 12
   },
   resultSectionHeader: {
     gap: 5
-  },
-  retryButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.accent,
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 48,
-    paddingHorizontal: 16
-  },
-  retryButtonText: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "900"
   },
   retryCard: {
     gap: 12
   },
   rewriteCard: {
     alignItems: "flex-start",
-    backgroundColor: "rgba(108, 99, 255, 0.12)",
-    borderColor: "rgba(108, 99, 255, 0.35)",
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
-    gap: 12,
-    padding: 12
-  },
-  rewriteIndex: {
-    color: COLORS.accent,
-    fontSize: 13,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "900",
-    lineHeight: 21
-  },
-  rewriteSuggestion: {
-    color: COLORS.text,
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 21
+    gap: 10,
+    padding: 10
   },
   resumeInput: {
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
     borderRadius: 8,
     borderWidth: 1,
-    color: COLORS.text,
     fontSize: 15,
     lineHeight: 22,
-    minHeight: 170,
-    padding: 14
+    minHeight: 132,
+    padding: 12
+  },
+  resumeLimitCard: {
+    alignSelf: "center",
+    gap: 11,
+    padding: 14,
+    width: "96%"
   },
   resultsCard: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
     borderRadius: 16,
     borderWidth: 1,
-    gap: 20,
-    padding: 18
+    gap: 13,
+    padding: 14
   },
-  scoreBox: {
+  scoreHero: {
     alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 4,
-    padding: 20
-  },
-  secondaryButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.accent,
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 52,
-    paddingHorizontal: 18
-  },
-  secondaryButtonText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900"
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900"
-  },
-  sectionHint: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 19
-  },
-  selectButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    borderWidth: 1,
     flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-    minHeight: 56,
-    paddingHorizontal: 16
+    gap: 12
   },
-  selectText: {
-    color: COLORS.text,
+  scoreHeroCopy: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: "800"
+    gap: 5,
+    minWidth: 0
   },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 15,
-    fontWeight: "700",
-    lineHeight: 22
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 35
-  },
-  uploadButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.cardAlt,
-    borderColor: COLORS.accent,
-    borderRadius: 16,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 74,
-    paddingHorizontal: 18
-  },
-  uploadButtonContent: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "center"
-  },
-  uploadButtonText: {
-    color: COLORS.text,
-    fontSize: 17,
-    fontWeight: "900"
+  inputCard: {
+    gap: 14
   }
 });
