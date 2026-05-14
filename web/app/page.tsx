@@ -15,7 +15,8 @@ import {
   TimerReset
 } from "lucide-react";
 
-const APK_DOWNLOAD_URL = "/downloads/intervueai-public-beta-v1.0.0-arm64.apk";
+const APK_DOWNLOAD_URL =
+  "https://github.com/paytmcashly-max/Prep-AI/releases/download/v1.0.0-public-beta/intervueai-public-beta-v1.0.0-arm64.apk";
 
 const features = [
   {
