@@ -3,15 +3,19 @@ import {
   BrainCircuit,
   Check,
   CreditCard,
+  Download,
   FileText,
   Mail,
   MessageSquareText,
+  Rocket,
   ShieldCheck,
   Smartphone,
   Sparkles,
   Target,
   TimerReset
 } from "lucide-react";
+
+const APK_DOWNLOAD_URL = "https://expo.dev/artifacts/eas/kAAfqqE1vwAfrGAiy4m3hK.apk";
 
 const features = [
   {
@@ -78,6 +82,48 @@ const plans = [
   }
 ];
 
+const useCases = [
+  {
+    title: "First interview preparation",
+    description:
+      "Use guided mock rounds to get comfortable speaking clearly, structuring answers, and handling common HR questions.",
+    icon: Rocket
+  },
+  {
+    title: "Resume-to-interview improvement",
+    description:
+      "Review ATS gaps, rewrite sections, then practice the exact stories and outcomes your resume needs to support.",
+    icon: FileText
+  },
+  {
+    title: "Consistent weekly practice",
+    description:
+      "Track progress, keep your streak alive, and focus each day on one weak area instead of preparing randomly.",
+    icon: Target
+  }
+];
+
+const upcomingFeatures = [
+  {
+    title: "Voice Mock Interview - Planned for v1.2",
+    description:
+      "Practice interview answers by speaking naturally. Prep-AI will transcribe your response, let you review the transcript, and then provide AI-powered feedback. This feature is currently in private testing and is not included in the public beta.",
+    icon: MessageSquareText
+  },
+  {
+    title: "AI Interviewer Readout - Planned for v1.2+",
+    description:
+      "Hear interview questions spoken aloud for a more realistic mock interview experience. This will be introduced after voice answer testing is stable.",
+    icon: Smartphone
+  },
+  {
+    title: "Real-time Voice Interview - Future Roadmap",
+    description:
+      "A future conversational interview mode with live follow-up questions and full session feedback. This is experimental and will only be released after reliability, quality, and cost checks are complete.",
+    icon: Rocket
+  }
+];
+
 export default function Home() {
   return (
     <main className="page-shell">
@@ -90,13 +136,15 @@ export default function Home() {
 
           <div className="nav-links" aria-label="Page sections">
             <a href="#about">About</a>
+            <a href="#use-cases">Use cases</a>
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
             <a href="#contact">Contact</a>
           </div>
 
-          <a className="button" href="#pricing">
-            View plans
+          <a className="button" href={APK_DOWNLOAD_URL}>
+            <Download size={18} />
+            Download APK
           </a>
         </div>
       </nav>
@@ -122,26 +170,37 @@ export default function Home() {
             </p>
 
             <div className="hero-actions">
-              <a className="button" href="#pricing">
-                See pricing
+              <a className="button" href={APK_DOWNLOAD_URL}>
+                <Download size={18} />
+                Download Android APK
               </a>
-              <a className="button secondary" href="#features">
-                Explore features
+              <a className="button secondary" href="#pricing">
+                View plans
               </a>
+            </div>
+
+            <div className="download-note">
+              <Smartphone size={16} />
+              <span>
+                Current public beta focuses on text interview practice. Voice features remain in
+                private testing.
+              </span>
             </div>
 
             <div className="proof-row" aria-label="Product highlights">
               <div className="proof-card">
-                <strong>4</strong>
-                <span>Interview modes for common hiring rounds.</span>
+                <strong>Practice</strong>
+                <span>Build confidence before HR, technical, and behavioral rounds.</span>
               </div>
               <div className="proof-card">
-                <strong>ATS</strong>
-                <span>Resume analysis for job readiness.</span>
+                <strong>Improve</strong>
+                <span>Get score-based feedback and focused next steps after each mock.</span>
               </div>
               <div className="proof-card">
-                <strong>AI</strong>
-                <span>Structured feedback after each answer.</span>
+                <strong>Convert</strong>
+                <span>
+                  Use resume analysis and practice together to get interview-ready faster.
+                </span>
               </div>
             </div>
           </div>
@@ -217,6 +276,34 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="section compact" id="use-cases">
+        <div className="container">
+          <div className="section-heading center">
+            <h2>Built for real interview preparation use cases.</h2>
+            <p>
+              IntervueAI is most helpful when you need practice that feels structured, measurable,
+              and easy to repeat from your phone.
+            </p>
+          </div>
+
+          <div className="grid use-case-grid">
+            {useCases.map((useCase) => {
+              const Icon = useCase.icon;
+
+              return (
+                <article className="card" key={useCase.title}>
+                  <div className="icon-bubble">
+                    <Icon size={22} />
+                  </div>
+                  <h3>{useCase.title}</h3>
+                  <p>{useCase.description}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       <section className="section" id="features">
         <div className="container">
           <div className="section-heading center">
@@ -245,14 +332,54 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="section compact" id="upcoming-features">
+        <div className="container">
+          <div className="section-heading center">
+            <h2>Upcoming Features</h2>
+            <p>
+              Voice capabilities are actively being tested behind feature flags. They are planned
+              for a future release and are not included in the current public beta.
+            </p>
+          </div>
+
+          <div className="grid use-case-grid">
+            {upcomingFeatures.map((feature) => {
+              const Icon = feature.icon;
+
+              return (
+                <article className="card" key={feature.title}>
+                  <div className="icon-bubble">
+                    <Icon size={22} />
+                  </div>
+                  <h3>{feature.title}</h3>
+                  <p>{feature.description}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       <section className="section" id="pricing">
         <div className="container">
           <div className="section-heading center">
             <h2>Simple pricing for serious preparation.</h2>
             <p>
               Premium plans unlock more practice while free limits remain available for beta users.
-              Prices are listed in Indian Rupees.
+              Prices are listed in Indian Rupees. Voice features are not part of the current public
+              beta offering.
             </p>
+          </div>
+
+          <div className="apk-banner">
+            <div>
+              <strong>Want to try the app before choosing a plan?</strong>
+              <p>Download the latest Android preview APK and explore the full mobile experience.</p>
+            </div>
+            <a className="button" href={APK_DOWNLOAD_URL}>
+              <Download size={18} />
+              Download APK
+            </a>
           </div>
 
           <div className="grid pricing-grid">

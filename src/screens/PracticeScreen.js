@@ -12,7 +12,8 @@ import LoadingState from "../components/ui/LoadingState";
 import ScreenHero from "../components/ui/ScreenHero";
 import Screen from "../components/ui/Screen";
 import SectionHeader from "../components/ui/SectionHeader";
-import { getUsageStatus } from "../services/apiClient";
+import { isVoiceFeatureEnabled } from "../services/featureFlags";
+import { ApiClientError, getUsageStatus } from "../services/apiClient";
 import { formatCountdown } from "../services/quotaService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { PRESSED_STYLE, RADIUS, SPACING, useAppTheme } from "../theme";
@@ -105,7 +106,11 @@ export default function PracticeScreen({ navigation }) {
       setUsageError("");
       setUsageStatus(await getUsageStatus());
     } catch (error) {
-      setUsageError(error.message || "Could not check your free practice limit.");
+      if (error instanceof ApiClientError && error.code === "NETWORK_ERROR") {
+        setUsageError("You're offline. Reconnect to load today's practice availability.");
+      } else {
+        setUsageError(error.message || "Could not check your free practice limit.");
+      }
     } finally {
       setIsLoadingUsage(false);
     }
@@ -404,7 +409,14 @@ export default function PracticeScreen({ navigation }) {
       </View>
 
       <AppCard style={styles.modeCard} tone="subtle">
-        <SectionHeader title="Modes" subtitle="Text mode is live. Voice and video are planned." />
+        <SectionHeader
+          title="Modes"
+          subtitle={
+            isVoiceFeatureEnabled
+              ? "Text mode is live. Voice is under private testing, and video is planned."
+              : "Text mode is live. Video mode is planned."
+          }
+        />
         <View style={styles.modeRow}>
           <View
             style={[styles.modePill, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -412,16 +424,21 @@ export default function PracticeScreen({ navigation }) {
             <AppIcon color={colors.success} name="check" size={16} />
             <AppText variant="caption">Text mode</AppText>
           </View>
-          <HapticPressable
-            accessibilityRole="button"
-            onPress={() => handleLockedMode("Voice mode")}
-            style={[styles.modePill, { backgroundColor: colors.card, borderColor: colors.border }]}
-          >
-            <AppIcon color={colors.muted} name="lock" size={16} />
-            <AppText tone="muted" variant="caption">
-              Voice soon
-            </AppText>
-          </HapticPressable>
+          {isVoiceFeatureEnabled ? (
+            <HapticPressable
+              accessibilityRole="button"
+              onPress={() => handleLockedMode("Voice mode")}
+              style={[
+                styles.modePill,
+                { backgroundColor: colors.card, borderColor: colors.border }
+              ]}
+            >
+              <AppIcon color={colors.muted} name="lock" size={16} />
+              <AppText tone="muted" variant="caption">
+                Voice coming soon
+              </AppText>
+            </HapticPressable>
+          ) : null}
           <HapticPressable
             accessibilityRole="button"
             onPress={() => handleLockedMode("Video mode")}

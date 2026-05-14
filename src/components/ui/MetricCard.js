@@ -5,7 +5,15 @@ import Inline from "./Inline";
 import Stack from "./Stack";
 import { useAppTheme } from "../../theme";
 
-export default function MetricCard({ helper, icon, label, tone = "default", value }) {
+export default function MetricCard({
+  compact = false,
+  helper,
+  icon,
+  label,
+  style,
+  tone = "default",
+  value
+}) {
   const { colors } = useAppTheme();
   const iconColor =
     tone === "success"
@@ -17,18 +25,18 @@ export default function MetricCard({ helper, icon, label, tone = "default", valu
           : colors.secondary;
 
   return (
-    <AppCard style={{ flex: 1, minWidth: 104 }}>
+    <AppCard style={[{ flex: 1, minWidth: compact ? 0 : 104 }, style]}>
       <Stack gap="xs">
         <Inline justify="space-between">
           <AppText tone="muted" variant="caption">
             {label}
           </AppText>
-          {icon ? <AppIcon color={iconColor} name={icon} size={18} /> : null}
+          {icon ? <AppIcon color={iconColor} name={icon} size={compact ? 16 : 18} /> : null}
         </Inline>
-        <AppText color={iconColor} variant="statNumber">
+        <AppText color={iconColor} variant={compact ? "sectionTitle" : "statNumber"}>
           {value}
         </AppText>
-        {helper ? (
+        {!compact && helper ? (
           <AppText tone="muted" variant="bodyMuted">
             {helper}
           </AppText>

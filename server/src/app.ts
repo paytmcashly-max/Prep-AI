@@ -9,6 +9,7 @@ import { config } from "./config.js";
 import { getFirebaseAdmin } from "./firebaseAdmin.js";
 import { logger } from "./logger.js";
 import { interviewRateLimit } from "./rateLimitMiddleware.js";
+import voiceRouter from "./routes/voiceRoutes.js";
 import { evaluateInterviewAnswer } from "./services/evaluationService.js";
 import { generateInterviewQuestion } from "./services/interviewService.js";
 import {
@@ -38,6 +39,9 @@ import {
 import { getUserSubscriptionStatus } from "./services/subscriptionService.js";
 
 export const app = express();
+
+// TODO(voice): Register future `/api/voice/*` routes with `requireVoiceFeatureEnabled`
+// so disabled environments stay dark and keep existing app behavior unchanged.
 
 const developmentCorsOrigins = [
   "http://localhost:3000",
@@ -358,6 +362,8 @@ app.get("/api/subscription/status", requireFirebaseAuth, async (request, respons
     next(error);
   }
 });
+
+app.use("/api/voice", voiceRouter);
 
 app.post(
   "/api/interview",

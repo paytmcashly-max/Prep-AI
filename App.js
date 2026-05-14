@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { StatusBar } from "expo-status-bar";
+import * as ExpoSplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -29,6 +30,7 @@ import { AppThemeProvider, useAppTheme } from "./src/theme";
 
 initializeErrorTracking();
 initializeAnalytics();
+void ExpoSplashScreen.preventAutoHideAsync().catch(() => {});
 
 function AppShell() {
   const { colorScheme, colors } = useAppTheme();
@@ -83,12 +85,21 @@ function App() {
     return unsubscribe;
   }, []);
 
-  if (!fontsLoaded && !fontError) {
+  const isAppReady = fontsLoaded || Boolean(fontError);
+  const onLayoutRootView = useCallback(async () => {
+    if (!isAppReady) {
+      return;
+    }
+
+    await ExpoSplashScreen.hideAsync().catch(() => {});
+  }, [isAppReady]);
+
+  if (!isAppReady) {
     return null;
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView onLayout={onLayoutRootView} style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AppThemeProvider>
           <AppShell />

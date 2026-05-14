@@ -11,11 +11,25 @@ const parsePort = (value?: string) => {
   return port;
 };
 
+const parseBooleanFlag = (value?: string) => value === "true";
+const parsePositiveInteger = (value: string | undefined, fallback: number, label: string) => {
+  const parsed = Number(value || fallback);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid ${label}. Expected a positive integer.`);
+  }
+
+  return parsed;
+};
+
 export type ServerConfig = {
   PORT: number;
   CORS_ORIGIN?: string;
+  ENABLE_VOICE_FEATURE: boolean;
+  VOICE_TRANSCRIPTION_TIMEOUT_MS: number;
   NODE_ENV: string;
   GROQ_API_KEY?: string;
+  GROQ_STT_MODEL: string;
   GROQ_QUESTION_MODEL: string;
   GROQ_EVALUATION_MODEL: string;
   GROQ_RESUME_MODEL: string;
@@ -47,8 +61,15 @@ const parseOptionalPositiveInteger = (value?: string) => {
 export const config: ServerConfig = {
   PORT: parsePort(process.env.PORT),
   CORS_ORIGIN: process.env.CORS_ORIGIN,
+  ENABLE_VOICE_FEATURE: parseBooleanFlag(process.env.ENABLE_VOICE_FEATURE),
+  VOICE_TRANSCRIPTION_TIMEOUT_MS: parsePositiveInteger(
+    process.env.VOICE_TRANSCRIPTION_TIMEOUT_MS,
+    30000,
+    "VOICE_TRANSCRIPTION_TIMEOUT_MS"
+  ),
   NODE_ENV: process.env.NODE_ENV || "development",
   GROQ_API_KEY: process.env.GROQ_API_KEY,
+  GROQ_STT_MODEL: process.env.GROQ_STT_MODEL || "whisper-large-v3-turbo",
   GROQ_QUESTION_MODEL: process.env.GROQ_QUESTION_MODEL || "llama-3.1-8b-instant",
   GROQ_EVALUATION_MODEL: process.env.GROQ_EVALUATION_MODEL || "llama-3.3-70b-versatile",
   GROQ_RESUME_MODEL: process.env.GROQ_RESUME_MODEL || "llama-3.3-70b-versatile",

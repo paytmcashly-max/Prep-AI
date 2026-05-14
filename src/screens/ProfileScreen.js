@@ -8,22 +8,14 @@ import AppIcon from "../components/ui/AppIcon";
 import AppText from "../components/ui/AppText";
 import IconButton from "../components/ui/IconButton";
 import ListRow from "../components/ui/ListRow";
-import MessageCard from "../components/ui/MessageCard";
-import MetricCard from "../components/ui/MetricCard";
 import Screen from "../components/ui/Screen";
 import SectionHeader from "../components/ui/SectionHeader";
-import SkeletonLine from "../components/ui/SkeletonLine";
 import StatusPill from "../components/ui/StatusPill";
 import { getCurrentUser, signOut } from "../services/authService";
 import {
   getDailyPracticeReminderEnabled,
   setDailyPracticeReminderEnabled
 } from "../services/notificationService";
-import {
-  calculateAverageScore,
-  calculateCurrentStreak,
-  fetchUserSessions
-} from "../services/sessionService";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
 import { useAppTheme } from "../theme";
@@ -33,6 +25,10 @@ const APP_CONFIG_EXTRA = Constants.expoConfig?.extra || Constants.manifest?.extr
 const PRIVACY_POLICY_URL =
   APP_CONFIG_EXTRA.privacyPolicyUrl || "https://example.com/prepai/privacy";
 const TERMS_URL = APP_CONFIG_EXTRA.termsUrl || "https://example.com/prepai/terms";
+const REFUND_POLICY_URL =
+  APP_CONFIG_EXTRA.refundPolicyUrl || "https://example.com/prepai/refund";
+const DELIVERY_POLICY_URL =
+  APP_CONFIG_EXTRA.deliveryPolicyUrl || "https://example.com/prepai/delivery";
 const SUPPORT_EMAIL = APP_CONFIG_EXTRA.supportEmail || "support@example.com";
 
 const getInitials = (name, email) => {
@@ -65,35 +61,9 @@ export default function ProfileScreen({ navigation }) {
     "IntervueAI User";
   const email = user?.email || "Email not available";
   const initials = useMemo(() => getInitials(displayName, email), [displayName, email]);
-  const [stats, setStats] = useState({
-    averageScore: 0,
-    currentStreak: 0,
-    totalSessions: 0
-  });
-  const [isStatsLoading, setIsStatsLoading] = useState(true);
-  const [statsError, setStatsError] = useState("");
   const [isReminderEnabled, setIsReminderEnabled] = useState(false);
   const [isReminderSaving, setIsReminderSaving] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-
-  const loadProfileStats = useCallback(async () => {
-    try {
-      setIsStatsLoading(true);
-      setStatsError("");
-
-      const sessions = await fetchUserSessions();
-
-      setStats({
-        averageScore: calculateAverageScore(sessions),
-        currentStreak: calculateCurrentStreak(sessions),
-        totalSessions: sessions.length
-      });
-    } catch (error) {
-      setStatsError(error.message || "Could not load profile stats.");
-    } finally {
-      setIsStatsLoading(false);
-    }
-  }, []);
 
   const loadReminderState = useCallback(async () => {
     try {
@@ -106,10 +76,9 @@ export default function ProfileScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      loadProfileStats();
       loadReminderState();
       refreshSubscriptionStatus().catch(() => {});
-    }, [loadProfileStats, loadReminderState, refreshSubscriptionStatus])
+    }, [loadReminderState, refreshSubscriptionStatus])
   );
 
   const editProfile = () => {
@@ -250,27 +219,6 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </AppCard>
 
-      <View style={styles.statsRow}>
-        {isStatsLoading ? (
-          ["sessions", "score", "streak"].map((item) => (
-            <AppCard key={item} style={styles.statCard}>
-              <SkeletonLine height={24} width="84%" />
-              <SkeletonLine height={12} width="70%" />
-            </AppCard>
-          ))
-        ) : (
-          <>
-            <MetricCard icon="practice" label="Sessions" value={String(stats.totalSessions)} />
-            <MetricCard icon="star" label="Average" value={stats.averageScore.toFixed(1)} />
-            <MetricCard icon="calendar" label="Streak" value={String(stats.currentStreak)} />
-          </>
-        )}
-      </View>
-
-      {statsError ? (
-        <MessageCard message={statsError} title="Profile stats unavailable" tone="error" />
-      ) : null}
-
       <View style={styles.section}>
         <SectionHeader title="Practice" />
         <AppCard style={styles.sectionCard}>
@@ -331,19 +279,36 @@ export default function ProfileScreen({ navigation }) {
             onPress={() => openLegalUrl("Terms of Service", TERMS_URL)}
           />
           <ListRow
-            icon="mail"
-            label="Contact Us"
+            icon="document"
+            label="Refund Policy"
+            detail={isPlaceholderValue(REFUND_POLICY_URL) ? "Not configured yet" : "View details"}
+            onPress={() => openLegalUrl("Refund Policy", REFUND_POLICY_URL)}
+          />
+          <ListRow
+            icon="document"
+            label="Digital Delivery"
             detail={
-              isPlaceholderValue(SUPPORT_EMAIL) ? "Not configured yet" : "Get help from support"
+              isPlaceholderValue(DELIVERY_POLICY_URL) ? "Not configured yet" : "View details"
             }
+            onPress={() => openLegalUrl("Digital Delivery", DELIVERY_POLICY_URL)}
+          />
+          <ListRow
+            icon="mail"
+            label="Contact Support"
+            detail={isPlaceholderValue(SUPPORT_EMAIL) ? "Not configured yet" : SUPPORT_EMAIL}
             onPress={contactSupport}
           />
         </AppCard>
       </View>
 
-      <AppText style={styles.version} tone="muted" variant="bodyMuted">
-        IntervueAI v1.0.0
-      </AppText>
+      <View style={styles.versionBlock}>
+        <AppText style={styles.version} tone="muted" variant="bodyMuted">
+          IntervueAI v1.0.0
+        </AppText>
+        <AppText style={styles.makerNote} tone="muted" variant="caption">
+          Built by Kishan
+        </AppText>
+      </View>
     </Screen>
   );
 }
@@ -418,21 +383,15 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 8
   },
-  statCard: {
+  versionBlock: {
     alignItems: "center",
-    borderRadius: 18,
-    flex: 1,
-    gap: 4,
-    justifyContent: "center",
-    minHeight: 74,
-    padding: 9
-  },
-  statsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10
+    gap: 4
   },
   version: {
+    textAlign: "center"
+  },
+  makerNote: {
+    letterSpacing: 0.2,
     textAlign: "center"
   }
 });

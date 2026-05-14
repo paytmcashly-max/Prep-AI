@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
+import { Alert, AppState, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Speech from "expo-speech";
 
 import FreeLimitCard from "../components/FreeLimitCard";
 import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
@@ -12,15 +14,18 @@ import InsightCard from "../components/ui/InsightCard";
 import MessageCard from "../components/ui/MessageCard";
 import SkeletonLine from "../components/ui/SkeletonLine";
 import TimerPill from "../components/ui/TimerPill";
-import "../services/firebaseConfig";
+import VoiceAnswerRecorder from "../components/voice/VoiceAnswerRecorder";
+import { auth } from "../services/firebaseConfig";
 import { trackEvent } from "../services/analyticsService";
-import { evaluateAnswer, generateQuestion } from "../services/aiService";
+import { evaluateAnswer, generateQuestion, transcribeVoiceAnswer } from "../services/aiService";
+import { isVoiceFeatureEnabled } from "../services/featureFlags";
 import { formatCountdown, getMsUntilIndiaMidnight } from "../services/quotaService";
 import { saveMockInterviewSession } from "../services/sessionService";
 import { useProgressStore } from "../store/progressStore";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
 import { useAppTheme } from "../theme";
+import { MAX_VOICE_RECORDING_DURATION_MILLIS } from "../services/voiceConstants";
 
 const DEFAULT_QUESTION_COUNT = 5;
 const MAX_PREMIUM_QUESTION_COUNT = 20;
@@ -82,6 +87,8 @@ const getAverageScore = (scores) => {
 };
 
 const isInterviewUsageLimitError = (error) => error?.status === 429;
+const getMockInterviewDraftStorageKey = (uid, category, difficulty, answerMode = "text") =>
+  `mock_interview_draft:${uid}:${category}:${difficulty}:${answerMode}`;
 
 const saveSession = async (avgScore, category, jobRole, questionsAttempted) => {
   await saveMockInterviewSession({
@@ -98,14 +105,17 @@ export default function MockInterviewScreen({ navigation, route }) {
   const { colors } = useAppTheme();
   const category = route?.params?.category || "HR";
   const difficulty = route?.params?.difficulty || "easy";
+  const answerMode = route?.params?.answerMode || "text";
   const categoryName = useMemo(() => formatCategory(category), [category]);
   const difficultyName = useMemo(() => formatDifficulty(difficulty), [difficulty]);
   const jobRole = useUserStore((state) => state.profile.jobRole);
   const isPremium = useSubscriptionStore((state) => state.isPremium);
-  const totalQuestions = useMemo(
+  const configuredQuestionCount = useMemo(
     () => normalizeQuestionCount(route?.params?.questionCount, isPremium),
     [isPremium, route?.params?.questionCount]
   );
+  const [restoredQuestionCount, setRestoredQuestionCount] = useState(null);
+  const totalQuestions = restoredQuestionCount ?? configuredQuestionCount;
   const [questionNumber, setQuestionNumber] = useState(1);
   const [question, setQuestion] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(QUESTION_TIME_SECONDS);
@@ -116,17 +126,34 @@ export default function MockInterviewScreen({ navigation, route }) {
   const [isQuestionLoading, setIsQuestionLoading] = useState(false);
   const [isCheckingUsage, setIsCheckingUsage] = useState(true);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isReadingQuestion, setIsReadingQuestion] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [speechErrorMessage, setSpeechErrorMessage] = useState("");
   const [sessionSaveError, setSessionSaveError] = useState("");
   const [showIdealAnswer, setShowIdealAnswer] = useState(false);
   const [isSavingSession, setIsSavingSession] = useState(false);
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [isLimitReached, setIsLimitReached] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [voiceTranscriptMeta, setVoiceTranscriptMeta] = useState(null);
+  const [isEditingVoiceTranscript, setIsEditingVoiceTranscript] = useState(false);
+  const [voiceRecorderInstanceKey, setVoiceRecorderInstanceKey] = useState(0);
+  const [draftPrompt, setDraftPrompt] = useState(null);
   const [resetCountdown, setResetCountdown] = useState(() =>
     formatCountdown(getMsUntilIndiaMidnight())
   );
   const previousQuestionsRef = useRef([]);
   const questionRequestInFlightRef = useRef(false);
+  const draftStorageKey = useMemo(
+    () =>
+      getMockInterviewDraftStorageKey(
+        auth.currentUser?.uid || "anonymous",
+        category,
+        difficulty,
+        answerMode
+      ),
+    [answerMode, category, difficulty]
+  );
 
   const finalScores = scoresRef.current.length ? scoresRef.current : scores;
   const averageScore = getAverageScore(finalScores);
@@ -141,13 +168,135 @@ export default function MockInterviewScreen({ navigation, route }) {
     secondsLeft <= 0
   );
 
+  const clearInterviewDraft = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(draftStorageKey);
+    } catch {
+      // Losing a local draft cleanup should never block the interview flow.
+    }
+  }, [draftStorageKey]);
+
+  const stopQuestionReadout = useCallback(async () => {
+    try {
+      await Speech.stop();
+    } catch {
+      // Stopping device speech is best-effort only.
+    } finally {
+      setIsReadingQuestion(false);
+    }
+  }, []);
+
+  const resetInterviewState = useCallback(() => {
+    setRestoredQuestionCount(null);
+    setQuestionNumber(1);
+    setQuestion("");
+    setSecondsLeft(QUESTION_TIME_SECONDS);
+    setAnswer("");
+    void stopQuestionReadout();
+    setFeedback(null);
+    setScores([]);
+    scoresRef.current = [];
+    setErrorMessage("");
+    setSessionSaveError("");
+    setShowIdealAnswer(false);
+    setIsSavingSession(false);
+    setIsSessionComplete(false);
+    setIsLimitReached(false);
+    setVoiceTranscript("");
+    setVoiceTranscriptMeta(null);
+    setIsEditingVoiceTranscript(false);
+    setVoiceRecorderInstanceKey((current) => current + 1);
+    setSpeechErrorMessage("");
+    previousQuestionsRef.current = [];
+  }, [stopQuestionReadout]);
+
+  const persistInterviewDraft = useCallback(async () => {
+    if (
+      !question ||
+      isCheckingUsage ||
+      isQuestionLoading ||
+      isEvaluating ||
+      isSavingSession ||
+      isSessionComplete ||
+      isLimitReached
+    ) {
+      return;
+    }
+
+    try {
+      await AsyncStorage.setItem(
+        draftStorageKey,
+        JSON.stringify({
+          answer,
+          category,
+          difficulty,
+          feedback,
+          previousQuestions: previousQuestionsRef.current,
+          question,
+          questionNumber,
+          savedAt: new Date().toISOString(),
+          scores: scoresRef.current,
+          showIdealAnswer,
+          totalQuestions
+        })
+      );
+    } catch {
+      // Draft persistence is best-effort only.
+    }
+  }, [
+    answer,
+    category,
+    difficulty,
+    draftStorageKey,
+    feedback,
+    isCheckingUsage,
+    isEvaluating,
+    isLimitReached,
+    isQuestionLoading,
+    isSavingSession,
+    isSessionComplete,
+    question,
+    questionNumber,
+    showIdealAnswer,
+    totalQuestions
+  ]);
+
+  const restoreInterviewDraft = useCallback(
+    (draft) => {
+      setRestoredQuestionCount(Number(draft?.totalQuestions) || configuredQuestionCount);
+      setQuestionNumber(Number(draft?.questionNumber) || 1);
+      setQuestion(draft?.question || "");
+      setAnswer(draft?.answer || "");
+      setFeedback(draft?.feedback || null);
+      setShowIdealAnswer(Boolean(draft?.showIdealAnswer));
+      setSecondsLeft(QUESTION_TIME_SECONDS);
+
+      const nextScores = Array.isArray(draft?.scores)
+        ? draft.scores.map((score) => Number(score || 0))
+        : [];
+
+      scoresRef.current = nextScores;
+      setScores(nextScores);
+      previousQuestionsRef.current = Array.isArray(draft?.previousQuestions)
+        ? draft.previousQuestions
+        : [];
+      setErrorMessage("");
+      setSessionSaveError("");
+      setIsLimitReached(false);
+      setDraftPrompt(null);
+    },
+    [configuredQuestionCount]
+  );
+
   const blockForDailyLimit = useCallback(() => {
     setIsLimitReached(true);
     setQuestion("");
     setFeedback(null);
     setAnswer("");
     setSecondsLeft(QUESTION_TIME_SECONDS);
-  }, []);
+    setDraftPrompt(null);
+    void clearInterviewDraft();
+  }, [clearInterviewDraft]);
 
   const loadQuestion = useCallback(
     async (nextQuestionNumber) => {
@@ -159,10 +308,16 @@ export default function MockInterviewScreen({ navigation, route }) {
         questionRequestInFlightRef.current = true;
         setIsQuestionLoading(true);
         setErrorMessage("");
+        setSpeechErrorMessage("");
         setIsLimitReached(false);
         setFeedback(null);
         setShowIdealAnswer(false);
         setAnswer("");
+        await stopQuestionReadout();
+        setVoiceTranscript("");
+        setVoiceTranscriptMeta(null);
+        setIsEditingVoiceTranscript(false);
+        setVoiceRecorderInstanceKey((current) => current + 1);
         setSecondsLeft(QUESTION_TIME_SECONDS);
 
         const nextQuestion = await generateQuestion({
@@ -193,7 +348,7 @@ export default function MockInterviewScreen({ navigation, route }) {
         setIsQuestionLoading(false);
       }
     },
-    [blockForDailyLimit, category, difficulty, isPremium]
+    [blockForDailyLimit, category, difficulty, isPremium, stopQuestionReadout]
   );
 
   const recordQuestionScore = useCallback((score) => {
@@ -205,25 +360,73 @@ export default function MockInterviewScreen({ navigation, route }) {
     setScores(nextScores);
   }, []);
 
-  const checkUsageAndStart = useCallback(async () => {
-    try {
-      setIsCheckingUsage(true);
-      setErrorMessage("");
-      setIsLimitReached(false);
-      previousQuestionsRef.current = [];
+  const checkUsageAndStart = useCallback(
+    async (nextTotalQuestions = totalQuestions) => {
+      try {
+        resetInterviewState();
+        setRestoredQuestionCount(nextTotalQuestions);
+        setIsCheckingUsage(true);
+        setErrorMessage("");
+        setIsLimitReached(false);
+        setDraftPrompt(null);
 
-      trackEvent("interview_started", { category, difficulty, questionCount: totalQuestions });
-      await loadQuestion(1);
-    } catch (error) {
-      setErrorMessage(error.message || "Could not generate a question. Please try again.");
-    } finally {
-      setIsCheckingUsage(false);
-    }
-  }, [category, difficulty, loadQuestion, totalQuestions]);
+        trackEvent("interview_started", {
+          category,
+          difficulty,
+          questionCount: nextTotalQuestions
+        });
+        await loadQuestion(1);
+      } catch (error) {
+        setErrorMessage(error.message || "Could not generate a question. Please try again.");
+      } finally {
+        setIsCheckingUsage(false);
+      }
+    },
+    [category, difficulty, loadQuestion, resetInterviewState, totalQuestions]
+  );
 
   useEffect(() => {
-    checkUsageAndStart();
-  }, [checkUsageAndStart]);
+    let isActive = true;
+
+    const initializeInterview = async () => {
+      try {
+        setIsCheckingUsage(true);
+        setDraftPrompt(null);
+
+        const savedDraft = await AsyncStorage.getItem(draftStorageKey);
+
+        if (!isActive) {
+          return;
+        }
+
+        if (savedDraft) {
+          const parsedDraft = JSON.parse(savedDraft);
+
+          if (parsedDraft?.question) {
+            setDraftPrompt(parsedDraft);
+            setIsCheckingUsage(false);
+            return;
+          }
+
+          await clearInterviewDraft();
+        }
+
+        if (isActive) {
+          await checkUsageAndStart(configuredQuestionCount);
+        }
+      } catch {
+        if (isActive) {
+          await checkUsageAndStart(configuredQuestionCount);
+        }
+      }
+    };
+
+    initializeInterview();
+
+    return () => {
+      isActive = false;
+    };
+  }, [checkUsageAndStart, clearInterviewDraft, configuredQuestionCount, draftStorageKey]);
 
   useEffect(() => {
     if (!isLimitReached || isPremium) {
@@ -270,6 +473,27 @@ export default function MockInterviewScreen({ navigation, route }) {
     secondsLeft
   ]);
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active") {
+        void stopQuestionReadout();
+        void persistInterviewDraft();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [persistInterviewDraft, stopQuestionReadout]);
+
+  useEffect(
+    () => () => {
+      void stopQuestionReadout();
+      void persistInterviewDraft();
+    },
+    [persistInterviewDraft, stopQuestionReadout]
+  );
+
   const saveCompletedSession = async () => {
     if (isSavingSession) {
       return;
@@ -289,6 +513,7 @@ export default function MockInterviewScreen({ navigation, route }) {
     } catch (error) {
       setSessionSaveError(error.message || "Session completed, but progress could not be saved.");
     } finally {
+      await clearInterviewDraft();
       setIsSavingSession(false);
       setIsSessionComplete(true);
     }
@@ -317,8 +542,11 @@ export default function MockInterviewScreen({ navigation, route }) {
     }
   };
 
-  const submitAnswer = async () => {
-    if (!answer.trim()) {
+  const submitAnswer = async (explicitAnswer) => {
+    const answerToEvaluate =
+      typeof explicitAnswer === "string" ? explicitAnswer.trim() : answer.trim();
+
+    if (!answerToEvaluate) {
       setErrorMessage("Please type an answer before submitting.");
       return;
     }
@@ -328,7 +556,7 @@ export default function MockInterviewScreen({ navigation, route }) {
       setErrorMessage("");
 
       trackEvent("answer_submitted", { category, questionNumber });
-      const result = await evaluateAnswer(question, answer.trim());
+      const result = await evaluateAnswer(question, answerToEvaluate);
       const parsedScore = Number(result.score);
 
       if (!Number.isFinite(parsedScore)) {
@@ -389,6 +617,20 @@ export default function MockInterviewScreen({ navigation, route }) {
     });
   };
 
+  const continueSavedInterview = () => {
+    if (!draftPrompt) {
+      return;
+    }
+
+    restoreInterviewDraft(draftPrompt);
+  };
+
+  const startFreshInterview = async () => {
+    await clearInterviewDraft();
+    setDraftPrompt(null);
+    await checkUsageAndStart(configuredQuestionCount);
+  };
+
   const shareResult = async () => {
     try {
       await Share.share({
@@ -398,6 +640,138 @@ export default function MockInterviewScreen({ navigation, route }) {
       Alert.alert("Share failed", error.message || "Could not open sharing options.");
     }
   };
+
+  const handleVoiceAudioSubmit = useCallback(
+    async ({ durationMillis, mimeType, uri }) => {
+      try {
+        setErrorMessage("");
+        trackEvent("voice_transcription_requested", {
+          category,
+          durationSeconds: Math.min(
+            Math.max(Math.round((durationMillis || 0) / 1000), 1),
+            Math.round(MAX_VOICE_RECORDING_DURATION_MILLIS / 1000)
+          ),
+          questionNumber
+        });
+        const transcription = await transcribeVoiceAnswer({
+          durationMillis,
+          fileName: "voice-answer.m4a",
+          mimeType: mimeType || "audio/m4a",
+          uri
+        });
+
+        setVoiceTranscript(transcription.transcript);
+        setVoiceTranscriptMeta({
+          durationSeconds: transcription.durationSeconds || Math.round(durationMillis / 10) / 100,
+          language: transcription.language
+        });
+        setIsEditingVoiceTranscript(false);
+        trackEvent("voice_transcription_completed", {
+          category,
+          durationSeconds: Math.max(
+            Math.round((transcription.durationSeconds || durationMillis / 1000 || 0) * 10) / 10,
+            0.1
+          ),
+          questionNumber
+        });
+      } catch (error) {
+        setVoiceTranscript("");
+        setVoiceTranscriptMeta(null);
+        setIsEditingVoiceTranscript(false);
+        setErrorMessage(error.message || "Could not transcribe answer.");
+        trackEvent("voice_transcription_failed", {
+          category,
+          errorCode: error?.code || "unknown",
+          questionNumber
+        });
+      }
+    },
+    [category, questionNumber]
+  );
+
+  const retakeVoiceAnswer = useCallback(() => {
+    setVoiceTranscript("");
+    setVoiceTranscriptMeta(null);
+    setIsEditingVoiceTranscript(false);
+    setVoiceRecorderInstanceKey((current) => current + 1);
+    setErrorMessage("");
+  }, []);
+
+  const readQuestionAloud = useCallback(async () => {
+    if (!question || isCheckingUsage || isQuestionLoading) {
+      return;
+    }
+
+    try {
+      setSpeechErrorMessage("");
+      await stopQuestionReadout();
+
+      Speech.speak(question, {
+        language: "en",
+        onDone: () => setIsReadingQuestion(false),
+        onError: () => {
+          setIsReadingQuestion(false);
+          setSpeechErrorMessage("Could not read question aloud.");
+        },
+        onStopped: () => setIsReadingQuestion(false),
+        pitch: 1,
+        rate: 0.95
+      });
+
+      setIsReadingQuestion(true);
+    } catch {
+      setIsReadingQuestion(false);
+      setSpeechErrorMessage("Could not read question aloud.");
+    }
+  }, [isCheckingUsage, isQuestionLoading, question, stopQuestionReadout]);
+
+  if (draftPrompt) {
+    return (
+      <KeyboardAwareScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={[styles.content, styles.summaryContent]}
+      >
+        <AppCard style={styles.resumeDraftCard}>
+          <View
+            style={[
+              styles.resumeDraftIconWrap,
+              { backgroundColor: colors.primarySoft, borderColor: colors.border }
+            ]}
+          >
+            <AppIcon color={colors.primary} name="practice" size={24} />
+          </View>
+          <AppText style={styles.centerText} variant="screenTitle">
+            Continue your interview?
+          </AppText>
+          <AppText style={styles.centerText} tone="muted" variant="body">
+            Your unfinished {categoryName.toLowerCase()} round is saved on this device. Pick up from
+            question {draftPrompt.questionNumber || 1} or start again from the top.
+          </AppText>
+          <View
+            style={[
+              styles.resumeDraftMeta,
+              { backgroundColor: colors.cardAlt, borderColor: colors.border }
+            ]}
+          >
+            <AppText tone="muted" variant="caption">
+              Saved question
+            </AppText>
+            <AppText numberOfLines={3} variant="bodyStrong">
+              {draftPrompt.question}
+            </AppText>
+          </View>
+          <View style={styles.resumeDraftActions}>
+            <AppButton onPress={startFreshInterview} style={styles.actionButton} tone="secondary">
+              Start Fresh
+            </AppButton>
+            <AppButton onPress={continueSavedInterview} style={styles.actionButton}>
+              Continue Interview
+            </AppButton>
+          </View>
+        </AppCard>
+      </KeyboardAwareScrollView>
+    );
+  }
 
   if (isSessionComplete) {
     return (
@@ -581,6 +955,29 @@ export default function MockInterviewScreen({ navigation, route }) {
             {question}
           </AppText>
         )}
+        {isVoiceFeatureEnabled && question && !isCheckingUsage && !isQuestionLoading ? (
+          <View style={styles.questionReadoutRow}>
+            <AppButton
+              disabled={isReadingQuestion}
+              icon="play"
+              onPress={readQuestionAloud}
+              style={styles.questionReadoutButton}
+              tone="secondary"
+            >
+              Read Question
+            </AppButton>
+            <AppButton
+              disabled={!isReadingQuestion}
+              icon="stop"
+              onPress={stopQuestionReadout}
+              style={styles.questionReadoutButton}
+              tone="secondary"
+            >
+              Stop Reading
+            </AppButton>
+          </View>
+        ) : null}
+        {speechErrorMessage ? <MessageCard message={speechErrorMessage} tone="error" /> : null}
       </AppCard>
 
       <AppCard
@@ -606,6 +1003,98 @@ export default function MockInterviewScreen({ navigation, route }) {
           value={answer}
         />
       </AppCard>
+
+      {isVoiceFeatureEnabled && !voiceTranscript ? (
+        <VoiceAnswerRecorder
+          key={voiceRecorderInstanceKey}
+          disabled={
+            isCheckingUsage ||
+            isQuestionLoading ||
+            isEvaluating ||
+            isSavingSession ||
+            !question ||
+            Boolean(feedback) ||
+            hasTimedOut
+          }
+          onStartRecording={stopQuestionReadout}
+          onSubmitAudio={handleVoiceAudioSubmit}
+        />
+      ) : null}
+
+      {isVoiceFeatureEnabled && voiceTranscript ? (
+        <AppCard
+          style={[
+            styles.voiceTranscriptCard,
+            { backgroundColor: colors.card, borderColor: colors.border }
+          ]}
+        >
+          <View style={styles.cardHeaderRow}>
+            <AppIcon color={colors.primary} name="mic" size={18} />
+            <AppText variant="sectionTitle">Transcript preview</AppText>
+          </View>
+          <AppText tone="muted" variant="bodyMuted">
+            Review the transcript, make quick edits, then send it through the same interview
+            evaluation flow as a typed answer.
+          </AppText>
+          <View
+            style={[
+              styles.voiceTranscriptMetaRow,
+              { backgroundColor: colors.cardAlt, borderColor: colors.border }
+            ]}
+          >
+            <View style={styles.voiceTranscriptMetaItem}>
+              <AppText tone="muted" variant="caption">
+                Language
+              </AppText>
+              <AppText variant="bodyStrong">{voiceTranscriptMeta?.language || "en"}</AppText>
+            </View>
+            <View style={styles.voiceTranscriptMetaItem}>
+              <AppText tone="muted" variant="caption">
+                Duration
+              </AppText>
+              <AppText variant="bodyStrong">
+                {voiceTranscriptMeta?.durationSeconds
+                  ? `${Math.max(Math.round(voiceTranscriptMeta.durationSeconds), 1)}s`
+                  : "--"}
+              </AppText>
+            </View>
+          </View>
+          <TextInput
+            editable={isEditingVoiceTranscript && !isEvaluating}
+            multiline
+            onChangeText={setVoiceTranscript}
+            placeholder="Transcript will appear here."
+            placeholderTextColor={colors.muted}
+            style={[
+              styles.answerInput,
+              styles.voiceTranscriptInput,
+              { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }
+            ]}
+            textAlignVertical="top"
+            value={voiceTranscript}
+          />
+          <View style={styles.buttonRow}>
+            <AppButton
+              onPress={() => setIsEditingVoiceTranscript((current) => !current)}
+              style={styles.actionButton}
+              tone="secondary"
+            >
+              Edit Transcript
+            </AppButton>
+            <AppButton
+              disabled={isEvaluating || !voiceTranscript.trim()}
+              loading={isEvaluating}
+              onPress={() => submitAnswer(voiceTranscript)}
+              style={styles.actionButton}
+            >
+              Submit Transcript
+            </AppButton>
+          </View>
+          <AppButton onPress={retakeVoiceAnswer} style={styles.voiceRetakeButton} tone="secondary">
+            Retake Voice Answer
+          </AppButton>
+        </AppCard>
+      ) : null}
 
       {errorMessage ? <MessageCard message={errorMessage} tone="error" /> : null}
 
@@ -892,6 +1381,65 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     lineHeight: 26,
     textAlign: "left"
+  },
+  questionReadoutButton: {
+    flex: 1,
+    minWidth: 136
+  },
+  questionReadoutRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    width: "100%"
+  },
+  voiceRetakeButton: {
+    width: "100%"
+  },
+  voiceTranscriptCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+    padding: 14
+  },
+  voiceTranscriptInput: {
+    minHeight: 132
+  },
+  voiceTranscriptMetaItem: {
+    flex: 1,
+    gap: 4
+  },
+  voiceTranscriptMetaRow: {
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    padding: 12
+  },
+  resumeDraftActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12
+  },
+  resumeDraftCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 14,
+    padding: 16
+  },
+  resumeDraftIconWrap: {
+    alignItems: "center",
+    alignSelf: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 56,
+    justifyContent: "center",
+    width: 56
+  },
+  resumeDraftMeta: {
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 6,
+    padding: 12
   },
   shareCard: {
     borderRadius: 8,

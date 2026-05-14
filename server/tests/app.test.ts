@@ -44,6 +44,27 @@ describe("backend app", () => {
     expect(serializedBody).not.toContain(groqApiKey);
   });
 
+  it("voice feature middleware returns a safe 404 while disabled", async () => {
+    const { default: express } = await import("express");
+    const { config } = await import("../src/config.js");
+    const { requireVoiceFeatureEnabled } = await import("../src/voiceFeatureMiddleware.js");
+    const originalFlag = config.ENABLE_VOICE_FEATURE;
+    const voiceApp = express();
+
+    config.ENABLE_VOICE_FEATURE = false;
+    voiceApp.get("/api/voice/test", requireVoiceFeatureEnabled, (_request, response) => {
+      response.json({ ok: true });
+    });
+
+    try {
+      const response = await request(voiceApp).get("/api/voice/test").expect(404);
+
+      expect(response.body).toEqual({ error: "Voice feature is not available" });
+    } finally {
+      config.ENABLE_VOICE_FEATURE = originalFlag;
+    }
+  });
+
   it("POST /api/interview without Authorization returns 401", async () => {
     const response = await request(app)
       .post("/api/interview")
@@ -118,6 +139,48 @@ describe("backend app", () => {
     const response = await request(app).get("/api/subscription/status").expect(401);
 
     expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
+  it("POST /api/voice/transcribe returns 404 while the feature flag is disabled", async () => {
+    const { config } = await import("../src/config.js");
+    const originalFlag = config.ENABLE_VOICE_FEATURE;
+
+    config.ENABLE_VOICE_FEATURE = false;
+
+    try {
+      const response = await request(app)
+        .post("/api/voice/transcribe")
+        .attach("audio", Buffer.from("not-real-audio"), {
+          contentType: "audio/webm",
+          filename: "answer.webm"
+        })
+        .expect(404);
+
+      expect(response.body).toEqual({ error: "Voice feature is not available" });
+    } finally {
+      config.ENABLE_VOICE_FEATURE = originalFlag;
+    }
+  });
+
+  it("POST /api/voice/transcribe without Authorization returns 401 when enabled", async () => {
+    const { config } = await import("../src/config.js");
+    const originalFlag = config.ENABLE_VOICE_FEATURE;
+
+    config.ENABLE_VOICE_FEATURE = true;
+
+    try {
+      const response = await request(app)
+        .post("/api/voice/transcribe")
+        .attach("audio", Buffer.from("not-real-audio"), {
+          contentType: "audio/webm",
+          filename: "answer.webm"
+        })
+        .expect(401);
+
+      expect(response.body).toEqual({ error: "Authentication required." });
+    } finally {
+      config.ENABLE_VOICE_FEATURE = originalFlag;
+    }
   });
 
   it("POST /api/payments/razorpay/order without Authorization returns 401", async () => {

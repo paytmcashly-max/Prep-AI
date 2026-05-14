@@ -11,11 +11,11 @@
     "updates": {
       "url": "https://u.expo.dev/b1741c61-796c-457e-ac99-18d4e06fd66e"
     },
-    "backgroundColor": "#0A0A0A",
+    "backgroundColor": "#F6F7FB",
     "primaryColor": "#6C63FF",
     "icon": "./assets/icon.png",
     "splash": {
-      "backgroundColor": "#0A0A0A",
+      "backgroundColor": "#F6F7FB",
       "image": "./assets/splash.png",
       "resizeMode": "contain"
     },
@@ -28,18 +28,32 @@
       }
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "package": "com.prepai.prepai",
       "versionCode": 1,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0A0A"
+        "backgroundColor": "#EAF5FF"
       }
     },
-    "plugins": ["expo-font", "expo-notifications", "expo-document-picker"],
+    "plugins": [
+      "expo-asset",
+      "expo-font",
+      "expo-notifications",
+      "expo-document-picker",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow IntervueAI to record your voice answers during mock interviews."
+        }
+      ]
+    ],
     "extra": {
-      "privacyPolicyUrl": "https://intervueai.vercel.app/privacy",
-      "termsUrl": "https://intervueai.vercel.app/terms",
+      "privacyPolicyUrl": "https://intervueai.tech/privacy",
+      "termsUrl": "https://intervueai.tech/terms",
+      "refundPolicyUrl": "https://intervueai.tech/refund",
+      "deliveryPolicyUrl": "https://intervueai.tech/delivery",
       "supportEmail": "kishan@kishan.codes",
       "eas": {
         "projectId": "b1741c61-796c-457e-ac99-18d4e06fd66e"

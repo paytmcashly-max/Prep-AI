@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
+import GoogleSignInButton from "../components/auth/GoogleSignInButton";
 import HapticPressable from "../components/HapticPressable";
 import AppButton from "../components/ui/AppButton";
 import AppCard from "../components/ui/AppCard";
@@ -9,7 +10,7 @@ import AppText from "../components/ui/AppText";
 import AuthScaffold from "../components/ui/AuthScaffold";
 import MessageCard from "../components/ui/MessageCard";
 import { trackEvent } from "../services/analyticsService";
-import { signUpWithEmail } from "../services/authService";
+import { getFirebaseConfigGuardMessage, signUpWithEmail } from "../services/authService";
 import { SPACING } from "../theme";
 
 export default function SignupScreen({ navigation }) {
@@ -18,8 +19,14 @@ export default function SignupScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const authConfigGuardMessage = getFirebaseConfigGuardMessage();
+  const isAuthBlocked = Boolean(authConfigGuardMessage);
 
   const handleSignup = async () => {
+    if (isAuthBlocked) {
+      return;
+    }
+
     setErrorMessage("");
 
     if (!name.trim() || !email.trim() || !password) {
@@ -44,6 +51,10 @@ export default function SignupScreen({ navigation }) {
     }
   };
 
+  const handleGoogleError = (error) => {
+    setErrorMessage(error.message || "Google sign-in could not be completed.");
+  };
+
   return (
     <AuthScaffold
       eyebrow="Create account"
@@ -54,11 +65,18 @@ export default function SignupScreen({ navigation }) {
         {errorMessage ? (
           <MessageCard message={errorMessage} title="Could not create account" tone="error" />
         ) : null}
+        {isAuthBlocked ? (
+          <MessageCard
+            message={authConfigGuardMessage}
+            title="App configuration error"
+            tone="warning"
+          />
+        ) : null}
 
         <AppInput
           autoCapitalize="words"
           autoComplete="name"
-          editable={!isSubmitting}
+          editable={!isSubmitting && !isAuthBlocked}
           icon="user"
           label="Full name"
           onChangeText={setName}
@@ -70,7 +88,7 @@ export default function SignupScreen({ navigation }) {
         <AppInput
           autoCapitalize="none"
           autoComplete="email"
-          editable={!isSubmitting}
+          editable={!isSubmitting && !isAuthBlocked}
           icon="mail"
           keyboardType="email-address"
           label="Email"
@@ -82,7 +100,7 @@ export default function SignupScreen({ navigation }) {
         />
         <AppInput
           autoComplete="new-password"
-          editable={!isSubmitting}
+          editable={!isSubmitting && !isAuthBlocked}
           icon="lock"
           label="Password"
           onChangeText={setPassword}
@@ -92,9 +110,25 @@ export default function SignupScreen({ navigation }) {
           textContentType="newPassword"
           value={password}
         />
-        <AppButton disabled={isSubmitting} loading={isSubmitting} onPress={handleSignup}>
+        <AppButton
+          disabled={isSubmitting || isAuthBlocked}
+          loading={isSubmitting}
+          onPress={handleSignup}
+        >
           Create account
         </AppButton>
+
+        {!isAuthBlocked ? (
+          <GoogleSignInButton
+            disabled={isSubmitting}
+            onError={handleGoogleError}
+            onSuccess={() => trackEvent("signup_success_google")}
+          />
+        ) : null}
+
+        <AppText tone="muted" variant="bodyMuted">
+          Email signups are activated by a verification link sent to your inbox.
+        </AppText>
       </AppCard>
 
       <View style={styles.footer}>

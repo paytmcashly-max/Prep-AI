@@ -8,9 +8,13 @@ const SAFE_EVENT_NAMES = new Set([
   "interview_question_generated",
   "answer_submitted",
   "answer_evaluated",
+  "question_timed_out",
   "resume_analysis_started",
   "resume_analysis_completed",
-  "usage_limit_reached"
+  "usage_limit_reached",
+  "voice_transcription_requested",
+  "voice_transcription_completed",
+  "voice_transcription_failed"
 ]);
 
 const SENSITIVE_KEY_PATTERN =

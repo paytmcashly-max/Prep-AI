@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, getDocFromCache, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
 import { auth, firestore } from "../services/firebaseConfig";
-import { consumeLastAuthAction } from "../services/authService";
+import { consumeLastAuthAction, isUserVerifiedForApp } from "../services/authService";
 import LoginScreen from "../screens/LoginScreen";
 import MockInterviewScreen from "../screens/MockInterviewScreen";
 import OnboardingScreen from "../screens/OnboardingScreen";
 import PaywallScreen from "../screens/PaywallScreen";
 import ProfileSetupScreen from "../screens/ProfileSetupScreen";
 import SignupScreen from "../screens/SignupScreen";
-import SplashScreen from "../screens/SplashScreen";
+import VerifyEmailScreen from "../screens/VerifyEmailScreen";
 import { useProgressStore } from "../store/progressStore";
 import { useUserStore } from "../store/userStore";
 import { useAppTheme } from "../theme";
@@ -20,14 +21,13 @@ import TabNavigator from "./TabNavigator";
 
 const Stack = createNativeStackNavigator();
 
-function AuthStack({ initialRouteName = "Splash", screenOptions }) {
+function AuthStack({ initialRouteName = "Onboarding", screenOptions }) {
   return (
     <Stack.Navigator
       key={initialRouteName}
       initialRouteName={initialRouteName}
       screenOptions={screenOptions}
     >
-      <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
@@ -55,6 +55,16 @@ function AppStack({ hasCompletedProfile, onProfileCompleted, screenOptions }) {
   );
 }
 
+function VerificationStack({ onVerified, screenOptions }) {
+  return (
+    <Stack.Navigator initialRouteName="VerifyEmail" screenOptions={screenOptions}>
+      <Stack.Screen name="VerifyEmail">
+        {(props) => <VerifyEmailScreen {...props} onVerified={onVerified} />}
+      </Stack.Screen>
+    </Stack.Navigator>
+  );
+}
+
 const isProfileComplete = (profile) =>
   Boolean(
     profile?.onboardingCompleted === true &&
@@ -63,16 +73,20 @@ const isProfileComplete = (profile) =>
     profile.experienceLevel
   );
 
+const isLocalProfileComplete = (profile) =>
+  Boolean((profile?.fullName || profile?.name) && profile?.jobRole && profile?.experienceLevel);
+
 export default function AppNavigator() {
   const { colors } = useAppTheme();
   const setUser = useUserStore((state) => state.setUser);
   const resetUser = useUserStore((state) => state.resetUser);
   const updateProfile = useUserStore((state) => state.updateProfile);
   const resetProgress = useProgressStore((state) => state.resetProgress);
-  const [authInitialRoute, setAuthInitialRoute] = useState("Splash");
+  const [authInitialRoute, setAuthInitialRoute] = useState("Onboarding");
   const [authLoading, setAuthLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [hasCompletedProfile, setHasCompletedProfile] = useState(false);
   const screenOptions = {
     headerBackTitleVisible: false,
@@ -81,8 +95,65 @@ export default function AppNavigator() {
     contentStyle: { backgroundColor: colors.background }
   };
 
+  const renderLoadingGate = () => (
+    <View
+      style={{
+        alignItems: "center",
+        backgroundColor: colors.background,
+        flex: 1,
+        justifyContent: "center"
+      }}
+    >
+      <ActivityIndicator color={colors.primary} size="small" />
+    </View>
+  );
+
   useEffect(() => {
     let unsubscribeProfile = null;
+
+    const getProfileFromCache = async (userId) => {
+      try {
+        const cachedProfile = await getDocFromCache(
+          doc(firestore, "users", userId, "profile", "main")
+        );
+
+        if (cachedProfile.exists()) {
+          return cachedProfile.data();
+        }
+      } catch {
+        // Cache miss is okay here.
+      }
+
+      try {
+        const cachedRootProfile = await getDocFromCache(doc(firestore, "users", userId));
+
+        return cachedRootProfile.exists() ? cachedRootProfile.data() : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const handleProfileLoadError = async (user) => {
+      const cachedProfile = await getProfileFromCache(user.uid);
+      const localProfile = useUserStore.getState().profile;
+      const nextProfile =
+        cachedProfile || (isLocalProfileComplete(localProfile) ? localProfile : null);
+
+      if (nextProfile) {
+        updateProfile({
+          name: nextProfile.fullName || nextProfile.name || user.displayName || "",
+          fullName: nextProfile.fullName || nextProfile.name || user.displayName || "",
+          jobRole: nextProfile.jobRole || "",
+          experienceLevel: nextProfile.experienceLevel || "",
+          targetCompanies: nextProfile.targetCompanies || []
+        });
+      }
+
+      setHasCompletedProfile(
+        isProfileComplete(nextProfile) || (!cachedProfile && isLocalProfileComplete(localProfile))
+      );
+      setProfileLoading(false);
+    };
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (unsubscribeProfile) {
@@ -97,15 +168,24 @@ export default function AppNavigator() {
       if (!user) {
         const authAction = consumeLastAuthAction();
 
-        setAuthInitialRoute(authAction === "logout" ? "Login" : "Splash");
+        setAuthInitialRoute(authAction === "logout" ? "Login" : "Onboarding");
         resetUser();
         resetProgress();
+        setEmailVerified(false);
         setProfileLoading(false);
         setAuthLoading(false);
         return;
       }
 
+      const isVerified = isUserVerifiedForApp(user);
+      setEmailVerified(isVerified);
       setAuthLoading(false);
+
+      if (!isVerified) {
+        setProfileLoading(false);
+        return;
+      }
+
       setProfileLoading(true);
 
       unsubscribeProfile = onSnapshot(
@@ -138,8 +218,10 @@ export default function AppNavigator() {
           setProfileLoading(false);
         },
         () => {
-          setHasCompletedProfile(false);
-          setProfileLoading(false);
+          handleProfileLoadError(user).catch(() => {
+            setHasCompletedProfile(false);
+            setProfileLoading(false);
+          });
         }
       );
     });
@@ -151,20 +233,27 @@ export default function AppNavigator() {
         unsubscribeProfile();
       }
     };
-  }, [resetProgress, resetUser, setUser, updateProfile]);
+  }, [emailVerified, resetProgress, resetUser, setUser, updateProfile]);
 
-  if (authLoading || (currentUser && profileLoading)) {
-    return <SplashScreen />;
+  if (authLoading || (currentUser && emailVerified && profileLoading)) {
+    return renderLoadingGate();
   }
 
   return (
     <NavigationContainer>
       {currentUser ? (
-        <AppStack
-          hasCompletedProfile={hasCompletedProfile}
-          onProfileCompleted={() => setHasCompletedProfile(true)}
-          screenOptions={screenOptions}
-        />
+        emailVerified ? (
+          <AppStack
+            hasCompletedProfile={hasCompletedProfile}
+            onProfileCompleted={() => setHasCompletedProfile(true)}
+            screenOptions={screenOptions}
+          />
+        ) : (
+          <VerificationStack
+            onVerified={() => setEmailVerified(true)}
+            screenOptions={screenOptions}
+          />
+        )
       ) : (
         <AuthStack initialRouteName={authInitialRoute} screenOptions={screenOptions} />
       )}

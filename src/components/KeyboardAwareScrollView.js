@@ -7,6 +7,7 @@ export default function KeyboardAwareScrollView({
   children,
   contentContainerStyle,
   keyboardVerticalOffset = 0,
+  scrollRef,
   style,
   ...scrollViewProps
 }) {
@@ -25,6 +26,7 @@ export default function KeyboardAwareScrollView({
       <ScrollView
         automaticallyAdjustKeyboardInsets
         contentInsetAdjustmentBehavior="automatic"
+        ref={scrollRef}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

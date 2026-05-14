@@ -11,15 +11,7 @@ function BenefitItem({ label }) {
   const { colors } = useAppTheme();
 
   return (
-    <View
-      style={[
-        styles.benefitItem,
-        {
-          backgroundColor: colors.card,
-          borderColor: colors.border
-        }
-      ]}
-    >
+    <View style={styles.benefitItem}>
       <AppIcon color={colors.success} name="check" size={15} />
       <AppText style={styles.benefitText} variant="bodyMuted">
         {label}
@@ -44,6 +36,7 @@ export default function LimitCard({
   const isSyncState = !resetCountdown && benefits.length === 0;
   const isRefreshAction = primaryLabel.toLowerCase().includes("refresh");
   const primaryIcon = isRefreshAction ? "refresh" : "premium";
+  const visibleBenefits = benefits.slice(0, 4);
 
   return (
     <AppCard gradient="calm" style={[styles.card, { borderColor: colors.borderStrong }, style]}>
@@ -60,7 +53,7 @@ export default function LimitCard({
           <AppIcon
             color={isSyncState ? colors.secondary : colors.primary}
             name={isSyncState ? "refresh" : "lock"}
-            size={20}
+            size={22}
           />
         </View>
         <View style={styles.copy}>
@@ -78,120 +71,68 @@ export default function LimitCard({
       {isSyncState ? (
         <View
           style={[
-            styles.syncPanel,
+            styles.syncBlock,
             {
               backgroundColor: colors.cardAlt,
               borderColor: colors.border
             }
           ]}
         >
-          <View style={styles.syncHeading}>
+          <View style={styles.sectionCopy}>
             <AppText variant="cardTitle">Finish syncing your plan</AppText>
             <AppText tone="muted" variant="bodyMuted">
-              Premium starts only after the backend confirms your payment or plan change.
+              Premium starts after the backend confirms your payment or plan change.
             </AppText>
           </View>
 
           <View style={styles.actions}>
-            {onBack ? (
-              <AppButton onPress={onBack} style={styles.actionButton} tone="secondary">
-                {secondaryLabel}
-              </AppButton>
-            ) : null}
             <AppButton icon={primaryIcon} onPress={onUpgrade} style={styles.actionButton}>
               {primaryLabel}
             </AppButton>
           </View>
         </View>
       ) : (
-        <View style={styles.optionStack}>
+        <>
           <View
             style={[
-              styles.optionPanel,
+              styles.countdownBlock,
               {
                 backgroundColor: colors.cardAlt,
-                borderColor: colors.border
-              }
-            ]}
-          >
-            <View style={styles.optionHeader}>
-              <View style={styles.optionTitleRow}>
-                <AppIcon color={colors.muted} name="timer" size={16} />
-                <AppText tone="muted" variant="caption">
-                  Keep using Free
-                </AppText>
-              </View>
-              <AppText variant="cardTitle">Wait for your next reset</AppText>
-              <AppText tone="muted" variant="bodyMuted">
-                Your free practice returns automatically when the countdown ends.
-              </AppText>
-            </View>
-
-            {resetCountdown ? (
-              <View
-                style={[
-                  styles.countdown,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.borderStrong
-                  }
-                ]}
-              >
-                <View style={styles.countdownMeta}>
-                  <AppIcon color={colors.muted} name="calendar" size={15} />
-                  <AppText tone="muted" variant="caption">
-                    {countdownLabel}
-                  </AppText>
-                </View>
-                <AppText color={colors.primary} style={styles.countdownValue} variant="monoNumber">
-                  {resetCountdown}
-                </AppText>
-              </View>
-            ) : null}
-
-            {onBack ? (
-              <AppButton onPress={onBack} style={styles.actionButton} tone="secondary">
-                {secondaryLabel}
-              </AppButton>
-            ) : null}
-          </View>
-
-          <View
-            style={[
-              styles.optionPanel,
-              styles.premiumPanel,
-              {
-                backgroundColor: colors.primarySoft,
                 borderColor: colors.borderStrong
               }
             ]}
           >
-            <View style={styles.optionHeader}>
-              <View style={styles.optionTitleRow}>
-                <AppIcon color={colors.primary} name="premium" size={16} />
-                <AppText tone="primary" variant="caption">
-                  Upgrade
-                </AppText>
-              </View>
-              <AppText variant="cardTitle">Keep practicing right now</AppText>
-              <AppText tone="muted" variant="bodyMuted">
-                Unlock more sessions and continue without waiting for the next free reset.
+            <View style={styles.countdownLabelRow}>
+              <AppIcon color={colors.muted} name="calendar" size={15} />
+              <AppText tone="muted" variant="caption">
+                {countdownLabel || "Free reset"}
               </AppText>
             </View>
+            <AppText color={colors.primary} style={styles.countdownValue} variant="statNumber">
+              {resetCountdown}
+            </AppText>
+            <AppText style={styles.countdownHelper} tone="muted" variant="bodyMuted">
+              You can continue for free after this reset.
+            </AppText>
+          </View>
 
-            {benefits.length ? (
-              <View style={styles.benefitsList}>
-                {benefits.map((benefit) => (
+          {visibleBenefits.length ? (
+            <View style={styles.benefitsBlock}>
+              <AppText variant="cardTitle">Upgrade unlocks</AppText>
+              <View style={styles.benefitList}>
+                {visibleBenefits.map((benefit) => (
                   <BenefitItem key={benefit} label={benefit} />
                 ))}
               </View>
-            ) : null}
+            </View>
+          ) : null}
 
+          <View style={styles.actions}>
             <AppButton icon={primaryIcon} onPress={onUpgrade} style={styles.actionButton}>
               {primaryLabel}
             </AppButton>
           </View>
-        </View>
+        </>
       )}
     </AppCard>
   );
@@ -205,20 +146,18 @@ const styles = StyleSheet.create({
     gap: SPACING.sm
   },
   benefitItem: {
-    alignItems: "center",
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
+    alignItems: "flex-start",
     flexDirection: "row",
-    gap: SPACING.sm,
-    minHeight: 40,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm
+    gap: SPACING.sm
+  },
+  benefitList: {
+    gap: SPACING.sm
+  },
+  benefitsBlock: {
+    gap: SPACING.sm
   },
   benefitText: {
     flex: 1
-  },
-  benefitsList: {
-    gap: SPACING.sm
   },
   card: {
     gap: SPACING.lg,
@@ -226,24 +165,29 @@ const styles = StyleSheet.create({
   },
   copy: {
     flex: 1,
-    gap: SPACING.sm,
+    gap: SPACING.xs,
     minWidth: 0
   },
-  countdown: {
-    borderRadius: RADIUS.lg,
+  countdownBlock: {
+    alignItems: "center",
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
     gap: SPACING.xs,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md
+    padding: SPACING.md
   },
-  countdownMeta: {
+  countdownLabelRow: {
     alignItems: "center",
     flexDirection: "row",
-    gap: SPACING.xs
+    gap: SPACING.xs,
+    justifyContent: "center"
+  },
+  countdownHelper: {
+    textAlign: "center"
   },
   countdownValue: {
-    fontSize: 24,
-    lineHeight: 30
+    fontSize: 28,
+    lineHeight: 36,
+    textAlign: "center"
   },
   header: {
     alignItems: "flex-start",
@@ -254,35 +198,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    height: 42,
+    height: 50,
     justifyContent: "center",
-    width: 42
+    width: 50
   },
-  optionHeader: {
+  sectionCopy: {
     gap: SPACING.xs
   },
-  optionPanel: {
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    gap: SPACING.md,
-    padding: SPACING.md
-  },
-  optionStack: {
-    gap: SPACING.md
-  },
-  optionTitleRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: SPACING.xs
-  },
-  premiumPanel: {
-    paddingBottom: SPACING.lg
-  },
-  syncHeading: {
-    gap: SPACING.xs
-  },
-  syncPanel: {
-    borderRadius: RADIUS.lg,
+  syncBlock: {
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
     gap: SPACING.md,
     padding: SPACING.md

@@ -11,6 +11,7 @@ import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
 import AppButton from "../components/ui/AppButton";
 import AppCard from "../components/ui/AppCard";
 import AppText from "../components/ui/AppText";
+import ErrorState from "../components/ui/ErrorState";
 import ExpandableSection from "../components/ui/ExpandableSection";
 import AppIcon from "../components/ui/AppIcon";
 import Badge from "../components/ui/Badge";
@@ -291,7 +292,7 @@ function ResumeAnalysisDetails({ analysis, atsColor, atsToneLabel, onReset }) {
       </View>
 
       <AppButton onPress={onReset} tone="secondary">
-        Analyze Another
+        Analyze another resume
       </AppButton>
     </AppCard>
   );
@@ -300,6 +301,7 @@ function ResumeAnalysisDetails({ analysis, atsColor, atsToneLabel, onReset }) {
 export default function ResumeScreen({ navigation }) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef(null);
   const savedJobRole = useUserStore((state) => state.profile.jobRole);
   const isPremium = useSubscriptionStore((state) => state.isPremium);
   const refreshSubscriptionStatus = useSubscriptionStore(
@@ -429,16 +431,20 @@ export default function ResumeScreen({ navigation }) {
             setShowPreviousAnalysisDetails(false);
           }
           await persistLastAnalysis(nextHistory[0]);
-        } else {
-          setAnalysisHistory([]);
-          setSelectedAnalysisId(null);
-          await loadLastAnalysis();
-        }
-      } catch (error) {
-        setOverviewError(error.message || "Could not load resume usage status.");
-        setUsageStatus(null);
-        setIsResumeLimitReached(false);
+      } else {
+        setAnalysisHistory([]);
+        setSelectedAnalysisId(null);
         await loadLastAnalysis();
+      }
+    } catch (error) {
+      if (error instanceof ApiClientError && error.code === "NETWORK_ERROR") {
+        setOverviewError("You're offline. Reconnect to load resume scans and saved checks.");
+      } else {
+        setOverviewError(error.message || "Could not load resume usage status.");
+      }
+      setUsageStatus(null);
+      setIsResumeLimitReached(false);
+      await loadLastAnalysis();
       } finally {
         setIsLoadingOverview(false);
       }
@@ -465,7 +471,7 @@ export default function ResumeScreen({ navigation }) {
       refreshSubscriptionStatus()
         .then(() => {
           if (isActive) {
-            loadResumeOverview();
+            loadResumeOverview({ collapseDetails: false, silent: true });
           }
         })
         .catch(() => null);
@@ -614,7 +620,7 @@ export default function ResumeScreen({ navigation }) {
       setSelectedAnalysisId(nextAnalysis.id);
       setShowPreviousAnalysisDetails(true);
       await persistLastAnalysis(nextAnalysis);
-      loadResumeOverview({ collapseDetails: false }).catch(() => null);
+      loadResumeOverview({ collapseDetails: false, silent: true }).catch(() => null);
       setIsResumeLimitReached(false);
       trackEvent("resume_analysis_completed", {
         atsScore: Number(result.atsScore || 0),
@@ -651,11 +657,16 @@ export default function ResumeScreen({ navigation }) {
     setIsResumeLimitReached(false);
     setIsAnalyzing(false);
     setShowPasteFallback(false);
+    setShowPreviousAnalysisDetails(false);
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo?.({ animated: true, y: 0 });
+    });
   };
 
   if (isLoadingOverview) {
     return (
       <KeyboardAwareScrollView
+        scrollRef={scrollRef}
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[
           styles.content,
@@ -681,8 +692,40 @@ export default function ResumeScreen({ navigation }) {
     );
   }
 
+  if (overviewError && !analysisHistory.length) {
+    return (
+      <KeyboardAwareScrollView
+        scrollRef={scrollRef}
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={[
+          styles.content,
+          styles.centeredState,
+          {
+            paddingBottom: Math.max(insets.bottom + 82, 92),
+            paddingTop: Math.max(insets.top + 2, 10)
+          }
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshingOverview}
+            onRefresh={refreshResumeOverview}
+            tintColor={colors.secondary}
+            colors={[colors.secondary]}
+          />
+        }
+      >
+        <ErrorState
+          message={overviewError}
+          onRetry={loadResumeOverview}
+          title="Resume unavailable"
+        />
+      </KeyboardAwareScrollView>
+    );
+  }
+
   return (
     <KeyboardAwareScrollView
+      scrollRef={scrollRef}
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[
         styles.content,
@@ -737,8 +780,12 @@ export default function ResumeScreen({ navigation }) {
         <FreeLimitCard
           benefits={[]}
           message="Premium is active on this device, but server access has not synced yet. Refresh your plan and try again."
-          onBack={loadResumeOverview}
-          onUpgrade={() => refreshSubscriptionStatus().finally(loadResumeOverview)}
+          onBack={() => loadResumeOverview({ collapseDetails: false, silent: true })}
+          onUpgrade={() =>
+            refreshSubscriptionStatus().finally(() =>
+              loadResumeOverview({ collapseDetails: false, silent: true })
+            )
+          }
           primaryLabel="Refresh Plan"
           secondaryLabel="Retry"
           style={styles.resumeLimitCard}
@@ -814,22 +861,19 @@ export default function ResumeScreen({ navigation }) {
             <MessageCard title="Resume check stopped" message={errorMessage} tone="error" />
           ) : null}
 
-          <AppButton disabled={!canAnalyzeResume} onPress={analyzeSelectedResume}>
+          <AppButton
+            disabled={!canAnalyzeResume}
+            loading={isAnalyzing}
+            onPress={analyzeSelectedResume}
+          >
             {selectedFile
-              ? "Analyze PDF"
+              ? "Analyze resume"
               : showPasteFallback
-                ? "Analyze Pasted Text"
-                : "Choose PDF to Analyze"}
+                ? "Analyze resume text"
+                : "Choose a PDF to continue"}
           </AppButton>
         </AppCard>
       )}
-
-      {isAnalyzing ? (
-        <LoadingState
-          message="Reviewing ATS fit, keywords, grammar, and section quality for your selected role."
-          title="Analyzing your resume"
-        />
-      ) : null}
 
       {analysisHistory.length ? (
         <View style={styles.historyList}>
@@ -887,6 +931,9 @@ const styles = StyleSheet.create({
   content: {
     gap: 14,
     paddingHorizontal: 16
+  },
+  centeredState: {
+    justifyContent: "center"
   },
   fallbackCard: {
     borderRadius: 14,

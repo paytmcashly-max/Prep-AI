@@ -1,7 +1,10 @@
 import { doc, getDoc } from "firebase/firestore";
+import * as FileSystem from "expo-file-system";
 
 import { auth, firestore } from "./firebaseConfig";
 import { ApiClientError, postAuthenticatedFormData, postAuthenticatedJson } from "./apiClient";
+import { isVoiceFeatureEnabled } from "./featureFlags";
+import { MAX_VOICE_RECORDING_DURATION_MILLIS, MAX_VOICE_UPLOAD_SIZE_BYTES } from "./voiceConstants";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
 
@@ -421,6 +424,127 @@ export const analyzeResumePdf = async (asset, jobRole) => {
   );
 
   return normalizeResumeAnalysis(analysis);
+};
+
+const getAudioFileSizeBytes = async (uri) => {
+  try {
+    const fileInfo = await FileSystem.getInfoAsync(uri, { size: true });
+
+    if (!fileInfo?.exists) {
+      return 0;
+    }
+
+    const size = Number(fileInfo.size || 0);
+    return Number.isFinite(size) ? Math.max(size, 0) : 0;
+  } catch {
+    return 0;
+  }
+};
+
+export const transcribeVoiceAnswer = async (audio) => {
+  if (!isVoiceFeatureEnabled) {
+    throw new ApiClientError("Voice feature is not available.", 404, "VOICE_FEATURE_DISABLED");
+  }
+
+  if (!audio?.uri) {
+    throw new ApiClientError("Could not upload audio.", 400, "MISSING_AUDIO_FILE");
+  }
+
+  if (Number(audio.durationMillis || 0) > MAX_VOICE_RECORDING_DURATION_MILLIS) {
+    throw new ApiClientError(
+      "Your recording is too long. Keep it under 2 minutes and try again.",
+      413,
+      "VOICE_DURATION_LIMIT_EXCEEDED"
+    );
+  }
+
+  const sizeBytes = await getAudioFileSizeBytes(audio.uri);
+
+  if (sizeBytes > MAX_VOICE_UPLOAD_SIZE_BYTES) {
+    throw new ApiClientError(
+      "Your recording is too large. Keep it under 10MB and try again.",
+      413,
+      "VOICE_FILE_TOO_LARGE"
+    );
+  }
+
+  const formData = new FormData();
+
+  formData.append("audio", {
+    uri: audio.uri,
+    type: audio.mimeType || "audio/m4a",
+    name: audio.fileName || "voice-answer.m4a"
+  });
+
+  try {
+    const payload = await postAuthenticatedFormData("/api/voice/transcribe", formData, {
+      badRequestMessage: "Could not upload audio.",
+      logBody: {
+        durationMillis: audio.durationMillis,
+        hasAudioFile: true,
+        mimeType: audio.mimeType || "audio/m4a",
+        sizeBytes
+      },
+      timeoutMs: 45000
+    });
+
+    const transcript = typeof payload?.transcript === "string" ? payload.transcript.trim() : "";
+    const durationSeconds = Number(payload?.durationSeconds || 0);
+
+    if (!transcript) {
+      throw new ApiClientError("Could not transcribe answer.", 0, "INVALID_TRANSCRIPTION_RESPONSE");
+    }
+
+    return {
+      durationSeconds: Number.isFinite(durationSeconds)
+        ? Math.max(0, Math.round(durationSeconds * 100) / 100)
+        : 0,
+      language: typeof payload?.language === "string" ? payload.language : "en",
+      transcript
+    };
+  } catch (error) {
+    if (!(error instanceof ApiClientError)) {
+      throw new ApiClientError("Backend unreachable.", 0, "NETWORK_ERROR");
+    }
+
+    if (error.code === "NETWORK_ERROR") {
+      throw new ApiClientError(
+        "Backend unreachable. Check your connection and try again.",
+        0,
+        "NETWORK_ERROR"
+      );
+    }
+
+    if (error.code === "REQUEST_TIMEOUT") {
+      throw new ApiClientError(
+        "Transcription timed out. Please try again with a shorter answer.",
+        0,
+        "REQUEST_TIMEOUT"
+      );
+    }
+
+    if (error.status === 404 || error.status === 403) {
+      throw new ApiClientError("Voice feature disabled.", error.status, "VOICE_FEATURE_DISABLED");
+    }
+
+    if (error.status === 400 || error.status === 413 || error.status === 415) {
+      throw new ApiClientError(
+        error.message || "Could not upload audio. Please record again and try once more.",
+        error.status,
+        error.code
+      );
+    }
+
+    if (error.status === 503) {
+      throw new ApiClientError(
+        "Could not transcribe answer right now. Please try again in a moment.",
+        error.status,
+        "VOICE_TRANSCRIPTION_UNAVAILABLE"
+      );
+    }
+
+    throw error;
+  }
 };
 
 export const generateInterviewQuestion = generateQuestion;

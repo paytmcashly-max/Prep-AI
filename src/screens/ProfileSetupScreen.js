@@ -100,15 +100,10 @@ export default function ProfileSetupScreen({ navigation, route, onProfileComplet
       });
 
       onProfileCompleted?.();
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: "MainTabs",
-            params: { screen: route?.params?.returnToProfile ? "Profile" : "Home" }
-          }
-        ]
-      });
+
+      if (isEditMode) {
+        navigation.goBack();
+      }
     } catch (error) {
       Alert.alert("Profile save failed", error.message || "Please try again.");
     } finally {

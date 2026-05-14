@@ -146,6 +146,14 @@ const authenticatedRequest = async ({
       throw error;
     }
 
+    if (error?.name === "AbortError") {
+      throw new ApiClientError(
+        "The server took too long to respond. Please try again.",
+        0,
+        "REQUEST_TIMEOUT"
+      );
+    }
+
     throw new ApiClientError("Could not connect to the server.", 0, "NETWORK_ERROR");
   } finally {
     cleanup();

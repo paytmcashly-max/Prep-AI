@@ -55,7 +55,11 @@ export default function SplashScreen({ navigation }) {
         >
           <Image accessibilityIgnoresInvertColors source={LOGO_MARK} style={styles.logoImage} />
         </View>
-        <AppText selectable={false} style={[styles.logoText, { color: colors.text }]} variant="display">
+        <AppText
+          selectable={false}
+          style={[styles.logoText, { color: colors.text }]}
+          variant="display"
+        >
           {APP_NAME}
         </AppText>
         <AppText

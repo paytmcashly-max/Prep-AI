@@ -6,7 +6,7 @@ onboarding and app review.
 Current deployed URL:
 
 ```text
-https://intervueai.vercel.app
+https://intervueai.tech
 ```
 
 ## Framework
@@ -52,7 +52,7 @@ npm run build
 Current deployed URL:
 
 ```text
-https://intervueai.vercel.app
+https://intervueai.tech
 ```
 
 ## Razorpay Notes
@@ -67,10 +67,10 @@ https://intervueai.vercel.app
 
 ## Remaining Launch Tasks
 
-- Keep `/web` deployed on Vercel at `https://intervueai.vercel.app`.
-- Privacy page: `https://intervueai.vercel.app/privacy`.
-- Terms page: `https://intervueai.vercel.app/terms`.
-- Refund page: `https://intervueai.vercel.app/refund`.
-- Digital delivery page: `https://intervueai.vercel.app/delivery`.
+- Keep `/web` deployed on Vercel at `https://intervueai.tech`.
+- Privacy page: `https://intervueai.tech/privacy`.
+- Terms page: `https://intervueai.tech/terms`.
+- Refund page: `https://intervueai.tech/refund`.
+- Digital delivery page: `https://intervueai.tech/delivery`.
 - Support email configured as `kishan@kishan.codes`.
 - Submit the deployed Vercel URL to Razorpay as the IntervueAI website/app link.
