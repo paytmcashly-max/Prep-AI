@@ -15,7 +15,7 @@ import {
   TimerReset
 } from "lucide-react";
 
-const APK_DOWNLOAD_URL = "https://expo.dev/artifacts/eas/kAAfqqE1vwAfrGAiy4m3hK.apk";
+const APK_DOWNLOAD_URL = "/downloads/intervueai-public-beta-v1.0.0-arm64.apk";
 
 const features = [
   {
@@ -182,8 +182,8 @@ export default function Home() {
             <div className="download-note">
               <Smartphone size={16} />
               <span>
-                Current public beta focuses on text interview practice. Voice features remain in
-                private testing.
+                Public beta APK for most modern Android phones. Current public beta focuses on
+                text interview practice, while voice features remain in private testing.
               </span>
             </div>
 
