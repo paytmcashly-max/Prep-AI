@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 const APK_DOWNLOAD_URL =
-  "https://github.com/paytmcashly-max/Prep-AI/releases/download/v1.0.0-public-beta/intervueai-public-beta-v1.0.0-arm64.apk";
+  "https://github.com/paytmcashly-max/Prep-AI/releases/download/v1.0.0-public-beta/intervueai-public-beta-v1.0.0-google-auth-fixed.apk";
 
 const valuePillars = [
   {

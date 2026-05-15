@@ -206,7 +206,7 @@ export const getGoogleAuthProblem = () => {
 
   const config = getGoogleAuthConfig();
 
-  if (Platform.OS !== "android" && !config.webClientId) {
+  if (!config.webClientId) {
     return "missing-web-client-id";
   }
 
@@ -220,14 +220,11 @@ const ensureGoogleSignInConfigured = () => {
 
   const { GoogleSignin } = getGoogleSignInModule();
   const config = getGoogleAuthConfig();
-  const shouldUseNativeAndroidClientConfig = Platform.OS === "android";
 
   const googleSignInConfig = {
     offlineAccess: false,
     scopes: config.scopes,
-    ...(!shouldUseNativeAndroidClientConfig && config.webClientId
-      ? { webClientId: config.webClientId }
-      : {}),
+    ...(config.webClientId ? { webClientId: config.webClientId } : {}),
     ...(config.iosClientId ? { iosClientId: config.iosClientId } : {})
   };
 
@@ -236,9 +233,7 @@ const ensureGoogleSignInConfigured = () => {
     hasAndroidClientId: Boolean(config.androidClientId),
     hasWebClientId: Boolean(config.webClientId),
     appOwnership: Constants.appOwnership,
-    requestsIdToken: shouldUseNativeAndroidClientConfig
-      ? "native-google-services"
-      : Boolean(config.webClientId)
+    requestsIdToken: Boolean(config.webClientId)
   });
   GoogleSignin.configure(googleSignInConfig);
   hasConfiguredGoogleSignIn = true;

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { StatusBar } from "expo-status-bar";
 import * as ExpoSplashScreen from "expo-splash-screen";
+import { ImageBackground, StyleSheet, View, useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -32,6 +33,24 @@ initializeErrorTracking();
 initializeAnalytics();
 void ExpoSplashScreen.preventAutoHideAsync().catch(() => {});
 
+const launchSplashLight = require("./assets/launch-splash-light.png");
+const launchSplashDark = require("./assets/launch-splash-dark.png");
+const MIN_LAUNCH_SCREEN_MS = 1100;
+
+function LaunchScreen() {
+  const colorScheme = useColorScheme();
+
+  return (
+    <View style={styles.launchScreen}>
+      <ImageBackground
+        source={colorScheme === "dark" ? launchSplashDark : launchSplashLight}
+        resizeMode="cover"
+        style={styles.launchImage}
+      />
+    </View>
+  );
+}
+
 function AppShell() {
   const { colorScheme, colors } = useAppTheme();
 
@@ -42,7 +61,10 @@ function AppShell() {
         style={colorScheme === "light" ? "dark" : "light"}
         translucent={false}
       />
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.background, flex: 1 }}>
+      <SafeAreaView
+        edges={["top"]}
+        style={{ backgroundColor: colors.background, flex: 1 }}
+      >
         <AppNavigator />
       </SafeAreaView>
     </>
@@ -51,6 +73,8 @@ function AppShell() {
 
 function App() {
   const hasStartedUpdateCheckRef = useRef(false);
+  const hasHiddenNativeSplashRef = useRef(false);
+  const launchStartedAtRef = useRef(Date.now());
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -59,6 +83,7 @@ function App() {
     Inter_800ExtraBold,
     Inter_900Black
   });
+  const [showLaunchScreen, setShowLaunchScreen] = useState(true);
 
   useEffect(() => {
     trackEvent("app_opened");
@@ -85,28 +110,72 @@ function App() {
     return unsubscribe;
   }, []);
 
-  const isAppReady = fontsLoaded || Boolean(fontError);
-  const onLayoutRootView = useCallback(async () => {
-    if (!isAppReady) {
+  const fontsReady = fontsLoaded || Boolean(fontError);
+
+  useEffect(() => {
+    if (!fontsReady) {
       return;
     }
 
-    await ExpoSplashScreen.hideAsync().catch(() => {});
-  }, [isAppReady]);
+    let cancelled = false;
+    const runLaunchSequence = async () => {
+      if (!hasHiddenNativeSplashRef.current) {
+        hasHiddenNativeSplashRef.current = true;
+        await ExpoSplashScreen.hideAsync().catch(() => {});
+      }
 
-  if (!isAppReady) {
-    return null;
-  }
+      const remainingDelay = Math.max(
+        0,
+        MIN_LAUNCH_SCREEN_MS - (Date.now() - launchStartedAtRef.current)
+      );
+
+      const timeout = setTimeout(() => {
+        if (!cancelled) {
+          setShowLaunchScreen(false);
+        }
+      }, remainingDelay);
+
+      return () => clearTimeout(timeout);
+    };
+
+    let cleanup;
+    runLaunchSequence().then((result) => {
+      cleanup = result;
+    });
+
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, [fontsReady]);
 
   return (
-    <GestureHandlerRootView onLayout={onLayoutRootView} style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <AppThemeProvider>
-          <AppShell />
-        </AppThemeProvider>
-      </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {fontsReady ? (
+        <SafeAreaProvider>
+          {showLaunchScreen ? (
+            <LaunchScreen />
+          ) : (
+            <AppThemeProvider>
+              <AppShell />
+            </AppThemeProvider>
+          )}
+        </SafeAreaProvider>
+      ) : (
+        null
+      )}
     </GestureHandlerRootView>
   );
 }
 
 export default withErrorTracking(App);
+
+const styles = StyleSheet.create({
+  launchScreen: {
+    flex: 1,
+    backgroundColor: "#F6F7FB"
+  },
+  launchImage: {
+    flex: 1
+  }
+});
