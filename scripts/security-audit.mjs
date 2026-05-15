@@ -10,6 +10,8 @@ const excludedDirs = new Set([
   "node_modules",
   "dist",
   "build",
+  ".next",
+  "out",
   ".expo",
   ".gradle",
   ".kotlin",

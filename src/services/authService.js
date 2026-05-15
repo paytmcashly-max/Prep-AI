@@ -2,28 +2,39 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   reload,
-  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithCredential,
   signOut as firebaseSignOut,
   updateProfile
 } from "firebase/auth";
 import { Platform } from "react-native";
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  statusCodes
-} from "@react-native-google-signin/google-signin";
 import Constants from "expo-constants";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 import { auth, firestore, getFirebaseConfigProblem } from "./firebaseConfig";
+import { isGoogleAuthEnabled } from "./featureFlags";
+import { postAuthenticatedJson } from "./apiClient";
 import { useProgressStore } from "../store/progressStore";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useUserStore } from "../store/userStore";
 
 let lastAuthAction = null;
 let hasConfiguredGoogleSignIn = false;
+let googleSignInModule = null;
+const FIREBASE_BUILD_CONFIG_MESSAGE =
+  "Firebase configuration is missing for this build. Please check EAS preview environment variables and rebuild the APK.";
+const GOOGLE_BUILD_CONFIG_MESSAGE =
+  "Google sign-in is not configured for this build. Please use email/password or update Android OAuth/SHA settings.";
+const GOOGLE_STATUS_CODES = {
+  IN_PROGRESS: "IN_PROGRESS",
+  PLAY_SERVICES_NOT_AVAILABLE: "PLAY_SERVICES_NOT_AVAILABLE",
+  SIGN_IN_CANCELLED: "SIGN_IN_CANCELLED"
+};
+
+export const getFirebaseBuildConfigMessage = () => FIREBASE_BUILD_CONFIG_MESSAGE;
+export const getGoogleBuildConfigMessage = () => GOOGLE_BUILD_CONFIG_MESSAGE;
+export const isBuildConfigAuthMessage = (message) =>
+  [FIREBASE_BUILD_CONFIG_MESSAGE, GOOGLE_BUILD_CONFIG_MESSAGE].includes(String(message || ""));
 
 export const consumeLastAuthAction = () => {
   const action = lastAuthAction;
@@ -35,35 +46,48 @@ const requireFirebaseConfig = () => {
   const configProblem = getFirebaseConfigProblem();
 
   if (configProblem === "missing") {
-    throw new Error(
-      "Missing Firebase environment variables. Add your Firebase config to .env and restart Expo."
-    );
+    throw new Error(FIREBASE_BUILD_CONFIG_MESSAGE);
   }
 
   if (configProblem === "invalid-api-key") {
-    throw new Error(
-      "Invalid Firebase API key for this build. Check EAS preview env: EXPO_PUBLIC_FIREBASE_API_KEY must be your Firebase Web API key."
-    );
+    throw new Error(FIREBASE_BUILD_CONFIG_MESSAGE);
   }
 };
 
 export const getFirebaseConfigGuardMessage = () => {
   const configProblem = getFirebaseConfigProblem();
 
-  if (configProblem === "missing") {
-    return "This preview build is missing its Firebase setup. Add the required Expo public Firebase values to the preview environment and rebuild the app.";
-  }
-
-  if (configProblem === "invalid-api-key") {
-    return "This preview build has an invalid Firebase Web API key. Update the preview environment with the correct Firebase Web API key and rebuild the app.";
+  if (configProblem === "missing" || configProblem === "invalid-api-key") {
+    return FIREBASE_BUILD_CONFIG_MESSAGE;
   }
 
   return "";
 };
 
 const getFriendlyAuthError = (error) => {
+  const errorCode = String(error?.code || "");
+  const errorMessage = String(error?.message || "");
+  const errorDetails = `${errorCode} ${errorMessage}`.toLowerCase();
+  const hasDeveloperError =
+    errorDetails.includes("developer_error") ||
+    errorDetails.includes("developer error") ||
+    errorCode === "DEVELOPER_ERROR" ||
+    errorCode === "10";
+
   if (error?.message === "GOOGLE_SIGN_IN_CANCELLED") {
     return new Error("Google sign-in was cancelled.");
+  }
+
+  if (hasDeveloperError) {
+    return new Error(GOOGLE_BUILD_CONFIG_MESSAGE);
+  }
+
+  if (
+    errorDetails.includes("auth/api-key-not-found") ||
+    errorDetails.includes("auth/invalid-api-key") ||
+    errorDetails.includes("auth/api-key-expired")
+  ) {
+    return new Error(FIREBASE_BUILD_CONFIG_MESSAGE);
   }
 
   switch (error?.code) {
@@ -83,20 +107,38 @@ const getFriendlyAuthError = (error) => {
       return new Error("Please use a stronger password.");
     case "auth/network-request-failed":
       return new Error("Network error. Please check your internet connection and try again.");
+    case "auth/api-key-not-found":
+    case "auth/invalid-api-key":
+    case "auth/api-key-expired":
+      return new Error(FIREBASE_BUILD_CONFIG_MESSAGE);
     case "auth/popup-closed-by-user":
       return new Error("Google sign-in was closed before it finished.");
     case "auth/cancelled-popup-request":
       return new Error("Google sign-in was cancelled. Please try again.");
-    case "auth/invalid-api-key":
-      return new Error(
-        "Invalid Firebase API key for this build. Check EAS preview env: EXPO_PUBLIC_FIREBASE_API_KEY must be your Firebase Web API key."
-      );
-    case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+    case GOOGLE_STATUS_CODES.PLAY_SERVICES_NOT_AVAILABLE:
       return new Error("Google Play Services is not available on this device.");
-    case statusCodes.IN_PROGRESS:
+    case GOOGLE_STATUS_CODES.IN_PROGRESS:
       return new Error("Google sign-in is already in progress. Please wait a moment.");
+    case GOOGLE_STATUS_CODES.SIGN_IN_CANCELLED:
+      return new Error("Google sign-in was cancelled.");
+    case "DEVELOPER_ERROR":
+    case 10:
+      return new Error(GOOGLE_BUILD_CONFIG_MESSAGE);
     default:
       return error;
+  }
+};
+
+const getGoogleSignInModule = () => {
+  if (googleSignInModule) {
+    return googleSignInModule;
+  }
+
+  try {
+    googleSignInModule = require("@react-native-google-signin/google-signin");
+    return googleSignInModule;
+  } catch {
+    throw new Error(GOOGLE_BUILD_CONFIG_MESSAGE);
   }
 };
 
@@ -116,6 +158,14 @@ const getGoogleAuthConfig = () => ({
     Constants.expoConfig?.extra?.googleWebClientId ||
     ""
 });
+
+const logGoogleDebug = (label, details = {}) => {
+  if (!(typeof __DEV__ !== "undefined" && __DEV__)) {
+    return;
+  }
+
+  console.warn(`[google-auth] ${label}`, details);
+};
 
 const upsertUserProfileDoc = async (user, { email, fullName, onboardingCompleted = false } = {}) =>
   setDoc(
@@ -142,6 +192,10 @@ export const isUserVerifiedForApp = (user) => Boolean(user) && !requiresEmailVer
 export const isFirebaseAuthReady = () => !getFirebaseConfigProblem();
 
 export const getGoogleAuthProblem = () => {
+  if (!isGoogleAuthEnabled) {
+    return "disabled";
+  }
+
   if (Constants.appOwnership === "expo") {
     return "expo-go";
   }
@@ -152,12 +206,8 @@ export const getGoogleAuthProblem = () => {
 
   const config = getGoogleAuthConfig();
 
-  if (!config.webClientId) {
+  if (Platform.OS !== "android" && !config.webClientId) {
     return "missing-web-client-id";
-  }
-
-  if (Platform.OS === "android" && !config.androidClientId) {
-    return "missing-android-client-id";
   }
 
   return null;
@@ -168,15 +218,87 @@ const ensureGoogleSignInConfigured = () => {
     return;
   }
 
+  const { GoogleSignin } = getGoogleSignInModule();
   const config = getGoogleAuthConfig();
+  const shouldUseNativeAndroidClientConfig = Platform.OS === "android";
 
-  GoogleSignin.configure({
+  const googleSignInConfig = {
     offlineAccess: false,
     scopes: config.scopes,
-    webClientId: config.webClientId,
+    ...(!shouldUseNativeAndroidClientConfig && config.webClientId
+      ? { webClientId: config.webClientId }
+      : {}),
     ...(config.iosClientId ? { iosClientId: config.iosClientId } : {})
+  };
+
+  logGoogleDebug("configure", {
+    platform: Platform.OS,
+    hasAndroidClientId: Boolean(config.androidClientId),
+    hasWebClientId: Boolean(config.webClientId),
+    appOwnership: Constants.appOwnership,
+    requestsIdToken: shouldUseNativeAndroidClientConfig
+      ? "native-google-services"
+      : Boolean(config.webClientId)
   });
+  GoogleSignin.configure(googleSignInConfig);
   hasConfiguredGoogleSignIn = true;
+};
+
+const getGoogleIdToken = async (signInResponse) => {
+  const { GoogleSignin } = getGoogleSignInModule();
+  const directIdToken = signInResponse?.data?.idToken;
+  logGoogleDebug("sign-in response", {
+    responseType: signInResponse?.type,
+    hasDirectIdToken: Boolean(directIdToken),
+    hasServerAuthCode: Boolean(signInResponse?.data?.serverAuthCode)
+  });
+
+  if (directIdToken) {
+    return directIdToken;
+  }
+
+  const tokens = await GoogleSignin.getTokens();
+  logGoogleDebug("token fetch", {
+    hasFetchedIdToken: Boolean(tokens?.idToken),
+    hasAccessToken: Boolean(tokens?.accessToken)
+  });
+  return tokens?.idToken || "";
+};
+
+const sendVerificationEmailViaBackend = async ({ suppressErrors = false } = {}) => {
+  if (!auth.currentUser) {
+    if (suppressErrors) {
+      return;
+    }
+
+    throw new Error("Please log in again.");
+  }
+
+  try {
+    await postAuthenticatedJson("/api/auth/send-verification-email", {}, { timeoutMs: 20000 });
+  } catch (error) {
+    let friendlyError = error;
+
+    if (error?.status === 404) {
+      friendlyError = new Error(
+        "Verification email is not available on this backend yet. Please redeploy the server and try again."
+      );
+    }
+
+    if (__DEV__) {
+      console.warn("Verification email send via backend failed.", {
+        errorCode: error?.code,
+        errorMessage: error?.message,
+        errorStatus: error?.status
+      });
+    }
+
+    if (suppressErrors) {
+      return;
+    }
+
+    throw friendlyError;
+  }
 };
 
 export const signInWithEmail = async (email, password) => {
@@ -222,11 +344,7 @@ export const signUpWithEmail = async (name, email, password) => {
       }
     });
 
-    try {
-      await sendEmailVerification(credential.user);
-    } catch {
-      // The account still exists; the verification screen can resend the link.
-    }
+    await sendVerificationEmailViaBackend({ suppressErrors: true });
 
     return credential.user;
   } catch (error) {
@@ -260,6 +378,14 @@ export const signInWithGoogleIdToken = async (idToken) => {
     return result.user;
   } catch (error) {
     lastAuthAction = null;
+
+    if (__DEV__) {
+      console.warn("[google-auth] firebase credential exchange failed", {
+        errorCode: error?.code || null,
+        errorMessage: error?.message || null
+      });
+    }
+
     throw getFriendlyAuthError(error);
   }
 };
@@ -267,14 +393,14 @@ export const signInWithGoogleIdToken = async (idToken) => {
 export const signInWithGoogle = async () => {
   requireFirebaseConfig();
   const googleAuthProblem = getGoogleAuthProblem();
+  const googleSignIn = getGoogleSignInModule();
 
   if (googleAuthProblem) {
-    throw new Error(
-      "Google sign-in is not configured for this build. Add the required Google client IDs, Google services file, and signing fingerprints, then rebuild the app."
-    );
+    throw new Error(GOOGLE_BUILD_CONFIG_MESSAGE);
   }
 
   try {
+    const { GoogleSignin } = googleSignIn;
     ensureGoogleSignInConfigured();
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const response = await GoogleSignin.signIn();
@@ -283,13 +409,15 @@ export const signInWithGoogle = async () => {
       throw new Error("GOOGLE_SIGN_IN_CANCELLED");
     }
 
-    if (!response.data?.idToken) {
+    const idToken = await getGoogleIdToken(response);
+
+    if (!idToken) {
       throw new Error("Google sign-in did not return an ID token.");
     }
 
-    return signInWithGoogleIdToken(response.data.idToken);
+    return signInWithGoogleIdToken(idToken);
   } catch (error) {
-    if (isErrorWithCode(error)) {
+    if (googleSignIn?.isErrorWithCode?.(error)) {
       throw getFriendlyAuthError(error);
     }
 
@@ -300,11 +428,7 @@ export const signInWithGoogle = async () => {
 export const sendActivationEmail = async () => {
   requireFirebaseConfig();
 
-  if (!auth.currentUser) {
-    throw new Error("Please log in again.");
-  }
-
-  await sendEmailVerification(auth.currentUser);
+  await sendVerificationEmailViaBackend();
 };
 
 export const reloadCurrentUser = async () => {
