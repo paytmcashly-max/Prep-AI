@@ -141,6 +141,12 @@ describe("backend app", () => {
     expect(response.body).toEqual({ error: "Authentication required." });
   });
 
+  it("POST /api/auth/send-verification-email without Authorization returns 401", async () => {
+    const response = await request(app).post("/api/auth/send-verification-email").expect(401);
+
+    expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
   it("POST /api/voice/transcribe returns 404 while the feature flag is disabled", async () => {
     const { config } = await import("../src/config.js");
     const originalFlag = config.ENABLE_VOICE_FEATURE;
@@ -378,5 +384,44 @@ describe("backend app", () => {
     expect(getResumeCooldownResetAt(undefined, new Date("2026-05-09T10:00:00.000Z"))).toBe(
       "2026-05-09T10:00:00.000Z"
     );
+  });
+
+  it("verification email service fails safely when Resend env is missing", async () => {
+    const { config } = await import("../src/config.js");
+    const { VerificationEmailUnavailableError, sendVerificationEmail } = await import(
+      "../src/services/verificationEmailService.js"
+    );
+    const originalConfig = {
+      EMAIL_FROM: config.EMAIL_FROM,
+      RESEND_API_KEY: config.RESEND_API_KEY
+    };
+
+    config.RESEND_API_KEY = undefined;
+    config.EMAIL_FROM = undefined;
+
+    try {
+      await expect(
+        sendVerificationEmail({
+          email: "qa@example.com",
+          uid: "test-user"
+        })
+      ).rejects.toBeInstanceOf(VerificationEmailUnavailableError);
+    } finally {
+      config.RESEND_API_KEY = originalConfig.RESEND_API_KEY;
+      config.EMAIL_FROM = originalConfig.EMAIL_FROM;
+    }
+  });
+
+  it("verification email links can be rewritten to the branded verify page", async () => {
+    const { createCustomVerificationUrl } = await import(
+      "../src/services/verificationEmailService.js"
+    );
+
+    expect(
+      createCustomVerificationUrl(
+        "https://prepai-c27cb.firebaseapp.com/__/auth/action?mode=verifyEmail&oobCode=test-code-123&lang=en",
+        "https://intervueai.tech"
+      )
+    ).toBe("https://intervueai.tech/verify-email?mode=verifyEmail&oobCode=test-code-123&lang=en");
   });
 });

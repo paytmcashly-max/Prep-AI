@@ -37,6 +37,10 @@ import {
   verifyRazorpayWebhookSignature
 } from "./services/razorpayService.js";
 import { getUserSubscriptionStatus } from "./services/subscriptionService.js";
+import {
+  sendVerificationEmail,
+  VerificationEmailUnavailableError
+} from "./services/verificationEmailService.js";
 
 export const app = express();
 
@@ -363,6 +367,37 @@ app.get("/api/subscription/status", requireFirebaseAuth, async (request, respons
   }
 });
 
+app.post("/api/auth/send-verification-email", requireFirebaseAuth, async (request, response, next) => {
+  try {
+    const user = (request as AuthenticatedRequest).user;
+
+    if (!user?.uid || !user.email) {
+      response.status(400).json({
+        error: "Email verification is not available for this account."
+      });
+      return;
+    }
+
+    if (user.email_verified) {
+      response.json({
+        alreadyVerified: true,
+        ok: true
+      });
+      return;
+    }
+
+    await sendVerificationEmail({
+      displayName: user.name,
+      email: user.email,
+      uid: user.uid
+    });
+
+    response.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use("/api/voice", voiceRouter);
 
 app.post(
@@ -516,6 +551,13 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
   if (error instanceof RazorpayVerificationError) {
     response.status(400).json({
       error: "Payment verification failed."
+    });
+    return;
+  }
+
+  if (error instanceof VerificationEmailUnavailableError) {
+    response.status(503).json({
+      error: "We could not send the verification email right now. Please try again in a moment."
     });
     return;
   }
