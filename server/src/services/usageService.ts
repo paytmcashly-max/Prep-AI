@@ -30,8 +30,9 @@ const subscriptionDocumentId = "main";
 const quotaResetTimeZone = "Asia/Kolkata";
 const kolkataOffsetMs = 5.5 * 60 * 60 * 1000;
 const dayMs = 24 * 60 * 60 * 1000;
-const dailyInterviewLimit = 5;
-const dailyEvaluationLimit = 5;
+const dailyInterviewAttemptLimit = 3;
+const freeQuestionsPerInterview = 5;
+const dailyEvaluationLimit = dailyInterviewAttemptLimit * freeQuestionsPerInterview;
 const threeDayResumeLimit = 1;
 const resumePeriodDays = 3;
 const resumeCooldownMs = resumePeriodDays * dayMs;
@@ -328,7 +329,7 @@ export const getUsageStatus = async (uid: string, date = new Date()) => {
     isPremium,
     interview: createQuotaStatus({
       isPremium,
-      limit: dailyInterviewLimit,
+      limit: dailyInterviewAttemptLimit,
       resetAt: getDailyResetAt(date),
       used: interviewUsed
     }),
@@ -347,9 +348,9 @@ export const getUsageStatus = async (uid: string, date = new Date()) => {
   };
 };
 
-export const trackInterviewQuestionUsage = async (uid: string) => {
+export const trackInterviewAttemptUsage = async (uid: string) => {
   await consumeUsage(uid, {
-    limit: dailyInterviewLimit,
+    limit: dailyInterviewAttemptLimit,
     period: getDailyPeriodKey(),
     type: "interview"
   });

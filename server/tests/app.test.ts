@@ -78,6 +78,12 @@ describe("backend app", () => {
     expect(response.body).toEqual({ error: "Authentication required." });
   });
 
+  it("POST /api/interview/start without Authorization returns 401", async () => {
+    const response = await request(app).post("/api/interview/start").send({}).expect(401);
+
+    expect(response.body).toEqual({ error: "Authentication required." });
+  });
+
   it("POST /api/evaluate without Authorization returns 401", async () => {
     const response = await request(app)
       .post("/api/evaluate")

@@ -21,7 +21,7 @@ import {
 } from "./services/resumeService.js";
 import {
   trackAnswerEvaluationUsage,
-  trackInterviewQuestionUsage,
+  trackInterviewAttemptUsage,
   trackResumeAnalysisUsage,
   getUsageStatus,
   UsageLimitError
@@ -329,6 +329,18 @@ app.get("/api/usage/status", requireFirebaseAuth, async (request, response, next
   }
 });
 
+app.post("/api/interview/start", requireFirebaseAuth, interviewRateLimit, async (request, response, next) => {
+  try {
+    const input = interviewRequestSchema.parse(request.body);
+    const question = await generateInterviewQuestion(input);
+
+    await trackInterviewAttemptUsage(getAuthenticatedUid(request));
+    response.json(question);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/resume/latest", requireFirebaseAuth, async (request, response, next) => {
   try {
     response.json(await getLatestResumeAnalysis(getAuthenticatedUid(request)));
@@ -407,7 +419,6 @@ app.post(
   async (request, response, next) => {
     try {
       const input = interviewRequestSchema.parse(request.body);
-      await trackInterviewQuestionUsage(getAuthenticatedUid(request));
       const question = await generateInterviewQuestion(input);
 
       response.json(question);
