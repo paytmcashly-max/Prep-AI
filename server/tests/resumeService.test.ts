@@ -42,9 +42,8 @@ describe("resumeService", () => {
   });
 
   it("fails safely instead of returning a canned fallback analysis", async () => {
-    const { analyzeResume, ResumeAnalysisGenerationError } = await import(
-      "../src/services/resumeService.js"
-    );
+    const { analyzeResume, ResumeAnalysisGenerationError } =
+      await import("../src/services/resumeService.js");
 
     generateGroqJsonMock.mockRejectedValue(new Error("model failed"));
 
