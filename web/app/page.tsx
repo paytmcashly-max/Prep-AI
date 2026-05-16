@@ -1,478 +1,602 @@
+import Link from "next/link";
 import {
   ArrowRight,
-  BarChart3,
-  BrainCircuit,
-  Check,
   CheckCircle2,
-  CreditCard,
+  Clock3,
   Download,
   FileSearch,
+  Layers3,
   Mail,
+  MessageSquareMore,
   Mic,
   ShieldCheck,
   Sparkles,
+  Star,
   Target,
-  Video
+  Video,
 } from "lucide-react";
 
-const APK_DOWNLOAD_URL =
-  "https://github.com/paytmcashly-max/Prep-AI/releases/download/v1.0.0-public-beta/intervueai-public-beta-v1.0.0-google-auth-fixed.apk";
+import { Badge } from "@/components/ui/badge";
+import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
+import { BlurFade } from "@/components/ui/blur-fade";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
+import { OrbitingCircles } from "@/components/ui/orbiting-circles";
+import { Separator } from "@/components/ui/separator";
+import { apkDownloadUrl, supportEmail, supportEmailHref } from "@/lib/publicConfig";
 
-const valuePillars = [
-  {
-    title: "Interview practice",
-    description:
-      "Run focused HR, technical, and behavioral sessions without switching between notes, prompts, and trackers.",
-    icon: BrainCircuit
-  },
-  {
-    title: "Resume ATS review",
-    description:
-      "Spot missing keywords, weak sections, and role-fit gaps before your resume gets screened out.",
-    icon: FileSearch
-  },
-  {
-    title: "Progress visibility",
-    description:
-      "Keep recent scores, saved checks, and practice momentum in one mobile-first workflow.",
-    icon: BarChart3
-  }
+const navLinks = [
+  { href: "#how-it-helps", label: "How it helps" },
+  { href: "#premium", label: "Premium" },
+  { href: "#coming-next", label: "Coming next" },
+  { href: "#support", label: "Support" },
 ];
 
-const workflowSteps = [
-  {
-    title: "Practice targeted rounds",
-    description: "Pick the interview type you want to sharpen and answer with structure instead of guesswork.",
-    icon: Target
-  },
-  {
-    title: "Review what needs work",
-    description: "Get answer-level feedback, ATS notes, and clear next steps after each session.",
-    icon: Sparkles
-  },
-  {
-    title: "Unlock premium only after verification",
-    description: "Payments are verified by the backend before premium access becomes active on the account.",
-    icon: ShieldCheck
-  }
-];
-
-const betaChecklist = [
-  "Text interview practice with AI feedback",
-  "Resume ATS analysis with saved result history",
-  "Email auth, Google auth, and premium verification flow",
-  "Android APK for real-device beta testing"
-];
-
-const premiumPlans = [
-  {
-    name: "Monthly Premium",
-    price: "INR 99",
-    cadence: "/month",
-    label: "Flexible",
-    description: "For shorter interview-prep cycles and active job searches.",
-    features: ["Unlimited mock practice", "More resume scans", "Longer prep sessions", "Priority premium access"]
-  },
-  {
-    name: "Yearly Premium",
-    price: "INR 799",
-    cadence: "/year",
-    label: "Best value",
-    description: "For longer preparation windows and steady improvement over time.",
-    features: [
-      "Everything in Monthly Premium",
-      "Lower long-term cost",
-      "More consistent progress history",
-      "Better value for repeat practice"
-    ],
-    featured: true
-  }
+const quickNotes = [
+  "3 free interview rounds each day",
+  "Saved interview drafts on the same device",
+  "Resume feedback built for ATS cleanup",
+  "Premium unlocks only after payment confirmation",
 ];
 
 const roadmapCards = [
   {
-    title: "Voice Mock Interview",
-    tag: "Planned for v1.2",
     description:
-      "Practice by speaking naturally, review the transcript, and get AI feedback after transcription. Currently in private testing.",
-    icon: Mic
+      "A spoken-answer mode for candidates who want to rehearse delivery, confidence, and pacing.",
+    icon: Mic,
+    label: "Private testing",
+    title: "Voice practice",
   },
   {
-    title: "AI Interviewer Readout",
-    tag: "Planned for v1.2+",
     description:
-      "Hear interview questions spoken aloud for a more realistic flow once voice-answer testing is stable.",
-    icon: Sparkles
+      "A more natural face-to-face round once the voice flow feels stable across real devices.",
+    icon: Video,
+    label: "Planned next",
+    title: "Video interview mode",
   },
   {
-    title: "Video Interview Mode",
-    tag: "Future roadmap",
     description:
-      "A richer session format with stronger communication coaching after device quality and reliability checks are complete.",
-    icon: Video
-  }
+      "A smoother interviewer readout so practice rounds feel closer to a real conversation.",
+    icon: Sparkles,
+    label: "On the roadmap",
+    title: "Guided interviewer flow",
+  },
+];
+
+function OrbitHero() {
+  return (
+    <div className="relative mx-auto flex w-full max-w-[620px] items-center justify-center">
+      <div className="glass relative flex h-[28rem] w-full items-center justify-center overflow-hidden rounded-[2.4rem] border-white/25 bg-white/60 p-6 shadow-[0_30px_120px_rgba(76,29,149,0.16)] dark:bg-slate-950/55">
+        <AnimatedGridPattern
+          className="absolute inset-0 opacity-35 [mask-image:radial-gradient(380px_circle_at_center,white,transparent)]"
+          duration={5}
+          maxOpacity={0.18}
+          numSquares={36}
+          repeatDelay={1}
+        />
+
+        <div className="relative flex size-full items-center justify-center">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.16),transparent_34%),radial-gradient(circle_at_center,rgba(34,211,238,0.12),transparent_58%)]" />
+
+          <div className="relative flex size-[15rem] items-center justify-center rounded-full border border-white/20 bg-white/70 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl dark:bg-slate-950/68">
+            <div className="absolute inset-5 rounded-full border border-violet-300/35 dark:border-violet-500/20" />
+            <div className="absolute inset-10 rounded-full border border-cyan-300/35 dark:border-cyan-500/20" />
+
+            <OrbitingCircles
+              className="border border-white/15 bg-white/85 shadow-lg backdrop-blur-xl dark:bg-slate-950/80"
+              duration={24}
+              iconSize={52}
+              radius={112}
+            >
+              <span className="flex size-full items-center justify-center rounded-full text-violet-600 dark:text-violet-300">
+                <MessageSquareMore className="size-5" />
+              </span>
+              <span className="flex size-full items-center justify-center rounded-full text-cyan-600 dark:text-cyan-300">
+                <FileSearch className="size-5" />
+              </span>
+              <span className="flex size-full items-center justify-center rounded-full text-violet-600 dark:text-violet-300">
+                <Clock3 className="size-5" />
+              </span>
+              <span className="flex size-full items-center justify-center rounded-full text-cyan-600 dark:text-cyan-300">
+                <ShieldCheck className="size-5" />
+              </span>
+              <span className="flex size-full items-center justify-center rounded-full text-violet-600 dark:text-violet-300">
+                <Layers3 className="size-5" />
+              </span>
+              <span className="flex size-full items-center justify-center rounded-full text-cyan-600 dark:text-cyan-300">
+                <Target className="size-5" />
+              </span>
+            </OrbitingCircles>
+
+            <div className="glass relative z-10 flex size-44 flex-col items-center justify-center rounded-full border-white/20 bg-white/88 text-center dark:bg-slate-950/84">
+              <span className="brand-mark size-14 text-base">IA</span>
+              <p className="mt-4 text-lg font-semibold tracking-tight">Your prep loop</p>
+              <p className="mt-1 max-w-[10rem] text-sm leading-6 text-muted-foreground">
+                Practice, review, improve, and return without losing your place.
+              </p>
+            </div>
+          </div>
+
+          <div className="absolute left-3 top-4 glass rounded-2xl border-white/20 px-4 py-3 text-sm dark:bg-slate-950/72">
+            <p className="font-medium">Daily reminder</p>
+            <p className="text-muted-foreground">Pick the time that fits your prep.</p>
+          </div>
+
+          <div className="absolute bottom-5 right-4 glass rounded-2xl border-white/20 px-4 py-3 text-sm dark:bg-slate-950/72">
+            <p className="font-medium">Resume feedback</p>
+            <p className="text-muted-foreground">Clear next steps, not vague scores.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PracticeMock() {
+  return (
+    <div className="absolute inset-x-6 bottom-24 top-10 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/80 to-white/45 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:from-slate-950/80 dark:to-slate-950/45">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Mock interview</p>
+          <p className="mt-2 text-lg font-semibold">Keep your flow steady</p>
+        </div>
+        <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-700 dark:text-cyan-200">
+          2 min answer timer
+        </span>
+      </div>
+
+      <div className="mt-6 space-y-3">
+        <div className="rounded-2xl border border-white/15 bg-white/75 p-4 dark:bg-slate-900/70">
+          <p className="text-sm text-muted-foreground">Prompt</p>
+          <p className="mt-2 text-sm font-medium leading-7">
+            Tell me about a project where you had to explain a difficult decision clearly.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border border-white/15 bg-white/72 px-3 py-2 text-xs font-medium dark:bg-slate-900/65">
+            3 rounds today
+          </span>
+          <span className="rounded-full border border-white/15 bg-white/72 px-3 py-2 text-xs font-medium dark:bg-slate-900/65">
+            Saved draft available
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResumeMock() {
+  return (
+    <div className="absolute inset-x-6 bottom-24 top-10 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/80 to-white/45 p-5 dark:from-slate-950/80 dark:to-slate-950/45">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Resume review</p>
+          <p className="mt-2 text-lg font-semibold">See what to fix next</p>
+        </div>
+        <span className="rounded-full border border-violet-400/25 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-700 dark:text-violet-200">
+          ATS-ready guidance
+        </span>
+      </div>
+
+      <div className="mt-6 space-y-3">
+        <div className="rounded-2xl border border-white/15 bg-white/75 p-4 dark:bg-slate-900/70">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Keyword coverage</p>
+            <p className="text-sm text-cyan-600 dark:text-cyan-300">82 / 100</p>
+          </div>
+          <div className="mt-3 h-2 rounded-full bg-slate-200/70 dark:bg-slate-800/80">
+            <div className="h-2 w-[82%] rounded-full bg-gradient-to-r from-violet-500 to-cyan-400" />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border border-white/15 bg-white/72 px-3 py-2 text-xs font-medium dark:bg-slate-900/65">
+            Keyword gaps highlighted
+          </span>
+          <span className="rounded-full border border-white/15 bg-white/72 px-3 py-2 text-xs font-medium dark:bg-slate-900/65">
+            Results open on a review screen
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PremiumMock() {
+  return (
+    <div className="absolute inset-x-6 bottom-24 top-10 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/80 to-white/45 p-5 dark:from-slate-950/80 dark:to-slate-950/45">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Premium access</p>
+          <p className="mt-2 text-lg font-semibold">Upgrade when you need more depth</p>
+        </div>
+        <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-200">
+          Verified after payment
+        </span>
+      </div>
+
+      <div className="mt-6 grid gap-3">
+        {[
+          "Unlimited mock rounds",
+          "Longer sessions for deeper answers",
+          "More resume scans and saved checks",
+        ].map((item) => (
+          <div
+            key={item}
+            className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/70 px-4 py-3 text-sm dark:bg-slate-900/65"
+          >
+            <CheckCircle2 className="size-4 text-cyan-500" />
+            <span>{item}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const bentoItems = [
+  {
+    Icon: MessageSquareMore,
+    background: <PracticeMock />,
+    className: "md:col-span-2",
+    cta: "See premium plans",
+    description:
+      "Practice typed answers with enough time to think, then come back later without losing your progress.",
+    href: "#premium",
+    name: "Practice that fits your pace",
+  },
+  {
+    Icon: FileSearch,
+    background: <ResumeMock />,
+    className: "md:col-span-1",
+    cta: "Explore the beta",
+    description:
+      "Resume feedback stays easy to scan so you can move from edits to interview practice quickly.",
+    href: "#download",
+    name: "Feedback you can act on",
+  },
+  {
+    Icon: Layers3,
+    background: (
+      <div className="absolute inset-x-6 bottom-24 top-10 rounded-[1.8rem] border border-white/15 bg-gradient-to-br from-white/82 to-white/46 p-5 dark:from-slate-950/80 dark:to-slate-950/44">
+        <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Saved progress</p>
+        <div className="mt-5 space-y-3">
+          <div className="rounded-2xl border border-white/15 bg-white/75 p-4 dark:bg-slate-900/70">
+            <p className="text-sm font-medium">Continue your interview?</p>
+            <p className="mt-2 text-sm leading-7 text-muted-foreground">
+              Pick up from your saved question or start fresh if you want a new round.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/15 bg-white/70 p-4 dark:bg-slate-900/65">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Reminder</p>
+            <p className="mt-2 text-sm font-medium">Choose a daily practice time that actually works.</p>
+          </div>
+        </div>
+      </div>
+    ),
+    className: "md:col-span-1",
+    cta: "See support options",
+    description:
+      "Resume a saved round, keep your reminders on your schedule, and stay consistent without friction.",
+    href: "#support",
+    name: "Come back without starting over",
+  },
+  {
+    Icon: ShieldCheck,
+    background: <PremiumMock />,
+    className: "md:col-span-2",
+    cta: "Download the app",
+    description:
+      "Free access stays useful. Premium is there when you want more sessions, more scans, and less waiting.",
+    href: "#download",
+    name: "Upgrade only when it helps",
+  },
 ];
 
 export default function Home() {
   return (
-    <main className="page-shell">
-      <nav className="nav" aria-label="Primary navigation">
-        <div className="container nav-inner">
-          <a className="brand" href="#top" aria-label="IntervueAI home">
+    <main className="grain-overlay relative overflow-hidden">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-background/75 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
+          <Link className="flex items-center gap-3" href="#top">
             <span className="brand-mark">IA</span>
-            <span>IntervueAI</span>
-          </a>
+            <div>
+              <p className="text-sm font-semibold tracking-tight">IntervueAI</p>
+              <p className="text-xs text-muted-foreground">Practice smarter. Interview better.</p>
+            </div>
+          </Link>
 
-          <div className="nav-links" aria-label="Page sections">
-            <a href="#product">Product</a>
-            <a href="#workflow">How it works</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#beta">Beta</a>
-            <a href="#roadmap">Roadmap</a>
-          </div>
+          <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
+            {navLinks.map((link) => (
+              <a className="transition-colors hover:text-foreground" href={link.href} key={link.href}>
+                {link.label}
+              </a>
+            ))}
+          </nav>
 
-          <a className="button" href={APK_DOWNLOAD_URL}>
-            <Download size={18} />
-            Download APK
-          </a>
+          <Button asChild className="rounded-full px-5 shadow-[0_18px_45px_rgba(99,102,241,0.28)]">
+            <a href={apkDownloadUrl}>
+              Download APK
+              <Download className="size-4" />
+            </a>
+          </Button>
         </div>
-      </nav>
+      </header>
 
-      <section className="hero" id="top">
-        <div className="hero-orb hero-orb-a" aria-hidden="true" />
-        <div className="hero-orb hero-orb-b" aria-hidden="true" />
-        <div className="container hero-grid">
-          <div className="hero-stack">
-            <span className="eyebrow">
-              <Sparkles size={16} />
-              Android public beta
-            </span>
+      <section className="relative isolate overflow-hidden px-5 pb-16 pt-16 sm:px-8 sm:pt-24" id="top">
+        <AnimatedGridPattern
+          className="absolute inset-0 -z-10 opacity-60 [mask-image:radial-gradient(700px_circle_at_center,white,transparent)]"
+          duration={5}
+          maxOpacity={0.18}
+          numSquares={54}
+          repeatDelay={1}
+        />
+        <div className="absolute inset-x-0 top-0 -z-10 h-[36rem] bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_30%)]" />
 
-            <h1>IntervueAI</h1>
+        <div className="mx-auto grid w-full max-w-7xl items-center gap-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          <div className="max-w-2xl">
+            <BlurFade delay={0.05} inView>
+              <Badge className="rounded-full bg-violet-500/12 px-4 py-1.5 text-[11px] uppercase tracking-[0.28em] text-violet-700 dark:text-violet-200">
+                Android public beta
+              </Badge>
+            </BlurFade>
 
-            <p className="hero-copy hero-copy-strong">
-              Structured interview practice, resume review, and verified premium access in one focused mobile workflow.
-            </p>
+            <BlurFade delay={0.12} inView>
+              <h1 className="mt-6 text-balance text-5xl font-semibold leading-[0.95] tracking-[-0.06em] sm:text-6xl xl:text-7xl">
+                Feel ready <span className="text-gradient">before the interview starts.</span>
+              </h1>
+            </BlurFade>
 
-            <p className="hero-copy">
-              Built for job seekers who want repeatable prep, clearer feedback, and a cleaner path from resume improvements to interview confidence.
-            </p>
+            <BlurFade delay={0.2} inView>
+              <p className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground sm:text-xl">
+                IntervueAI helps you practise answers, clean up your resume, and keep progress moving
+                on the days when prep needs to feel simple, not overwhelming.
+              </p>
+            </BlurFade>
 
-            <div className="hero-actions">
-              <a className="button" href={APK_DOWNLOAD_URL}>
-                <Download size={18} />
-                Download Android APK
-              </a>
-              <a className="button secondary" href="#product">
-                Explore product
-              </a>
-            </div>
-
-            <div className="trust-row" aria-label="Beta highlights">
-              <span className="trust-pill">
-                <CheckCircle2 size={15} />
-                Voice stays private-testing only
-              </span>
-              <span className="trust-pill">
-                <ShieldCheck size={15} />
-                Premium unlocks after backend verification
-              </span>
-            </div>
-
-            <div className="proof-row" aria-label="Product highlights">
-              <div className="proof-card">
-                <strong>Practice</strong>
-                <span>Run repeatable sessions that feel more deliberate than generic prep notes.</span>
+            <BlurFade delay={0.28} inView>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  asChild
+                  className="h-12 rounded-full px-6 text-sm font-semibold shadow-[0_20px_50px_rgba(99,102,241,0.28)]"
+                  size="lg"
+                >
+                  <a href={apkDownloadUrl}>
+                    Download Android beta
+                    <ArrowRight className="size-4" />
+                  </a>
+                </Button>
+                <Button asChild className="h-12 rounded-full px-6" size="lg" variant="outline">
+                  <a href="#how-it-helps">See how it works</a>
+                </Button>
               </div>
-              <div className="proof-card">
-                <strong>Improve</strong>
-                <span>See what to fix next instead of guessing why an answer felt weak.</span>
+            </BlurFade>
+
+            <BlurFade delay={0.36} inView>
+              <div className="mt-8 flex flex-wrap gap-3">
+                {quickNotes.map((item) => (
+                  <Badge key={item} variant="outline" className="rounded-full px-4 py-1.5">
+                    <Star className="mr-1 size-3.5 text-cyan-500" />
+                    {item}
+                  </Badge>
+                ))}
               </div>
-              <div className="proof-card">
-                <strong>Convert</strong>
-                <span>Use resume review and mock practice together before the real interview happens.</span>
-              </div>
-            </div>
+            </BlurFade>
           </div>
 
-          <div className="hero-stage" aria-label="IntervueAI workspace preview">
-            <div className="hero-badge hero-badge-top">
-              <CheckCircle2 size={16} />
-              Beta build ready
+          <BlurFade className="lg:justify-self-end" delay={0.18} direction="left" inView>
+            <OrbitHero />
+          </BlurFade>
+        </div>
+      </section>
+
+      <section className="px-5 py-16 sm:px-8" id="how-it-helps">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-10">
+          <BlurFade inView>
+            <div className="max-w-3xl">
+              <Badge variant="outline" className="rounded-full px-4 py-1.5">
+                How it helps
+              </Badge>
+              <h2 className="mt-4 text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">
+                Everything you need to prep with less friction.
+              </h2>
+              <p className="mt-4 text-lg leading-8 text-muted-foreground">
+                We built the beta around the moments candidates actually care about: starting
+                quickly, understanding what to fix, and returning later without losing momentum.
+              </p>
             </div>
+          </BlurFade>
 
-            <div className="hero-panel">
-              <div className="workspace-header">
-                <div>
-                  <p className="workspace-label">Candidate workspace</p>
-                  <h3>Interview prep in one app</h3>
-                </div>
-                <span className="timer-pill">
-                  <ShieldCheck size={14} />
-                  Verified flow
-                </span>
-              </div>
+          <BlurFade delay={0.12} inView>
+            <BentoGrid className="grid-cols-1 auto-rows-[19rem] md:grid-cols-3 md:auto-rows-[20rem]">
+              {bentoItems.map((item) => (
+                <BentoCard key={item.name} {...item} />
+              ))}
+            </BentoGrid>
+          </BlurFade>
+        </div>
+      </section>
 
-              <div className="signal-grid">
-                <div className="signal-card signal-card-primary">
-                  <span>Latest interview score</span>
-                  <strong>82/100</strong>
-                  <p>Clear structure. Better closing needed.</p>
-                </div>
-                <div className="signal-card">
-                  <span>Resume readiness</span>
-                  <strong>ATS review saved</strong>
-                  <p>Missing keywords and section edits highlighted.</p>
-                </div>
-              </div>
+      <section className="px-5 py-16 sm:px-8" id="premium">
+        <div className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <BlurFade inView>
+            <Card className="glass relative overflow-hidden rounded-[2rem] border-white/20 bg-white/70 p-0 dark:bg-slate-950/58">
+              <div className="absolute inset-x-0 top-0 h-36 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.22),transparent_55%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.18),transparent_45%)]" />
+              <CardHeader className="relative px-6 pt-6">
+                <Badge className="w-fit rounded-full bg-violet-500/12 px-3 py-1 text-violet-700 dark:text-violet-200">
+                  Premium
+                </Badge>
+                <CardTitle className="text-3xl tracking-[-0.05em]">
+                  Go deeper when you want more reps, more detail, and fewer limits.
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="relative grid gap-3 px-6 pb-6">
+                {[
+                  "Unlimited mock rounds when you are in a serious prep sprint",
+                  "Longer sessions so you can write fuller answers without rushing",
+                  "More resume scans and saved checks when you are refining multiple drafts",
+                  "Upcoming voice and video modes after beta reliability is locked in",
+                ].map((point) => (
+                  <div
+                    key={point}
+                    className="flex items-start gap-3 rounded-[1.2rem] border border-white/15 bg-background/65 px-4 py-3 text-sm leading-7 dark:bg-slate-950/45"
+                  >
+                    <CheckCircle2 className="mt-1 size-4 shrink-0 text-cyan-500" />
+                    <span>{point}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </BlurFade>
 
-              <div className="workspace-list">
-                {valuePillars.map((item) => {
-                  const Icon = item.icon;
+          <div className="grid gap-6">
+            <BlurFade delay={0.12} inView>
+              <Card className="glass rounded-[1.85rem] border-white/20 bg-white/68 p-0 dark:bg-slate-950/56" id="download">
+                <CardHeader className="px-6 pt-6">
+                  <Badge variant="outline" className="w-fit rounded-full px-3 py-1">
+                    Download
+                  </Badge>
+                  <CardTitle className="text-2xl tracking-[-0.04em]">
+                    Start with the Android beta and see how the flow feels for you.
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 px-6 pb-6">
+                  <p className="text-base leading-8 text-muted-foreground">
+                    Install the latest build, explore free daily practice, and unlock more only if
+                    the extra depth actually helps your prep.
+                  </p>
+                  <Button
+                    asChild
+                    className="h-12 w-full rounded-full text-sm font-semibold shadow-[0_18px_50px_rgba(99,102,241,0.28)]"
+                    size="lg"
+                  >
+                    <a href={apkDownloadUrl}>
+                      Download APK
+                      <Download className="size-4" />
+                    </a>
+                  </Button>
+                </CardContent>
+              </Card>
+            </BlurFade>
 
-                  return (
-                    <div className="workspace-item" key={item.title}>
-                      <div className="icon-bubble compact">
-                        <Icon size={18} />
-                      </div>
-                      <div>
-                        <strong>{item.title}</strong>
-                        <span>{item.description}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="workspace-footer">
-                <div className="workspace-pill">
-                  <Download size={16} />
-                  <span>APK attached to public beta</span>
-                </div>
-                <div className="workspace-pill">
-                  <CreditCard size={16} />
-                  <span>Razorpay + backend verification</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="hero-badge hero-badge-bottom">
-              <BarChart3 size={16} />
-              Progress, auth, and payment flows included
-            </div>
+            <BlurFade delay={0.18} direction="left" inView>
+              <Card className="glass rounded-[1.85rem] border-white/20 bg-white/70 p-0 dark:bg-slate-950/56">
+                <CardHeader className="px-6 pt-6">
+                  <Badge className="w-fit rounded-full bg-cyan-500/12 px-3 py-1 text-cyan-700 dark:text-cyan-200">
+                    Built for confidence
+                  </Badge>
+                  <CardTitle className="text-2xl tracking-[-0.04em]">
+                    You always know what your next step is.
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-3 px-6 pb-6">
+                  <div className="rounded-[1.35rem] border border-white/15 bg-white/70 p-4 dark:bg-slate-900/65">
+                    <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Free plan</p>
+                    <p className="mt-2 text-lg font-semibold">Stay consistent every day</p>
+                    <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                      Enough access to build a routine, revisit saved work, and keep progress moving.
+                    </p>
+                  </div>
+                  <div className="rounded-[1.35rem] border border-white/15 bg-white/70 p-4 dark:bg-slate-900/65">
+                    <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Premium plan</p>
+                    <p className="mt-2 text-lg font-semibold">Open the longer, deeper version of the app</p>
+                    <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                      Best when interviews are close and you want more practice without interruption.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </BlurFade>
           </div>
         </div>
       </section>
 
-      <section className="section compact" id="product">
-        <div className="container">
-          <div className="section-heading center">
-            <h2>A tighter product flow for interview preparation.</h2>
-            <p>
-              IntervueAI keeps the prep loop simple: practice, review, improve, and come back with better answers and a stronger resume.
-            </p>
-          </div>
+      <section className="px-5 py-16 sm:px-8" id="coming-next">
+        <div className="mx-auto w-full max-w-7xl">
+          <BlurFade inView>
+            <div className="mb-10 max-w-3xl">
+              <Badge variant="outline" className="rounded-full px-4 py-1.5">
+                Coming next
+              </Badge>
+              <h2 className="mt-4 text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">
+                More natural interview modes are on the way.
+              </h2>
+              <p className="mt-4 text-lg leading-8 text-muted-foreground">
+                We want the next features to feel genuinely useful when they arrive, so they are
+                being staged carefully instead of rushed into the public beta.
+              </p>
+            </div>
+          </BlurFade>
 
-          <div className="grid features-grid">
-            {valuePillars.map((item) => {
+          <div className="grid gap-6 lg:grid-cols-3">
+            {roadmapCards.map((item, index) => {
               const Icon = item.icon;
 
               return (
-                <article className="card card-hover" key={item.title}>
-                  <div className="icon-bubble">
-                    <Icon size={22} />
-                  </div>
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
-                </article>
+                <BlurFade delay={0.1 * (index + 1)} inView key={item.title}>
+                  <Card className="glass h-full rounded-[1.75rem] border-white/20 bg-white/66 p-0 dark:bg-slate-950/54">
+                    <CardHeader className="px-6 pt-6">
+                      <Badge
+                        variant="outline"
+                        className="w-fit rounded-full border-violet-400/25 bg-violet-500/8 px-3 py-1 text-violet-700 dark:text-violet-200"
+                      >
+                        {item.label}
+                      </Badge>
+                      <div className="flex size-12 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 dark:text-violet-300">
+                        <Icon className="size-5" />
+                      </div>
+                      <CardTitle className="text-2xl tracking-[-0.04em]">{item.title}</CardTitle>
+                      <p className="text-base leading-7 text-muted-foreground">{item.description}</p>
+                    </CardHeader>
+                  </Card>
+                </BlurFade>
               );
             })}
           </div>
         </div>
       </section>
 
-      <section className="section compact" id="workflow">
-        <div className="container">
-          <div className="section-heading center">
-            <h2>How the workflow fits together.</h2>
-            <p>
-              The app is designed to feel operational, not noisy: focused sessions, clearer review, and verified premium access when needed.
-            </p>
-          </div>
-
-          <div className="grid process-grid">
-            {workflowSteps.map((step, index) => {
-              const Icon = step.icon;
-
-              return (
-                <article className="card card-hover process-card" key={step.title}>
-                  <div className="process-index">0{index + 1}</div>
-                  <div className="icon-bubble">
-                    <Icon size={22} />
-                  </div>
-                  <h3>{step.title}</h3>
-                  <p>{step.description}</p>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="section compact" id="pricing">
-        <div className="container">
-          <div className="section-heading center">
-            <h2>Simple premium pricing.</h2>
-            <p>
-              Premium is for users who want more sessions and more resume analysis. The product promise stays clear: no hidden unlocks, no client-side payment shortcuts.
-            </p>
-          </div>
-
-          <div className="grid pricing-grid">
-            {premiumPlans.map((plan) => (
-              <article className={`price-card ${plan.featured ? "featured" : ""}`} key={plan.name}>
-                <span className="tag">{plan.label}</span>
-                <h3>{plan.name}</h3>
-                <p>{plan.description}</p>
-                <div className="price">
-                  {plan.price}
-                  <span>{plan.cadence}</span>
+      <section className="px-5 pb-20 pt-10 sm:px-8" id="support">
+        <div className="mx-auto w-full max-w-7xl">
+          <BlurFade inView>
+            <Card className="glass overflow-hidden rounded-[2rem] border-white/20 bg-white/70 p-0 dark:bg-slate-950/58">
+              <CardContent className="grid gap-8 px-6 py-8 md:grid-cols-[1fr_auto] md:items-center">
+                <div>
+                  <Badge className="rounded-full bg-cyan-500/12 px-3 py-1 text-cyan-700 dark:text-cyan-200">
+                    Support
+                  </Badge>
+                  <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
+                    Need help with installs, sign-in, or premium access?
+                  </h2>
+                  <p className="mt-4 max-w-2xl text-base leading-8 text-muted-foreground">
+                    Reach out for beta install help, account access questions, or payment support.
+                    We want the app to feel calm and dependable from the first install onward.
+                  </p>
                 </div>
-                <ul className="check-list">
-                  {plan.features.map((feature) => (
-                    <li key={feature}>
-                      <Check size={18} />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="billing-note">
-                  Payment runs through Razorpay. Premium access becomes active only after backend verification succeeds.
-                </p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      <section className="section compact" id="beta">
-        <div className="container">
-          <div className="beta-strip">
-            <div className="beta-copy">
-              <span className="eyebrow">
-                <Download size={16} />
-                Current beta scope
-              </span>
-              <h2>Install the latest Android beta build.</h2>
-              <p>
-                This release is meant for real-device testing of the core product: interview practice, resume analysis, authentication, and premium verification.
-              </p>
-
-              <ul className="check-list compact">
-                {betaChecklist.map((item) => (
-                  <li key={item}>
-                    <Check size={18} />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="beta-actions">
-              <div className="beta-panel-glow" aria-hidden="true" />
-              <a className="button button-wide" href={APK_DOWNLOAD_URL}>
-                <Download size={18} />
-                Download Beta APK
-              </a>
-              <div className="meta-stack">
-                <p className="beta-meta">
-                  Android package
-                  <strong>com.prepai.prepai</strong>
-                </p>
-                <p className="beta-meta">
-                  Distribution
-                  <strong>GitHub Release asset</strong>
-                </p>
-              </div>
-              <a className="inline-link" href="#roadmap">
-                See what is coming next
-                <ArrowRight size={16} />
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section compact" id="roadmap">
-        <div className="container">
-          <div className="section-heading center">
-            <h2>Upcoming features.</h2>
-            <p>
-              These are staged deliberately. They are not part of the current public beta until device quality, reliability, and cost checks are complete.
-            </p>
-          </div>
-
-          <div className="grid use-case-grid">
-            {roadmapCards.map((feature) => {
-              const Icon = feature.icon;
-
-              return (
-                <article className="card card-hover" key={feature.title}>
-                  <div className="icon-bubble">
-                    <Icon size={22} />
+                <div className="flex flex-col gap-4 md:items-end">
+                  <Button asChild className="h-12 rounded-full px-6 text-sm font-semibold" size="lg">
+                    <a href={supportEmailHref}>
+                      <Mail className="size-4" />
+                      {supportEmail}
+                    </a>
+                  </Button>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <Link href="/privacy">Privacy</Link>
+                    <Separator className="h-4" orientation="vertical" />
+                    <Link href="/terms">Terms</Link>
+                    <Separator className="h-4" orientation="vertical" />
+                    <Link href="/refund">Refund</Link>
+                    <Separator className="h-4" orientation="vertical" />
+                    <Link href="/delivery">Delivery</Link>
                   </div>
-                  <div className="roadmap-tag">{feature.tag}</div>
-                  <h3>{feature.title}</h3>
-                  <p>{feature.description}</p>
-                </article>
-              );
-            })}
-          </div>
+                </div>
+              </CardContent>
+            </Card>
+          </BlurFade>
         </div>
       </section>
-
-      <section className="section" id="contact">
-        <div className="container">
-          <div className="contact-card">
-            <div>
-              <span className="eyebrow">
-                <Mail size={16} />
-                Contact
-              </span>
-              <h2>Need help with beta access, payment, or account issues?</h2>
-              <p>
-                Reach out for support with installation, verification links, premium payments, or account access. We use this inbox for active user support.
-              </p>
-            </div>
-            <a className="support-status" href="mailto:kishan@kishan.codes">
-              <Mail size={20} />
-              kishan@kishan.codes
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <footer className="footer">
-        <div className="container footer-inner">
-          <div>
-            <a className="brand" href="#top">
-              <span className="brand-mark">IA</span>
-              <span>IntervueAI</span>
-            </a>
-            <p>Practice smarter. Interview better.</p>
-          </div>
-
-          <div className="footer-links">
-            <a href="#product">Product</a>
-            <a href="#workflow">How it works</a>
-            <a href="#pricing">Pricing</a>
-            <a href="/privacy">Privacy</a>
-            <a href="/terms">Terms</a>
-            <a href="/refund">Refund Policy</a>
-            <a href="/delivery">Digital Delivery</a>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }
