@@ -73,7 +73,7 @@ export const config: ServerConfig = {
   NODE_ENV: process.env.NODE_ENV || "development",
   GROQ_API_KEY: process.env.GROQ_API_KEY,
   GROQ_STT_MODEL: process.env.GROQ_STT_MODEL || "whisper-large-v3-turbo",
-  GROQ_QUESTION_MODEL: process.env.GROQ_QUESTION_MODEL || "llama-3.1-8b-instant",
+  GROQ_QUESTION_MODEL: process.env.GROQ_QUESTION_MODEL || "llama-3.3-70b-versatile",
   GROQ_EVALUATION_MODEL: process.env.GROQ_EVALUATION_MODEL || "llama-3.3-70b-versatile",
   GROQ_RESUME_MODEL: process.env.GROQ_RESUME_MODEL || "llama-3.3-70b-versatile",
   FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
