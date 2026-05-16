@@ -20,6 +20,7 @@ import {
   extractTextFromPdfBuffer,
   MAX_RESUME_TEXT_LENGTH,
   MIN_RESUME_TEXT_LENGTH,
+  ResumeAnalysisGenerationError,
   ResumeTextValidationError
 } from "./services/resumeService.js";
 import {
@@ -332,22 +333,17 @@ app.get("/api/usage/status", requireFirebaseAuth, async (request, response, next
   }
 });
 
-app.post(
-  "/api/interview/start",
-  requireFirebaseAuth,
-  interviewRateLimit,
-  async (request, response, next) => {
-    try {
-      const input = interviewRequestSchema.parse(request.body);
-      const question = await generateInterviewQuestion(input);
+app.post("/api/interview/start", requireFirebaseAuth, interviewRateLimit, async (request, response, next) => {
+  try {
+    const input = interviewRequestSchema.parse(request.body);
+    const question = await generateInterviewQuestion(input);
 
-      await trackInterviewAttemptUsage(getAuthenticatedUid(request));
-      response.json(question);
-    } catch (error) {
-      next(error);
-    }
+    await trackInterviewAttemptUsage(getAuthenticatedUid(request));
+    response.json(question);
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 app.get("/api/resume/latest", requireFirebaseAuth, async (request, response, next) => {
   try {
@@ -387,40 +383,36 @@ app.get("/api/subscription/status", requireFirebaseAuth, async (request, respons
   }
 });
 
-app.post(
-  "/api/auth/send-verification-email",
-  requireFirebaseAuth,
-  async (request, response, next) => {
-    try {
-      const user = (request as AuthenticatedRequest).user;
+app.post("/api/auth/send-verification-email", requireFirebaseAuth, async (request, response, next) => {
+  try {
+    const user = (request as AuthenticatedRequest).user;
 
-      if (!user?.uid || !user.email) {
-        response.status(400).json({
-          error: "Email verification is not available for this account."
-        });
-        return;
-      }
-
-      if (user.email_verified) {
-        response.json({
-          alreadyVerified: true,
-          ok: true
-        });
-        return;
-      }
-
-      await sendVerificationEmail({
-        displayName: user.name,
-        email: user.email,
-        uid: user.uid
+    if (!user?.uid || !user.email) {
+      response.status(400).json({
+        error: "Email verification is not available for this account."
       });
-
-      response.json({ ok: true });
-    } catch (error) {
-      next(error);
+      return;
     }
+
+    if (user.email_verified) {
+      response.json({
+        alreadyVerified: true,
+        ok: true
+      });
+      return;
+    }
+
+    await sendVerificationEmail({
+      displayName: user.name,
+      email: user.email,
+      uid: user.uid
+    });
+
+    response.json({ ok: true });
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 app.use("/api/voice", voiceRouter);
 
@@ -565,6 +557,13 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
   }
 
   if (error instanceof InterviewGenerationError) {
+    response.status(503).json({
+      error: error.message
+    });
+    return;
+  }
+
+  if (error instanceof ResumeAnalysisGenerationError) {
     response.status(503).json({
       error: error.message
     });

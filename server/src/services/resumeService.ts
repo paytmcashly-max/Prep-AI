@@ -22,6 +22,13 @@ export type ResumeAnalysis = {
   };
 };
 
+export class ResumeAnalysisGenerationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ResumeAnalysisGenerationError";
+  }
+}
+
 export class ResumeTextValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -32,20 +39,7 @@ export class ResumeTextValidationError extends Error {
 export const MIN_RESUME_TEXT_LENGTH = 100;
 export const MAX_RESUME_TEXT_LENGTH = 12000;
 
-const fallbackResumeAnalysis: ResumeAnalysis = {
-  atsScore: 50,
-  missingKeywords: [],
-  grammarIssues: [],
-  rewriteSuggestions: [
-    "Add: Built and maintained a production feature using relevant tools, improving user or business outcomes by a measurable amount."
-  ],
-  sectionFeedback: {
-    summary: "Add a concise summary tailored to the target role.",
-    experience: "Use measurable achievements and action verbs.",
-    skills: "Include role-specific technical and soft skills.",
-    education: "Keep education clear and relevant."
-  }
-};
+const MAX_GENERATION_ATTEMPTS = 3;
 
 const resumeAnalysisSchema = z
   .object({
@@ -94,31 +88,49 @@ export const extractTextFromPdfBuffer = async (buffer: Buffer) => {
 
 export const analyzeResume = async (input: AnalyzeResumeInput): Promise<ResumeAnalysis> => {
   const resumeText = normalizeResumeTextForAnalysis(input.resumeText);
+  let lastError: unknown;
 
-  const analysis = await generateGroqJson({
-    fallback: {
-      ...fallbackResumeAnalysis,
-      rewriteSuggestions: fallbackResumeAnalysis.rewriteSuggestions || []
-    },
-    model: config.GROQ_RESUME_MODEL,
-    schema: resumeAnalysisSchema,
-    serviceName: "resumeService",
-    temperature: 0.2,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are an expert resume reviewer and ATS optimization coach. Give concrete, role-specific resume improvements. Respond ONLY in valid JSON with no markdown or extra text."
-      },
-      {
-        role: "user",
-        content: `Analyze this resume for a ${input.jobRole} position.
+  for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt += 1) {
+    try {
+      const analysis = await generateGroqJson({
+        maxAttempts: 2,
+        model: config.GROQ_RESUME_MODEL,
+        schema: resumeAnalysisSchema,
+        serviceName: "resumeService",
+        temperature: 0.15,
+        messages: [
+          {
+            role: "system",
+            content: `You are a senior resume reviewer and ATS optimization coach.
+
+Your job is to return a practical, role-specific review for the candidate's resume.
+Be honest, specific, and useful. Avoid generic praise and avoid filler.
+
+Rules you must follow:
+- Judge the resume for the target role, not for resumes in general.
+- Keep every sectionFeedback field concise and directly actionable.
+- missingKeywords should contain role-relevant skills, tools, or concepts that are clearly missing or underrepresented.
+- grammarIssues should only include real readability or phrasing problems. Do not invent issues when the resume is already clear.
+- rewriteSuggestions must contain 3 to 5 realistic lines the candidate can adapt.
+- Every rewrite suggestion must start with "Add:".
+- Do not invent impossible achievements. If the resume lacks numbers, use placeholders like [metric].
+- atsScore must be a number from 0 to 100, not 0 to 1.
+- Return strict JSON only with no markdown, bullets outside JSON, or commentary.`
+          },
+          {
+            role: "user",
+            content: `Analyze this resume for a ${input.jobRole} position.
 
 Resume text:
 ${resumeText}
 
-The atsScore must be a number from 0 to 100, not 0 to 1.
-In rewriteSuggestions, provide 3-5 concrete resume lines the candidate can add or adapt. Each line should start with "Add:" and be specific to the target role, for example "Add: Built X using Y, improving Z by N%." Do not invent impossible claims; use placeholders like [metric] only when the resume lacks numbers.
+This is attempt ${attempt} of ${MAX_GENERATION_ATTEMPTS}. ${
+              attempt === 1
+                ? "Start with the strongest possible role-specific review."
+                : attempt === 2
+                  ? "The previous result was not acceptable. Be more precise, more structured, and make sure the JSON is valid."
+                  : "Final retry. Return concise, fully valid JSON with practical feedback only."
+            }
 
 Return strict JSON in this exact shape:
 {
@@ -133,12 +145,20 @@ Return strict JSON in this exact shape:
     "education": string
   }
 }`
-      }
-    ]
-  });
+          }
+        ]
+      });
 
-  return {
-    ...analysis,
-    atsScore: normalizeAtsScore(analysis.atsScore)
-  };
+      return {
+        ...analysis,
+        atsScore: normalizeAtsScore(analysis.atsScore)
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw new ResumeAnalysisGenerationError(
+    "Could not analyze this resume right now. Please try again."
+  );
 };
