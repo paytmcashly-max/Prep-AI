@@ -76,10 +76,10 @@ function OrbitHero() {
           repeatDelay={1}
         />
 
-        <div className="relative flex size-full items-center justify-center">
+        <div className="relative flex size-full items-center justify-center px-10">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.16),transparent_34%),radial-gradient(circle_at_center,rgba(34,211,238,0.12),transparent_58%)]" />
 
-          <div className="relative flex size-[15rem] items-center justify-center rounded-full border border-white/20 bg-white/70 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl dark:bg-slate-950/68">
+          <div className="relative z-10 flex size-[14rem] items-center justify-center rounded-full border border-white/20 bg-white/70 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl dark:bg-slate-950/68 sm:size-[15rem]">
             <div className="absolute inset-5 rounded-full border border-violet-300/35 dark:border-violet-500/20" />
             <div className="absolute inset-10 rounded-full border border-cyan-300/35 dark:border-cyan-500/20" />
 
@@ -118,12 +118,12 @@ function OrbitHero() {
             </div>
           </div>
 
-          <div className="absolute left-3 top-4 glass rounded-2xl border-white/20 px-4 py-3 text-sm dark:bg-slate-950/72">
+          <div className="absolute right-3 top-5 z-20 max-w-[14rem] rounded-[1.6rem] border border-white/30 bg-white/90 px-5 py-4 text-sm shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/82 sm:right-4 sm:top-6">
             <p className="font-medium">Daily reminder</p>
             <p className="text-muted-foreground">Pick the time that fits your prep.</p>
           </div>
 
-          <div className="absolute bottom-5 right-4 glass rounded-2xl border-white/20 px-4 py-3 text-sm dark:bg-slate-950/72">
+          <div className="absolute bottom-6 left-4 z-20 max-w-[14rem] rounded-[1.6rem] border border-white/30 bg-white/90 px-5 py-4 text-sm shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/82 sm:bottom-7 sm:left-5">
             <p className="font-medium">Resume feedback</p>
             <p className="text-muted-foreground">Clear next steps, not vague scores.</p>
           </div>
