@@ -135,7 +135,7 @@ function OrbitHero() {
 
 function PracticeMock() {
   return (
-    <div className="absolute inset-4 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/82 to-white/48 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:from-slate-950/82 dark:to-slate-950/48">
+    <div className="absolute inset-x-5 bottom-4 top-[3.9rem] rounded-[1.8rem] border border-white/20 bg-gradient-to-b from-white/86 to-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:from-slate-950/84 dark:to-slate-950/56">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Mock interview</p>
@@ -147,17 +147,20 @@ function PracticeMock() {
       </div>
 
       <div className="mt-5 space-y-3">
-        <div className="rounded-2xl border border-white/15 bg-white/75 p-4 dark:bg-slate-900/70">
-          <p className="text-sm text-muted-foreground">Prompt</p>
-          <p className="mt-2 text-sm font-medium leading-6">
+        <div className="rounded-[1.35rem] border border-white/20 bg-white/82 p-4 shadow-sm dark:bg-slate-900/72">
+          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+            <MessageSquareMore className="size-3.5" />
+            Prompt
+          </div>
+          <p className="mt-2 text-sm font-medium leading-6 text-slate-700 dark:text-slate-100">
             Tell me about a project where you had to explain a difficult decision clearly.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className="rounded-full border border-white/15 bg-white/72 px-3 py-2 text-xs font-medium dark:bg-slate-900/65">
+          <span className="rounded-full border border-white/20 bg-white/78 px-3 py-2 text-xs font-medium dark:bg-slate-900/66">
             3 rounds today
           </span>
-          <span className="rounded-full border border-white/15 bg-white/72 px-3 py-2 text-xs font-medium dark:bg-slate-900/65">
+          <span className="rounded-full border border-white/20 bg-white/78 px-3 py-2 text-xs font-medium dark:bg-slate-900/66">
             Saved draft available
           </span>
         </div>
@@ -168,7 +171,7 @@ function PracticeMock() {
 
 function ResumeMock() {
   return (
-    <div className="absolute inset-4 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/82 to-white/48 p-4 dark:from-slate-950/82 dark:to-slate-950/48">
+    <div className="absolute inset-x-5 bottom-4 top-[3.9rem] rounded-[1.8rem] border border-white/20 bg-gradient-to-b from-white/86 to-white/58 p-4 dark:from-slate-950/84 dark:to-slate-950/56">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Resume review</p>
@@ -179,8 +182,8 @@ function ResumeMock() {
         </span>
       </div>
 
-      <div className="mt-6 space-y-3">
-        <div className="rounded-2xl border border-white/15 bg-white/75 p-4 dark:bg-slate-900/70">
+      <div className="mt-5 space-y-3">
+        <div className="rounded-[1.35rem] border border-white/20 bg-white/82 p-4 shadow-sm dark:bg-slate-900/72">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">Keyword coverage</p>
             <p className="text-sm text-cyan-600 dark:text-cyan-300">82 / 100</p>
@@ -191,10 +194,10 @@ function ResumeMock() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <span className="rounded-full border border-white/15 bg-white/72 px-3 py-2 text-xs font-medium dark:bg-slate-900/65">
+          <span className="rounded-full border border-white/20 bg-white/78 px-3 py-2 text-xs font-medium dark:bg-slate-900/66">
             Keyword gaps highlighted
           </span>
-          <span className="rounded-full border border-white/15 bg-white/72 px-3 py-2 text-xs font-medium dark:bg-slate-900/65">
+          <span className="rounded-full border border-white/20 bg-white/78 px-3 py-2 text-xs font-medium dark:bg-slate-900/66">
             Results open on a review screen
           </span>
         </div>
@@ -205,7 +208,7 @@ function ResumeMock() {
 
 function PremiumMock() {
   return (
-    <div className="absolute inset-4 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/82 to-white/48 p-4 dark:from-slate-950/82 dark:to-slate-950/48">
+    <div className="absolute inset-x-5 bottom-4 top-[3.9rem] rounded-[1.8rem] border border-white/20 bg-gradient-to-b from-white/86 to-white/58 p-4 dark:from-slate-950/84 dark:to-slate-950/56">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Premium access</p>
@@ -224,7 +227,7 @@ function PremiumMock() {
         ].map((item) => (
           <div
             key={item}
-            className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/70 px-4 py-3 text-sm dark:bg-slate-900/65"
+            className="flex items-center gap-3 rounded-[1.35rem] border border-white/20 bg-white/78 px-4 py-3 text-sm shadow-sm dark:bg-slate-900/66"
           >
             <CheckCircle2 className="size-4 text-cyan-500" />
             <span>{item}</span>
@@ -241,8 +244,10 @@ const bentoItems = [
     background: <PracticeMock />,
     className: "md:col-span-2",
     cta: "See premium plans",
+    detail: "More room to think, then return later",
     description:
       "Practice typed answers with enough time to think, then come back later without losing your progress.",
+    eyebrow: "Mock answers",
     href: "#premium",
     name: "Practice that fits your pace",
   },
@@ -251,24 +256,26 @@ const bentoItems = [
     background: <ResumeMock />,
     className: "md:col-span-1",
     cta: "Explore the beta",
+    detail: "See what to edit before your next round",
     description:
       "Resume feedback stays easy to scan so you can move from edits to interview practice quickly.",
+    eyebrow: "Resume review",
     href: "#download",
     name: "Feedback you can act on",
   },
   {
     Icon: Layers3,
     background: (
-      <div className="absolute inset-4 rounded-[1.8rem] border border-white/15 bg-gradient-to-br from-white/82 to-white/46 p-4 dark:from-slate-950/80 dark:to-slate-950/44">
+      <div className="absolute inset-x-5 bottom-4 top-[3.9rem] rounded-[1.8rem] border border-white/20 bg-gradient-to-br from-white/86 to-white/56 p-4 dark:from-slate-950/82 dark:to-slate-950/48">
         <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Saved progress</p>
         <div className="mt-4 space-y-3">
-          <div className="rounded-2xl border border-white/15 bg-white/75 p-4 dark:bg-slate-900/70">
+          <div className="rounded-[1.35rem] border border-white/20 bg-white/82 p-4 shadow-sm dark:bg-slate-900/72">
             <p className="text-sm font-medium">Continue your interview?</p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Pick up from your saved question or start fresh if you want a new round.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/15 bg-white/70 p-4 dark:bg-slate-900/65">
+          <div className="rounded-[1.35rem] border border-white/20 bg-white/78 p-4 shadow-sm dark:bg-slate-900/66">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Reminder</p>
             <p className="mt-2 text-sm font-medium">Choose a daily practice time that actually works.</p>
           </div>
@@ -277,8 +284,10 @@ const bentoItems = [
     ),
     className: "md:col-span-1",
     cta: "See support options",
+    detail: "Saved rounds stay ready on the same device",
     description:
       "Resume a saved round, keep your reminders on your schedule, and stay consistent without friction.",
+    eyebrow: "Saved progress",
     href: "#support",
     name: "Come back without starting over",
   },
@@ -287,8 +296,10 @@ const bentoItems = [
     background: <PremiumMock />,
     className: "md:col-span-2",
     cta: "Download the app",
+    detail: "Unlock more only when you need deeper prep",
     description:
       "Free access stays useful. Premium is there when you want more sessions, more scans, and less waiting.",
+    eyebrow: "Premium access",
     href: "#download",
     name: "Upgrade only when it helps",
   },
@@ -409,7 +420,7 @@ export default function Home() {
           </BlurFade>
 
           <BlurFade delay={0.12} inView>
-            <BentoGrid className="grid-cols-1 auto-rows-[19rem] md:grid-cols-3 md:auto-rows-[20rem]">
+            <BentoGrid className="grid-cols-1 auto-rows-[22rem] md:grid-cols-3 md:auto-rows-[23rem]">
               {bentoItems.map((item) => (
                 <BentoCard key={item.name} {...item} />
               ))}
