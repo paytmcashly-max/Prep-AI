@@ -66,8 +66,8 @@ const roadmapCards = [
 
 function OrbitHero() {
   return (
-    <div className="relative mx-auto flex w-full max-w-[620px] items-center justify-center">
-      <div className="glass relative flex h-[28rem] w-full items-center justify-center overflow-hidden rounded-[2.4rem] border-white/25 bg-white/60 p-6 shadow-[0_30px_120px_rgba(76,29,149,0.16)] dark:bg-slate-950/55">
+    <div className="relative mx-auto flex w-full max-w-[660px] items-center justify-center">
+      <div className="glass relative flex h-[29rem] w-full items-center justify-center overflow-hidden rounded-[2.4rem] border-white/25 bg-white/60 p-6 shadow-[0_30px_120px_rgba(76,29,149,0.16)] dark:bg-slate-950/55">
         <AnimatedGridPattern
           className="absolute inset-0 opacity-35 [mask-image:radial-gradient(380px_circle_at_center,white,transparent)]"
           duration={5}
@@ -76,18 +76,18 @@ function OrbitHero() {
           repeatDelay={1}
         />
 
-        <div className="relative flex size-full items-center justify-center px-10">
+        <div className="relative flex size-full items-center justify-center px-12 py-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.16),transparent_34%),radial-gradient(circle_at_center,rgba(34,211,238,0.12),transparent_58%)]" />
 
-          <div className="relative z-10 flex size-[14rem] items-center justify-center rounded-full border border-white/20 bg-white/70 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl dark:bg-slate-950/68 sm:size-[15rem]">
+          <div className="relative z-10 flex size-[13rem] items-center justify-center rounded-full border border-white/20 bg-white/70 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl dark:bg-slate-950/68 sm:size-[14rem]">
             <div className="absolute inset-5 rounded-full border border-violet-300/35 dark:border-violet-500/20" />
             <div className="absolute inset-10 rounded-full border border-cyan-300/35 dark:border-cyan-500/20" />
 
             <OrbitingCircles
               className="border border-white/15 bg-white/85 shadow-lg backdrop-blur-xl dark:bg-slate-950/80"
               duration={24}
-              iconSize={52}
-              radius={112}
+              iconSize={48}
+              radius={100}
             >
               <span className="flex size-full items-center justify-center rounded-full text-violet-600 dark:text-violet-300">
                 <MessageSquareMore className="size-5" />
@@ -109,21 +109,21 @@ function OrbitHero() {
               </span>
             </OrbitingCircles>
 
-            <div className="glass relative z-10 flex size-44 flex-col items-center justify-center rounded-full border-white/20 bg-white/88 text-center dark:bg-slate-950/84">
+            <div className="glass relative z-10 flex size-40 flex-col items-center justify-center rounded-full border-white/20 bg-white/88 px-4 text-center dark:bg-slate-950/84 sm:size-44">
               <span className="brand-mark size-14 text-base">IA</span>
               <p className="mt-4 text-lg font-semibold tracking-tight">Your prep loop</p>
-              <p className="mt-1 max-w-[10rem] text-sm leading-6 text-muted-foreground">
+              <p className="mt-1 max-w-[9rem] text-sm leading-6 text-muted-foreground">
                 Practice, review, improve, and return without losing your place.
               </p>
             </div>
           </div>
 
-          <div className="absolute right-3 top-5 z-20 max-w-[14rem] rounded-[1.6rem] border border-white/30 bg-white/90 px-5 py-4 text-sm shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/82 sm:right-4 sm:top-6">
+          <div className="hero-callout absolute left-4 top-7 z-20 max-w-[11.5rem] rounded-[1.6rem] border border-white/30 bg-white/92 px-4 py-3 text-sm shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/82 sm:left-6 sm:top-8 sm:max-w-[12rem]">
             <p className="font-medium">Daily reminder</p>
             <p className="text-muted-foreground">Pick the time that fits your prep.</p>
           </div>
 
-          <div className="absolute bottom-6 left-4 z-20 max-w-[14rem] rounded-[1.6rem] border border-white/30 bg-white/90 px-5 py-4 text-sm shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/82 sm:bottom-7 sm:left-5">
+          <div className="hero-callout hero-callout-delay absolute bottom-7 right-4 z-20 max-w-[11.5rem] rounded-[1.6rem] border border-white/30 bg-white/92 px-4 py-3 text-sm shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/82 sm:bottom-8 sm:right-6 sm:max-w-[12rem]">
             <p className="font-medium">Resume feedback</p>
             <p className="text-muted-foreground">Clear next steps, not vague scores.</p>
           </div>
@@ -135,21 +135,21 @@ function OrbitHero() {
 
 function PracticeMock() {
   return (
-    <div className="absolute inset-x-6 bottom-24 top-10 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/80 to-white/45 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:from-slate-950/80 dark:to-slate-950/45">
+    <div className="absolute inset-4 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/82 to-white/48 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:from-slate-950/82 dark:to-slate-950/48">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Mock interview</p>
-          <p className="mt-2 text-lg font-semibold">Keep your flow steady</p>
+          <p className="mt-2 text-base font-semibold sm:text-lg">Keep your flow steady</p>
         </div>
         <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-700 dark:text-cyan-200">
           2 min answer timer
         </span>
       </div>
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-5 space-y-3">
         <div className="rounded-2xl border border-white/15 bg-white/75 p-4 dark:bg-slate-900/70">
           <p className="text-sm text-muted-foreground">Prompt</p>
-          <p className="mt-2 text-sm font-medium leading-7">
+          <p className="mt-2 text-sm font-medium leading-6">
             Tell me about a project where you had to explain a difficult decision clearly.
           </p>
         </div>
@@ -168,11 +168,11 @@ function PracticeMock() {
 
 function ResumeMock() {
   return (
-    <div className="absolute inset-x-6 bottom-24 top-10 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/80 to-white/45 p-5 dark:from-slate-950/80 dark:to-slate-950/45">
+    <div className="absolute inset-4 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/82 to-white/48 p-4 dark:from-slate-950/82 dark:to-slate-950/48">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Resume review</p>
-          <p className="mt-2 text-lg font-semibold">See what to fix next</p>
+          <p className="mt-2 text-base font-semibold sm:text-lg">See what to fix next</p>
         </div>
         <span className="rounded-full border border-violet-400/25 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-700 dark:text-violet-200">
           ATS-ready guidance
@@ -205,18 +205,18 @@ function ResumeMock() {
 
 function PremiumMock() {
   return (
-    <div className="absolute inset-x-6 bottom-24 top-10 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/80 to-white/45 p-5 dark:from-slate-950/80 dark:to-slate-950/45">
+    <div className="absolute inset-4 rounded-[1.8rem] border border-white/15 bg-gradient-to-b from-white/82 to-white/48 p-4 dark:from-slate-950/82 dark:to-slate-950/48">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Premium access</p>
-          <p className="mt-2 text-lg font-semibold">Upgrade when you need more depth</p>
+          <p className="mt-2 text-base font-semibold sm:text-lg">Upgrade when you need more depth</p>
         </div>
         <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-200">
           Verified after payment
         </span>
       </div>
 
-      <div className="mt-6 grid gap-3">
+      <div className="mt-5 grid gap-3">
         {[
           "Unlimited mock rounds",
           "Longer sessions for deeper answers",
@@ -259,12 +259,12 @@ const bentoItems = [
   {
     Icon: Layers3,
     background: (
-      <div className="absolute inset-x-6 bottom-24 top-10 rounded-[1.8rem] border border-white/15 bg-gradient-to-br from-white/82 to-white/46 p-5 dark:from-slate-950/80 dark:to-slate-950/44">
+      <div className="absolute inset-4 rounded-[1.8rem] border border-white/15 bg-gradient-to-br from-white/82 to-white/46 p-4 dark:from-slate-950/80 dark:to-slate-950/44">
         <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Saved progress</p>
-        <div className="mt-5 space-y-3">
+        <div className="mt-4 space-y-3">
           <div className="rounded-2xl border border-white/15 bg-white/75 p-4 dark:bg-slate-900/70">
             <p className="text-sm font-medium">Continue your interview?</p>
-            <p className="mt-2 text-sm leading-7 text-muted-foreground">
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Pick up from your saved question or start fresh if you want a new round.
             </p>
           </div>

@@ -46,7 +46,7 @@ const BentoCard = ({
   <div
     key={name}
     className={cn(
-      "relative col-span-3 flex flex-col justify-between overflow-hidden rounded-xl",
+      "relative col-span-3 grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden rounded-xl",
       // light styles
       "bg-background [box-shadow:0_0_0_1px_rgba(0,0,0,.03),0_2px_4px_rgba(0,0,0,.05),0_12px_24px_rgba(0,0,0,.05)]",
       // dark styles
@@ -55,18 +55,23 @@ const BentoCard = ({
     )}
     {...props}
   >
-    <div>{background}</div>
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-background via-background/96 to-transparent dark:from-background dark:via-background/94" />
-    <div className="relative z-10 p-4">
-      <div className="pointer-events-none z-10 flex flex-col gap-1">
-        <Icon className="h-12 w-12 text-neutral-700 dark:text-neutral-300" />
+    <div className="relative min-h-[12.5rem] overflow-hidden">
+      <div className="absolute inset-0">{background}</div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/70 via-background/28 to-transparent dark:from-background/80 dark:via-background/34" />
+    </div>
+
+    <div className="relative z-10 flex flex-col gap-4 border-t border-black/5 bg-background/88 p-5 backdrop-blur-xl dark:border-white/8 dark:bg-background/84">
+      <div className="pointer-events-none z-10 flex flex-col gap-2">
+        <Icon className="h-10 w-10 text-neutral-700 dark:text-neutral-300" />
         <h3 className="text-xl font-semibold text-neutral-700 dark:text-neutral-300">
           {name}
         </h3>
-        <p className="max-w-lg text-neutral-400">{description}</p>
+        <p className="max-w-lg text-sm leading-7 text-neutral-500 dark:text-neutral-400">
+          {description}
+        </p>
       </div>
 
-      <div className="pt-4">
+      <div>
         <Button
           variant="link"
           asChild

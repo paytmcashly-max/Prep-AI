@@ -223,6 +223,25 @@ button {
   @apply inline-flex size-11 items-center justify-center rounded-2xl border border-white/20 bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-400 text-sm font-semibold text-white shadow-lg shadow-violet-500/20;
 }
 
+.hero-callout {
+  animation: hero-callout-float 8s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-callout-delay {
+  animation-delay: -4s;
+}
+
+@keyframes hero-callout-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
 .verify-status {
   @apply mb-6 flex gap-4 rounded-[1.6rem] border px-4 py-5;
 }
