@@ -13,7 +13,7 @@ import {
   Sparkles,
   Star,
   Target,
-  Video,
+  Video
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -30,14 +30,14 @@ const navLinks = [
   { href: "#how-it-helps", label: "How it helps" },
   { href: "#premium", label: "Premium" },
   { href: "#coming-next", label: "Coming next" },
-  { href: "#support", label: "Support" },
+  { href: "#support", label: "Support" }
 ];
 
 const quickNotes = [
   "3 free interview rounds each day",
   "Saved interview drafts on the same device",
   "Resume feedback built for ATS cleanup",
-  "Premium unlocks only after payment confirmation",
+  "Premium unlocks only after payment confirmation"
 ];
 
 const roadmapCards = [
@@ -46,22 +46,22 @@ const roadmapCards = [
       "A spoken-answer mode for candidates who want to rehearse delivery, confidence, and pacing.",
     icon: Mic,
     label: "Private testing",
-    title: "Voice practice",
+    title: "Voice practice"
   },
   {
     description:
       "A more natural face-to-face round once the voice flow feels stable across real devices.",
     icon: Video,
     label: "Planned next",
-    title: "Video interview mode",
+    title: "Video interview mode"
   },
   {
     description:
       "A smoother interviewer readout so practice rounds feel closer to a real conversation.",
     icon: Sparkles,
     label: "On the roadmap",
-    title: "Guided interviewer flow",
-  },
+    title: "Guided interviewer flow"
+  }
 ];
 
 function OrbitHero() {
@@ -138,7 +138,9 @@ function PracticeMock() {
     <div className="absolute inset-x-5 bottom-4 top-[3.9rem] rounded-[1.8rem] border border-white/20 bg-gradient-to-b from-white/86 to-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:from-slate-950/84 dark:to-slate-950/56">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Mock interview</p>
+          <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">
+            Mock interview
+          </p>
           <p className="mt-2 text-base font-semibold sm:text-lg">Keep your flow steady</p>
         </div>
         <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-700 dark:text-cyan-200">
@@ -211,8 +213,12 @@ function PremiumMock() {
     <div className="absolute inset-x-5 bottom-4 top-[3.9rem] rounded-[1.8rem] border border-white/20 bg-gradient-to-b from-white/86 to-white/58 p-4 dark:from-slate-950/84 dark:to-slate-950/56">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Premium access</p>
-          <p className="mt-2 text-base font-semibold sm:text-lg">Upgrade when you need more depth</p>
+          <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">
+            Premium access
+          </p>
+          <p className="mt-2 text-base font-semibold sm:text-lg">
+            Upgrade when you need more depth
+          </p>
         </div>
         <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-200">
           Verified after payment
@@ -223,7 +229,7 @@ function PremiumMock() {
         {[
           "Unlimited mock rounds",
           "Longer sessions for deeper answers",
-          "More resume scans and saved checks",
+          "More resume scans and saved checks"
         ].map((item) => (
           <div
             key={item}
@@ -249,7 +255,7 @@ const bentoItems = [
       "Practice typed answers with enough time to think, then come back later without losing your progress.",
     eyebrow: "Mock answers",
     href: "#premium",
-    name: "Practice that fits your pace",
+    name: "Practice that fits your pace"
   },
   {
     Icon: FileSearch,
@@ -261,7 +267,7 @@ const bentoItems = [
       "Resume feedback stays easy to scan so you can move from edits to interview practice quickly.",
     eyebrow: "Resume review",
     href: "#download",
-    name: "Feedback you can act on",
+    name: "Feedback you can act on"
   },
   {
     Icon: Layers3,
@@ -277,7 +283,9 @@ const bentoItems = [
           </div>
           <div className="rounded-[1.35rem] border border-white/20 bg-white/78 p-4 shadow-sm dark:bg-slate-900/66">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Reminder</p>
-            <p className="mt-2 text-sm font-medium">Choose a daily practice time that actually works.</p>
+            <p className="mt-2 text-sm font-medium">
+              Choose a daily practice time that actually works.
+            </p>
           </div>
         </div>
       </div>
@@ -289,7 +297,7 @@ const bentoItems = [
       "Resume a saved round, keep your reminders on your schedule, and stay consistent without friction.",
     eyebrow: "Saved progress",
     href: "#support",
-    name: "Come back without starting over",
+    name: "Come back without starting over"
   },
   {
     Icon: ShieldCheck,
@@ -301,8 +309,8 @@ const bentoItems = [
       "Free access stays useful. Premium is there when you want more sessions, more scans, and less waiting.",
     eyebrow: "Premium access",
     href: "#download",
-    name: "Upgrade only when it helps",
-  },
+    name: "Upgrade only when it helps"
+  }
 ];
 
 export default function Home() {
@@ -320,7 +328,11 @@ export default function Home() {
 
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
             {navLinks.map((link) => (
-              <a className="transition-colors hover:text-foreground" href={link.href} key={link.href}>
+              <a
+                className="transition-colors hover:text-foreground"
+                href={link.href}
+                key={link.href}
+              >
                 {link.label}
               </a>
             ))}
@@ -335,7 +347,10 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="relative isolate overflow-hidden px-5 pb-16 pt-16 sm:px-8 sm:pt-24" id="top">
+      <section
+        className="relative isolate overflow-hidden px-5 pb-16 pt-16 sm:px-8 sm:pt-24"
+        id="top"
+      >
         <AnimatedGridPattern
           className="absolute inset-0 -z-10 opacity-60 [mask-image:radial-gradient(700px_circle_at_center,white,transparent)]"
           duration={5}
@@ -361,8 +376,8 @@ export default function Home() {
 
             <BlurFade delay={0.2} inView>
               <p className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground sm:text-xl">
-                IntervueAI helps you practise answers, clean up your resume, and keep progress moving
-                on the days when prep needs to feel simple, not overwhelming.
+                IntervueAI helps you practise answers, clean up your resume, and keep progress
+                moving on the days when prep needs to feel simple, not overwhelming.
               </p>
             </BlurFade>
 
@@ -447,7 +462,7 @@ export default function Home() {
                   "Unlimited mock rounds when you are in a serious prep sprint",
                   "Longer sessions so you can write fuller answers without rushing",
                   "More resume scans and saved checks when you are refining multiple drafts",
-                  "Upcoming voice and video modes after beta reliability is locked in",
+                  "Upcoming voice and video modes after beta reliability is locked in"
                 ].map((point) => (
                   <div
                     key={point}
@@ -463,7 +478,10 @@ export default function Home() {
 
           <div className="grid gap-6">
             <BlurFade delay={0.12} inView>
-              <Card className="glass rounded-[1.85rem] border-white/20 bg-white/68 p-0 dark:bg-slate-950/56" id="download">
+              <Card
+                className="glass rounded-[1.85rem] border-white/20 bg-white/68 p-0 dark:bg-slate-950/56"
+                id="download"
+              >
                 <CardHeader className="px-6 pt-6">
                   <Badge variant="outline" className="w-fit rounded-full px-3 py-1">
                     Download
@@ -503,17 +521,25 @@ export default function Home() {
                 </CardHeader>
                 <CardContent className="grid gap-3 px-6 pb-6">
                   <div className="rounded-[1.35rem] border border-white/15 bg-white/70 p-4 dark:bg-slate-900/65">
-                    <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Free plan</p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                      Free plan
+                    </p>
                     <p className="mt-2 text-lg font-semibold">Stay consistent every day</p>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      Enough access to build a routine, revisit saved work, and keep progress moving.
+                      Enough access to build a routine, revisit saved work, and keep progress
+                      moving.
                     </p>
                   </div>
                   <div className="rounded-[1.35rem] border border-white/15 bg-white/70 p-4 dark:bg-slate-900/65">
-                    <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Premium plan</p>
-                    <p className="mt-2 text-lg font-semibold">Open the longer, deeper version of the app</p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                      Premium plan
+                    </p>
+                    <p className="mt-2 text-lg font-semibold">
+                      Open the longer, deeper version of the app
+                    </p>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      Best when interviews are close and you want more practice without interruption.
+                      Best when interviews are close and you want more practice without
+                      interruption.
                     </p>
                   </div>
                 </CardContent>
@@ -558,7 +584,9 @@ export default function Home() {
                         <Icon className="size-5" />
                       </div>
                       <CardTitle className="text-2xl tracking-[-0.04em]">{item.title}</CardTitle>
-                      <p className="text-base leading-7 text-muted-foreground">{item.description}</p>
+                      <p className="text-base leading-7 text-muted-foreground">
+                        {item.description}
+                      </p>
                     </CardHeader>
                   </Card>
                 </BlurFade>
@@ -587,7 +615,11 @@ export default function Home() {
                 </div>
 
                 <div className="flex flex-col gap-4 md:items-end">
-                  <Button asChild className="h-12 rounded-full px-6 text-sm font-semibold" size="lg">
+                  <Button
+                    asChild
+                    className="h-12 rounded-full px-6 text-sm font-semibold"
+                    size="lg"
+                  >
                     <a href={supportEmailHref}>
                       <Mail className="size-4" />
                       {supportEmail}

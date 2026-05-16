@@ -73,7 +73,9 @@ const createInterviewMessages = (input: InterviewQuestionInput, attempt: number)
   const previousQuestions = input.previousQuestions?.length
     ? input.previousQuestions.map((question) => `- ${question}`).join("\n")
     : "- None";
-  const companyLine = input.company ? `Target company: ${input.company}` : "Target company: general";
+  const companyLine = input.company
+    ? `Target company: ${input.company}`
+    : "Target company: general";
 
   return [
     {

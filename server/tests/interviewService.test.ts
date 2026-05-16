@@ -15,7 +15,8 @@ describe("interviewService", () => {
     const { generateInterviewQuestion } = await import("../src/services/interviewService.js");
 
     generateGroqJsonMock.mockResolvedValueOnce({
-      question: '  "How would you explain a frontend architecture tradeoff to a non-technical stakeholder?"  '
+      question:
+        '  "How would you explain a frontend architecture tradeoff to a non-technical stakeholder?"  '
     });
 
     await expect(
@@ -26,7 +27,8 @@ describe("interviewService", () => {
         previousQuestions: []
       })
     ).resolves.toEqual({
-      question: "How would you explain a frontend architecture tradeoff to a non-technical stakeholder?"
+      question:
+        "How would you explain a frontend architecture tradeoff to a non-technical stakeholder?"
     });
   });
 
@@ -56,9 +58,8 @@ describe("interviewService", () => {
   });
 
   it("fails safely instead of using a hardcoded fallback question", async () => {
-    const { generateInterviewQuestion, InterviewGenerationError } = await import(
-      "../src/services/interviewService.js"
-    );
+    const { generateInterviewQuestion, InterviewGenerationError } =
+      await import("../src/services/interviewService.js");
 
     generateGroqJsonMock.mockResolvedValue({
       question:

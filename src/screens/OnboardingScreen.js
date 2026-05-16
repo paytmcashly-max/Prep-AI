@@ -89,7 +89,8 @@ export default function OnboardingScreen({ navigation }) {
               style={[
                 styles.previewLineLong,
                 {
-                  backgroundColor: colorScheme === "light" ? colors.borderStrong : colors.borderStrong
+                  backgroundColor:
+                    colorScheme === "light" ? colors.borderStrong : colors.borderStrong
                 }
               ]}
             />

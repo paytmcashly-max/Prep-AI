@@ -1,39 +1,33 @@
-import { type ComponentPropsWithoutRef, type ReactNode } from "react"
-import { ArrowRightIcon } from "@radix-ui/react-icons"
+import { type ComponentPropsWithoutRef, type ReactNode } from "react";
+import { ArrowRightIcon } from "@radix-ui/react-icons";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface BentoGridProps extends ComponentPropsWithoutRef<"div"> {
-  children: ReactNode
-  className?: string
+  children: ReactNode;
+  className?: string;
 }
 
 interface BentoCardProps extends ComponentPropsWithoutRef<"div"> {
-  eyebrow: string
-  name: string
-  className: string
-  background: ReactNode
-  Icon: React.ElementType
-  description: string
-  href: string
-  cta: string
-  detail: string
+  eyebrow: string;
+  name: string;
+  className: string;
+  background: ReactNode;
+  Icon: React.ElementType;
+  description: string;
+  href: string;
+  cta: string;
+  detail: string;
 }
 
 const BentoGrid = ({ children, className, ...props }: BentoGridProps) => {
   return (
-    <div
-      className={cn(
-        "grid w-full auto-rows-[22rem] grid-cols-3 gap-4",
-        className
-      )}
-      {...props}
-    >
+    <div className={cn("grid w-full auto-rows-[22rem] grid-cols-3 gap-4", className)} {...props}>
       {children}
     </div>
-  )
-}
+  );
+};
 
 const BentoCard = ({
   eyebrow,
@@ -99,6 +93,6 @@ const BentoCard = ({
       </div>
     </div>
   </div>
-)
+);
 
-export { BentoCard, BentoGrid }
+export { BentoCard, BentoGrid };

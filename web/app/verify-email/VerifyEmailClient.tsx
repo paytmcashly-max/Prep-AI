@@ -152,7 +152,8 @@ export default function VerifyEmailClient({ firebaseConfig, oobCode }: Props) {
         </div>
 
         <p className="verify-note">
-          If the app is already open, return there and tap <strong>I&apos;ve verified my email</strong>.
+          If the app is already open, return there and tap{" "}
+          <strong>I&apos;ve verified my email</strong>.
         </p>
       </div>
     </main>

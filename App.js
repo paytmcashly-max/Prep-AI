@@ -61,10 +61,7 @@ function AppShell() {
         style={colorScheme === "light" ? "dark" : "light"}
         translucent={false}
       />
-      <SafeAreaView
-        edges={["top"]}
-        style={{ backgroundColor: colors.background, flex: 1 }}
-      >
+      <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.background, flex: 1 }}>
         <AppNavigator />
       </SafeAreaView>
     </>
@@ -161,9 +158,7 @@ function App() {
             </AppThemeProvider>
           )}
         </SafeAreaProvider>
-      ) : (
-        null
-      )}
+      ) : null}
     </GestureHandlerRootView>
   );
 }

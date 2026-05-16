@@ -431,20 +431,20 @@ export default function ResumeScreen({ navigation }) {
             setShowPreviousAnalysisDetails(false);
           }
           await persistLastAnalysis(nextHistory[0]);
-      } else {
-        setAnalysisHistory([]);
-        setSelectedAnalysisId(null);
+        } else {
+          setAnalysisHistory([]);
+          setSelectedAnalysisId(null);
+          await loadLastAnalysis();
+        }
+      } catch (error) {
+        if (error instanceof ApiClientError && error.code === "NETWORK_ERROR") {
+          setOverviewError("You're offline. Reconnect to load resume scans and saved checks.");
+        } else {
+          setOverviewError(error.message || "Could not load resume usage status.");
+        }
+        setUsageStatus(null);
+        setIsResumeLimitReached(false);
         await loadLastAnalysis();
-      }
-    } catch (error) {
-      if (error instanceof ApiClientError && error.code === "NETWORK_ERROR") {
-        setOverviewError("You're offline. Reconnect to load resume scans and saved checks.");
-      } else {
-        setOverviewError(error.message || "Could not load resume usage status.");
-      }
-      setUsageStatus(null);
-      setIsResumeLimitReached(false);
-      await loadLastAnalysis();
       } finally {
         setIsLoadingOverview(false);
       }

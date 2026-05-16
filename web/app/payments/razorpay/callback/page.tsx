@@ -12,8 +12,7 @@ const getPaymentState = (status?: string) => {
 
   if (normalizedStatus === "paid") {
     return {
-      note:
-        "Return to IntervueAI and use Check premium status if access does not unlock automatically in a few seconds.",
+      note: "Return to IntervueAI and use Check premium status if access does not unlock automatically in a few seconds.",
       statusClassName: "success",
       subtitle:
         "Your payment has been received. We are verifying premium access for your account now.",
@@ -32,8 +31,7 @@ const getPaymentState = (status?: string) => {
 
   if (normalizedStatus === "expired") {
     return {
-      note:
-        "This payment link is no longer active. Go back to IntervueAI to start a fresh payment attempt.",
+      note: "This payment link is no longer active. Go back to IntervueAI to start a fresh payment attempt.",
       statusClassName: "error",
       subtitle: "The payment link expired before completion.",
       title: "Payment link expired"
@@ -42,8 +40,7 @@ const getPaymentState = (status?: string) => {
 
   if (normalizedStatus === "failed") {
     return {
-      note:
-        "No premium access was activated. Return to IntervueAI and start the payment again if you still need it.",
+      note: "No premium access was activated. Return to IntervueAI and start the payment again if you still need it.",
       statusClassName: "error",
       subtitle: "The payment did not complete successfully.",
       title: "Payment failed"
@@ -51,8 +48,7 @@ const getPaymentState = (status?: string) => {
   }
 
   return {
-    note:
-      "Return to IntervueAI to refresh your premium status. If payment was completed, access should sync shortly.",
+    note: "Return to IntervueAI to refresh your premium status. If payment was completed, access should sync shortly.",
     statusClassName: "",
     subtitle:
       "We have received your payment callback and are checking the latest status for this payment link.",

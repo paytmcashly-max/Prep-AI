@@ -394,9 +394,8 @@ describe("backend app", () => {
 
   it("verification email service fails safely when Resend env is missing", async () => {
     const { config } = await import("../src/config.js");
-    const { VerificationEmailUnavailableError, sendVerificationEmail } = await import(
-      "../src/services/verificationEmailService.js"
-    );
+    const { VerificationEmailUnavailableError, sendVerificationEmail } =
+      await import("../src/services/verificationEmailService.js");
     const originalConfig = {
       EMAIL_FROM: config.EMAIL_FROM,
       RESEND_API_KEY: config.RESEND_API_KEY
@@ -419,9 +418,8 @@ describe("backend app", () => {
   });
 
   it("verification email links can be rewritten to the branded verify page", async () => {
-    const { createCustomVerificationUrl } = await import(
-      "../src/services/verificationEmailService.js"
-    );
+    const { createCustomVerificationUrl } =
+      await import("../src/services/verificationEmailService.js");
 
     expect(
       createCustomVerificationUrl(

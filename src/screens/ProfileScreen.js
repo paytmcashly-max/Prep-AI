@@ -25,8 +25,7 @@ const APP_CONFIG_EXTRA = Constants.expoConfig?.extra || Constants.manifest?.extr
 const PRIVACY_POLICY_URL =
   APP_CONFIG_EXTRA.privacyPolicyUrl || "https://example.com/prepai/privacy";
 const TERMS_URL = APP_CONFIG_EXTRA.termsUrl || "https://example.com/prepai/terms";
-const REFUND_POLICY_URL =
-  APP_CONFIG_EXTRA.refundPolicyUrl || "https://example.com/prepai/refund";
+const REFUND_POLICY_URL = APP_CONFIG_EXTRA.refundPolicyUrl || "https://example.com/prepai/refund";
 const DELIVERY_POLICY_URL =
   APP_CONFIG_EXTRA.deliveryPolicyUrl || "https://example.com/prepai/delivery";
 const SUPPORT_EMAIL = APP_CONFIG_EXTRA.supportEmail || "support@example.com";
@@ -287,9 +286,7 @@ export default function ProfileScreen({ navigation }) {
           <ListRow
             icon="document"
             label="Digital Delivery"
-            detail={
-              isPlaceholderValue(DELIVERY_POLICY_URL) ? "Not configured yet" : "View details"
-            }
+            detail={isPlaceholderValue(DELIVERY_POLICY_URL) ? "Not configured yet" : "View details"}
             onPress={() => openLegalUrl("Digital Delivery", DELIVERY_POLICY_URL)}
           />
           <ListRow
