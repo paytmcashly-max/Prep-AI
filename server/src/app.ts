@@ -11,7 +11,10 @@ import { logger } from "./logger.js";
 import { interviewRateLimit } from "./rateLimitMiddleware.js";
 import voiceRouter from "./routes/voiceRoutes.js";
 import { evaluateInterviewAnswer } from "./services/evaluationService.js";
-import { generateInterviewQuestion } from "./services/interviewService.js";
+import {
+  generateInterviewQuestion,
+  InterviewGenerationError
+} from "./services/interviewService.js";
 import {
   analyzeResume,
   extractTextFromPdfBuffer,
@@ -548,6 +551,13 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
   if (error instanceof UsageLimitError) {
     response.status(429).json({
       error: "Usage limit reached"
+    });
+    return;
+  }
+
+  if (error instanceof InterviewGenerationError) {
+    response.status(503).json({
+      error: error.message
     });
     return;
   }

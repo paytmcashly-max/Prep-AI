@@ -10,7 +10,8 @@ type GroqMessage = {
 };
 
 type GenerateGroqJsonInput<TSchema extends z.ZodTypeAny> = {
-  fallback: z.infer<TSchema>;
+  fallback?: z.infer<TSchema>;
+  maxAttempts?: number;
   messages: GroqMessage[];
   model: string;
   schema: TSchema;
@@ -34,6 +35,7 @@ const getGroqClient = () => {
 
 export const generateGroqJson = async <TSchema extends z.ZodTypeAny>({
   fallback,
+  maxAttempts = 1,
   messages,
   model,
   schema,
@@ -43,33 +45,53 @@ export const generateGroqJson = async <TSchema extends z.ZodTypeAny>({
   const groq = getGroqClient();
 
   if (!groq) {
-    return fallback;
-  }
-
-  try {
-    const completion = await groq.chat.completions.create({
-      messages,
-      model,
-      temperature
-    });
-
-    const content = completion.choices[0]?.message?.content;
-
-    if (!content) {
-      logger.warn("Groq returned empty response", {
-        service: serviceName
-      });
+    if (fallback !== undefined) {
       return fallback;
     }
 
-    return schema.parse(JSON.parse(content));
-  } catch (error) {
-    logger.error("Groq JSON generation failed safely", {
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
-      errorName: error instanceof Error ? error.name : "UnknownError",
+    throw new Error("Groq client is unavailable.");
+  }
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const completion = await groq.chat.completions.create({
+        messages,
+        model,
+        temperature
+      });
+
+      const content = completion.choices[0]?.message?.content;
+
+      if (!content) {
+        throw new Error("Groq returned empty response.");
+      }
+
+      return schema.parse(JSON.parse(content));
+    } catch (error) {
+      lastError = error;
+
+      logger.warn("Groq JSON generation attempt failed safely", {
+        attempt,
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        maxAttempts,
+        service: serviceName
+      });
+    }
+  }
+
+  if (fallback !== undefined) {
+    logger.error("Groq JSON generation exhausted retries and used fallback", {
+      errorMessage: lastError instanceof Error ? lastError.message : "Unknown error",
+      errorName: lastError instanceof Error ? lastError.name : "UnknownError",
+      maxAttempts,
       service: serviceName
     });
 
     return fallback;
   }
+
+  throw lastError instanceof Error ? lastError : new Error("Groq JSON generation failed.");
 };

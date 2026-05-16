@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { config } from "../config.js";
+import { logger } from "../logger.js";
 import { generateGroqJson } from "./groqJsonService.js";
 
 export type InterviewQuestionInput = {
@@ -11,43 +12,22 @@ export type InterviewQuestionInput = {
   previousQuestions?: string[];
 };
 
+export class InterviewGenerationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InterviewGenerationError";
+  }
+}
+
 const MAX_QUESTION_WORDS = 22;
 const MAX_QUESTION_LENGTH = 180;
+const MAX_GENERATION_ATTEMPTS = 3;
 
-const questionSchema = z.object({
-  question: z.string().trim().min(1).max(MAX_QUESTION_LENGTH)
-});
-
-const fallbackQuestions: Record<string, string[]> = {
-  behavioral: [
-    "Describe a time you handled a difficult situation at work.",
-    "Tell me about a time you received critical feedback and how you acted on it.",
-    "Give an example of a time you took ownership of a problem.",
-    "Tell me about a time you had to work with a difficult teammate.",
-    "Describe a time you used the STAR method to explain your impact."
-  ],
-  company: [
-    "Why do you want to work at this company?",
-    "What do you know about this company and its products?",
-    "How would your skills help this company succeed?",
-    "Which company value or product area connects most with your experience?",
-    "How would you prepare for your first 30 days at this company?"
-  ],
-  hr: [
-    "Tell me about yourself.",
-    "Why should we hire you for this role?",
-    "What are your strengths and weaknesses?",
-    "Where do you see yourself in the next two years?",
-    "Why are you interested in this position?"
-  ],
-  technical: [
-    "Explain a technical project you built and the tradeoffs you made.",
-    "How do you debug a production issue under time pressure?",
-    "Describe how you would design a scalable feature for many users.",
-    "Walk me through how you would optimize a slow API or screen.",
-    "How do you decide between two technical approaches when both have tradeoffs?"
-  ]
-};
+const questionSchema = z
+  .object({
+    question: z.string().trim().min(1).max(MAX_QUESTION_LENGTH)
+  })
+  .strict();
 
 const normalizeText = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
 
@@ -77,93 +57,111 @@ const isQuestionConciseEnough = (question: string, difficulty: string) => {
   return normalizedQuestion.length <= MAX_QUESTION_LENGTH;
 };
 
-const getFallbackQuestionBank = (category: string) => {
-  const normalizedCategory = normalizeText(category);
-
-  if (normalizedCategory.includes("behavior")) {
-    return fallbackQuestions.behavioral;
+const getPromptAdjustment = (attempt: number) => {
+  if (attempt === 1) {
+    return "Generate the best possible question on the first try.";
   }
 
-  if (normalizedCategory.includes("company")) {
-    return fallbackQuestions.company;
+  if (attempt === 2) {
+    return "Your previous attempt was not acceptable. Make the next question shorter, sharper, and clearly distinct from the previous list.";
   }
 
-  if (normalizedCategory.includes("tech")) {
-    return fallbackQuestions.technical;
-  }
-
-  return fallbackQuestions.hr;
+  return "Final retry. Return one highly readable, role-specific question that is clearly different from the previous list and fully obeys every rule.";
 };
 
-const pickFallbackQuestion = (input: InterviewQuestionInput) => {
-  const previous = new Set((input.previousQuestions || []).map(normalizeText));
-  const bank = getFallbackQuestionBank(input.category);
-  const availableQuestion = bank.find((question) => !previous.has(normalizeText(question)));
-
-  return {
-    question: availableQuestion || bank[previous.size % bank.length]
-  };
-};
-
-export const generateInterviewQuestion = async (input: InterviewQuestionInput) => {
-  const fallbackQuestion = pickFallbackQuestion(input);
+const createInterviewMessages = (input: InterviewQuestionInput, attempt: number) => {
   const previousQuestions = input.previousQuestions?.length
     ? input.previousQuestions.map((question) => `- ${question}`).join("\n")
     : "- None";
-  const companyLine = input.company
-    ? `Target company: ${input.company}`
-    : "Target company: general";
+  const companyLine = input.company ? `Target company: ${input.company}` : "Target company: general";
 
-  const parsedQuestion = await generateGroqJson({
-    fallback: fallbackQuestion,
-    model: config.GROQ_QUESTION_MODEL,
-    schema: questionSchema,
-    serviceName: "interviewService",
-    temperature: 0.7,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are an expert interview coach. Generate one fresh, concise interview question. Respond ONLY in valid JSON with no markdown or extra text."
-      },
-      {
-        role: "user",
-        content: `Create one interview question for this candidate.
+  return [
+    {
+      role: "system" as const,
+      content: `You are a senior interview coach and question designer.
+
+Your job is to write exactly one interview question that feels realistic for a live interviewer.
+The question must be tailored to the candidate's job role, category, and difficulty.
+Avoid generic filler. Ask something a strong interviewer would actually ask.
+
+Rules you must follow:
+- Return exactly one interview question.
+- Keep it to one sentence.
+- Keep it under ${MAX_QUESTION_WORDS} words and under ${MAX_QUESTION_LENGTH} characters.
+- Ask one clear thing only.
+- Do not include explanations, labels, numbering, or markdown.
+- For easy and medium difficulty, do not ask multi-part questions.
+- Make the wording natural, conversational, and easy to read on mobile.
+- Respect the requested category:
+  - HR: motivation, strengths, self-awareness, communication, culture fit.
+  - Behavioral: past experience, ownership, teamwork, conflict, decision-making, impact.
+  - Technical: architecture, debugging, tradeoffs, implementation, performance, systems thinking.
+  - Company: company motivation, product interest, first 30 days, role fit for that company.
+
+Respond with strict JSON only:
+{"question":"..."}`
+    },
+    {
+      role: "user" as const,
+      content: `Create one interview question for this candidate.
 
 Job role: ${input.jobRole}
 Category: ${input.category}
 Difficulty: ${input.difficulty}
 ${companyLine}
 
-Avoid repeating or closely paraphrasing these previous questions:
+Do not repeat or closely paraphrase any of these previous questions:
 ${previousQuestions}
 
-Question rules:
-- One sentence only.
-- Around ${MAX_QUESTION_WORDS} words maximum.
-- Ask one clear thing.
-- Do not ask multi-part questions unless difficulty is hard.
-- Keep the wording mobile-friendly and easy to read.
+Additional instruction:
+${getPromptAdjustment(attempt)}`
+    }
+  ];
+};
 
-Return strict JSON:
-{
-  "question": "one concise question"
-}`
-      }
-    ]
-  });
-
-  const normalizedQuestion = normalizeQuestion(parsedQuestion.question);
+export const generateInterviewQuestion = async (input: InterviewQuestionInput) => {
   const previous = new Set((input.previousQuestions || []).map(normalizeText));
+  let lastError: unknown;
 
-  if (
-    previous.has(normalizeText(normalizedQuestion)) ||
-    !isQuestionConciseEnough(normalizedQuestion, input.difficulty)
-  ) {
-    return fallbackQuestion;
+  for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt += 1) {
+    try {
+      const parsedQuestion = await generateGroqJson({
+        maxAttempts: 2,
+        messages: createInterviewMessages(input, attempt),
+        model: config.GROQ_QUESTION_MODEL,
+        schema: questionSchema,
+        serviceName: "interviewService",
+        temperature: attempt === 1 ? 0.45 : 0.35
+      });
+
+      const normalizedQuestion = normalizeQuestion(parsedQuestion.question);
+
+      if (
+        previous.has(normalizeText(normalizedQuestion)) ||
+        !isQuestionConciseEnough(normalizedQuestion, input.difficulty)
+      ) {
+        lastError = new Error("Model returned a repeated or invalid-length question.");
+        continue;
+      }
+
+      return {
+        question: normalizedQuestion
+      };
+    } catch (error) {
+      lastError = error;
+    }
   }
 
-  return {
-    question: normalizedQuestion
-  };
+  logger.error("Interview question generation failed after retries", {
+    category: input.category,
+    difficulty: input.difficulty,
+    errorMessage: lastError instanceof Error ? lastError.message : "Unknown error",
+    errorName: lastError instanceof Error ? lastError.name : "UnknownError",
+    jobRole: input.jobRole,
+    previousQuestionCount: input.previousQuestions?.length || 0
+  });
+
+  throw new InterviewGenerationError(
+    "Could not generate a fresh interview question right now. Please try again."
+  );
 };
